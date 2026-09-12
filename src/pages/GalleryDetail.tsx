@@ -13,6 +13,7 @@ import {
 } from '../lib/galleryContent';
 import { useSiteContent } from '../context/SiteContentContext';
 import { GalleryGrid } from '../components/galleries/GalleryGrid';
+import { ResponsiveImage } from '../components/ResponsiveImage';
 
 function formatGalleryDate(value: string | undefined, locale: 'uk' | 'ru' | 'en'): string {
   if (!value) return '';
@@ -118,7 +119,7 @@ export function GalleryDetail() {
       <section className="relative overflow-hidden bg-slate-950 text-white">
         {cover && (
           <div className="absolute inset-0">
-            <img src={cover} alt="" className="h-full w-full object-cover opacity-35" />
+            <ResponsiveImage src={cover} alt="" displayWidth={2000} sizes="100vw" loading="eager" className="h-full w-full object-cover opacity-35" />
             <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-slate-950/45" />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/20" />
           </div>
