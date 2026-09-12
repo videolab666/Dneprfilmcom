@@ -3,7 +3,7 @@ import { Video, Mail, Phone, MapPin } from 'lucide-react';
 import { useSiteContent } from '../../context/SiteContentContext';
 
 export function Footer() {
-  const { settings, t } = useSiteContent();
+  const { settings, t, l } = useSiteContent();
 
   return (
     <footer className="bg-slate-900 text-slate-300 py-16">
@@ -27,8 +27,10 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li><Link to="/live" className="hover:text-white transition-colors">{t('nav.live')}</Link></li>
               <li><Link to="/video" className="hover:text-white transition-colors">{t('nav.video')}</Link></li>
+              <li><Link to="/videos" className="hover:text-white transition-colors">{l('Відеопортфоліо', 'Видеопортфолио', 'Video portfolio')}</Link></li>
               <li><Link to="/construction" className="hover:text-white transition-colors">{t('nav.construction')}</Link></li>
               <li><Link to="/photo" className="hover:text-white transition-colors">{t('nav.photo')}</Link></li>
+              <li><Link to="/galleries" className="hover:text-white transition-colors">{l('Фотогалереї', 'Фотогалереи', 'Photo galleries')}</Link></li>
               <li><Link to="/cases" className="hover:text-white transition-colors">{t('nav.cases')}</Link></li>
             </ul>
           </div>
@@ -110,4 +112,3 @@ export function Footer() {
     </footer>
   );
 }
-
