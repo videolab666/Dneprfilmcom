@@ -131,7 +131,64 @@ jobs:
             fi
           done
 
-          echo 'Browser smoke tests passed.'
+          public_routes=(
+            ''
+            'live'
+            'video'
+            'construction'
+            'photo'
+            'cases'
+            'media-center'
+            'about'
+            'contacts'
+            'does-not-exist'
+          )
+
+          for route in "${public_routes[@]}"; do
+            url="http://127.0.0.1:4173/Dneprfilmcom/${route}?lang=en"
+            echo "English locale audit ${url}"
+            "$CHROME" \
+              --headless=new \
+              --no-sandbox \
+              --disable-gpu \
+              --disable-dev-shm-usage \
+              --virtual-time-budget=7000 \
+              --dump-dom \
+              "$url" > /tmp/dneprfilm-en.html 2>/tmp/dneprfilm-chrome.log || true
+
+            ROUTE="$route" python3 - <<'PY'
+          import html as html_module
+          import os
+          import re
+          import sys
+
+          source = open('/tmp/dneprfilm-en.html', encoding='utf-8').read()
+          match = re.search(r'<body[^>]*>(.*?)</body>', source, re.I | re.S)
+          body = match.group(1) if match else source
+          body = re.sub(r'<script\b[^>]*>.*?</script>', ' ', body, flags=re.I | re.S)
+          body = re.sub(r'<style\b[^>]*>.*?</style>', ' ', body, flags=re.I | re.S)
+          text = html_module.unescape(re.sub(r'<[^>]+>', ' ', body))
+          text = re.sub(r'\s+', ' ', text).strip()
+          pattern = re.compile(r'[А-Яа-яЁёІіЇїЄєҐґ]')
+          if pattern.search(text):
+              route = os.environ.get('ROUTE') or '/'
+              print(f'Cyrillic public text remained in EN locale on /{route}:')
+              snippets = []
+              for hit in pattern.finditer(text):
+                  start = max(0, hit.start() - 70)
+                  end = min(len(text), hit.end() + 100)
+                  snippet = text[start:end].strip()
+                  if snippet not in snippets:
+                      snippets.append(snippet)
+                  if len(snippets) >= 20:
+                      break
+              for snippet in snippets:
+                  print('  -', snippet)
+              sys.exit(1)
+          PY
+          done
+
+          echo 'Browser and English locale smoke tests passed.'
 
       - name: Configure Pages
         if: github.event_name != 'pull_request'
