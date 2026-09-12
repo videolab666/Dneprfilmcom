@@ -30,7 +30,6 @@ export function CaseDetail() {
   const { slug = '' } = useParams();
   const { locale, getLocalizedCase, settings, l } = useSiteContent();
   const [cases, setCases] = useState<CaseStudy[]>(INITIAL_CASES);
-  const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
@@ -46,11 +45,9 @@ export function CaseDetail() {
       } else {
         setCases(INITIAL_CASES);
       }
-      setLoading(false);
     }, error => {
       console.warn('Could not load case details from Firestore, using bundled cases:', error);
       setCases(INITIAL_CASES);
-      setLoading(false);
     });
     return () => unsubscribe();
   }, [slug]);
@@ -142,14 +139,6 @@ export function CaseDetail() {
       // Clipboard can be unavailable in some embedded browsers.
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-slate-50">
-        <div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-200 border-b-indigo-600" />
-      </div>
-    );
-  }
 
   if (!currentCase || !rawCase) {
     return (
