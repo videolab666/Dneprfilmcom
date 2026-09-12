@@ -19,52 +19,82 @@ jobs:
           from pathlib import Path
           import re
 
-          # 1. Apply the shared override dictionary after the base legacy map is declared.
+          # 1. Shared curated overrides for legacy l()/legacy() copy.
           p = Path('src/locales/legacyEnglish.ts')
           s = p.read_text(encoding='utf-8')
-          if "PUBLIC_EN_OVERRIDES" not in s:
-              s = s.replace("import type { Locale } from '../types';\n", "import type { Locale } from '../types';\nimport { PUBLIC_EN_OVERRIDES } from './publicEnglishOverrides';\n", 1)
-              s = s.replace("\nexport function translateEnglishValue<T>(value: T): T {", "\nObject.assign(LEGACY_EN_TRANSLATIONS, PUBLIC_EN_OVERRIDES);\n\nexport function translateEnglishValue<T>(value: T): T {", 1)
+          if "import { PUBLIC_EN_OVERRIDES } from './publicEnglishOverrides';" not in s:
+              s = s.replace(
+                  "import type { Locale } from '../types';\n",
+                  "import type { Locale } from '../types';\nimport { PUBLIC_EN_OVERRIDES } from './publicEnglishOverrides';\n",
+                  1,
+              )
+          if 'Object.assign(LEGACY_EN_TRANSLATIONS, PUBLIC_EN_OVERRIDES);' not in s:
+              marker = '\nexport function translateEnglishValue<T>(value: T): T {'
+              if marker not in s:
+                  raise SystemExit('legacyEnglish translateEnglishValue marker not found')
+              s = s.replace(
+                  marker,
+                  '\nObject.assign(LEGACY_EN_TRANSLATIONS, PUBLIC_EN_OVERRIDES);\n' + marker,
+                  1,
+              )
           p.write_text(s, encoding='utf-8')
 
-          # 2. LIVE configurator still had two raw UA/RU branches that bypassed l()/legacy().
+          # 2. LIVE configurator: repair raw locale branches that bypass l()/legacy().
           p = Path('src/pages/LiveProduction.tsx')
           s = p.read_text(encoding='utf-8')
-          s = s.replace("const { isUk, l, legacy } = useSiteContent();", "const { isUk, isEn, l, legacy } = useSiteContent();", 1)
-          old = '''{isUk 
-                      ? `${cameraCount} ${cameraCount === 1 ? 'камера' : cameraCount < 5 ? 'камери' : 'камер'}`
-                      : `${cameraCount} ${cameraCount === 1 ? 'камера' : cameraCount < 5 ? 'камеры' : 'камер'}`
-                    }'''
-          new = '''{isEn
+          if 'const { isUk, isEn, l, legacy } = useSiteContent();' not in s:
+              s = s.replace(
+                  'const { isUk, l, legacy } = useSiteContent();',
+                  'const { isUk, isEn, l, legacy } = useSiteContent();',
+                  1,
+              )
+
+          camera_pattern = re.compile(
+              r"\{isUk\s*\?\s*`\$\{cameraCount\}\s+\$\{cameraCount\s*===\s*1\s*\?\s*'камера'\s*:\s*cameraCount\s*<\s*5\s*\?\s*'камери'\s*:\s*'камер'\}`\s*:\s*`\$\{cameraCount\}\s+\$\{cameraCount\s*===\s*1\s*\?\s*'камера'\s*:\s*cameraCount\s*<\s*5\s*\?\s*'камеры'\s*:\s*'камер'\}`\s*\}",
+              re.S,
+          )
+          camera_replacement = """{isEn
                       ? `${cameraCount} ${cameraCount === 1 ? 'camera' : 'cameras'}`
                       : isUk
                         ? `${cameraCount} ${cameraCount === 1 ? 'камера' : cameraCount < 5 ? 'камери' : 'камер'}`
                         : `${cameraCount} ${cameraCount === 1 ? 'камера' : cameraCount < 5 ? 'камеры' : 'камер'}`
-                    }'''
-          if old not in s:
-              raise SystemExit('LIVE camera count branch not found')
-          s = s.replace(old, new, 1)
-          old = '''{(isUk 
-                    ? ['Київ', 'Дніпро', 'Львів', 'Одеса', 'Інше'] 
-                    : ['Киев', 'Днепр', 'Львов', 'Одесса', 'Другой']
-                  ).map((loc) => ('''
-          new = '''{(isEn
+                    }"""
+          if "? `${cameraCount} ${cameraCount === 1 ? 'camera' : 'cameras'}`" not in s:
+              s, n = camera_pattern.subn(camera_replacement, s, count=1)
+              if n != 1:
+                  raise SystemExit(f'LIVE camera-count replacement count={n}')
+
+          city_pattern = re.compile(
+              r"\{\(isUk\s*\?\s*\['Київ',\s*'Дніпро',\s*'Львів',\s*'Одеса',\s*'Інше'\]\s*:\s*\['Киев',\s*'Днепр',\s*'Львов',\s*'Одесса',\s*'Другой'\]\s*\)\.map\(\(loc\)\s*=>\s*\(",
+              re.S,
+          )
+          city_replacement = """{(isEn
                     ? ['Kyiv', 'Dnipro', 'Lviv', 'Odesa', 'Other']
                     : isUk
                       ? ['Київ', 'Дніпро', 'Львів', 'Одеса', 'Інше']
                       : ['Киев', 'Днепр', 'Львов', 'Одесса', 'Другой']
-                  ).map((loc) => ('''
-          if old not in s:
-              raise SystemExit('LIVE city branch not found')
-          s = s.replace(old, new, 1)
-          s = s.replace('>Starlink + Multi-SIM бондинг</div>', '>{l("Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM bonding")}</div>', 1)
+                  ).map((loc) => ("""
+          if "? ['Kyiv', 'Dnipro', 'Lviv', 'Odesa', 'Other']" not in s:
+              s, n = city_pattern.subn(city_replacement, s, count=1)
+              if n != 1:
+                  raise SystemExit(f'LIVE city replacement count={n}')
+
+          s = s.replace(
+              '>Starlink + Multi-SIM бондинг</div>',
+              '>{l("Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM bonding")}</div>',
+              1,
+          )
           p.write_text(s, encoding='utf-8')
 
-          # 3. Contacts service selector was a raw isUk ternary, making EN render Russian.
+          # 3. Contacts service selector: EN previously fell through to RU.
           p = Path('src/pages/Contacts.tsx')
           s = p.read_text(encoding='utf-8')
-          service_pattern = re.compile(r'''\{isUk \? \(\s*<>\s*<option value="LIVE">LIVE Пряма трансляція.*?</>\s*\) : \(\s*<>\s*<option value="LIVE">LIVE Прямая трансляция.*?</>\s*\)\}''', re.S)
-          service_replacement = '''<>
+          if 'LIVE Broadcast (sports, forum, show)' not in s:
+              service_pattern = re.compile(
+                  r'''\{isUk\s*\?\s*\(\s*<>\s*<option value="LIVE">LIVE Пряма трансляція.*?</>\s*\)\s*:\s*\(\s*<>\s*<option value="LIVE">LIVE Прямая трансляция.*?</>\s*\)\s*\}''',
+                  re.S,
+              )
+              service_replacement = '''<>
                             <option value="LIVE">{l("LIVE Пряма трансляція (спорт, форум, шоу)", "LIVE Прямая трансляция (спорт, форум, шоу)", "LIVE Broadcast (sports, forum, show)")}</option>
                             <option value="VIDEO">{l("Іміджевий корпоративний фільм / промо", "Имиджевый корпоративный фильм / промо", "Corporate brand film / promo")}</option>
                             <option value="CONSTRUCTION">{l("Моніторинг будівництва / 4K таймлапс", "Мониторинг строительства / 4K таймлапс", "Construction monitoring / 4K timelapse")}</option>
@@ -73,27 +103,36 @@ jobs:
                             <option value="PHOTO">{l("Репортажна або студійна фотозйомка", "Репортажная или студийная фотосъемка", "Event or studio photography")}</option>
                             <option value="FULL_PACKAGE">{l("Комплексний медіа-пакет під ключ", "Комплексный медиа-пакет под ключ", "Turnkey full media package")}</option>
                           </>'''
-          s, n = service_pattern.subn(service_replacement, s, count=1)
-          if n != 1:
-              raise SystemExit(f'Contacts service selector replacement count={n}')
+              s, n = service_pattern.subn(service_replacement, s, count=1)
+              if n != 1:
+                  raise SystemExit(f'Contacts service-selector replacement count={n}')
           p.write_text(s, encoding='utf-8')
 
-          # 4. Media Center categories were selected with isUk, so EN always fell through to RU.
+          # 4. Media Center category tabs: EN previously fell through to RU.
           p = Path('src/pages/MediaCenter.tsx')
           s = p.read_text(encoding='utf-8')
-          s = s.replace("const categories: Array<{ id: ArticleCategory | 'all'; ru: string; uk: string }> = [", "const categories: Array<{ id: ArticleCategory | 'all'; ru: string; uk: string; en: string }> = [", 1)
-          replacements = {
-              "{ id: 'all', ru: 'Все статьи', uk: 'Усі статті' },": "{ id: 'all', ru: 'Все статьи', uk: 'Усі статті', en: 'All articles' },",
-              "{ id: 'live', ru: 'LIVE & Стриминг', uk: 'LIVE & Стрімінг' },": "{ id: 'live', ru: 'LIVE & Стриминг', uk: 'LIVE & Стрімінг', en: 'LIVE & Streaming' },",
-              "{ id: 'video', ru: 'Видеопроизводство', uk: 'Відеовиробництво' },": "{ id: 'video', ru: 'Видеопроизводство', uk: 'Відеовиробництво', en: 'Video Production' },",
-              "{ id: 'construction', ru: 'Стройка & Таймлапс', uk: 'Будівництво & Таймлапс' },": "{ id: 'construction', ru: 'Стройка & Таймлапс', uk: 'Будівництво & Таймлапс', en: 'Construction & Timelapse' },",
-              "{ id: 'photo', ru: 'Фото', uk: 'Фото' },": "{ id: 'photo', ru: 'Фото', uk: 'Фото', en: 'Photography' },",
-              "{ id: 'tech', ru: 'Технологии', uk: 'Технології' },": "{ id: 'tech', ru: 'Технологии', uk: 'Технології', en: 'Technology' },",
-          }
-          for old, new in replacements.items():
-              if old in s:
+          if "en: 'All articles'" not in s:
+              s = s.replace(
+                  "const categories: Array<{ id: ArticleCategory | 'all'; ru: string; uk: string }> = [",
+                  "const categories: Array<{ id: ArticleCategory | 'all'; ru: string; uk: string; en: string }> = [",
+                  1,
+              )
+              replacements = {
+                  "{ id: 'all', ru: 'Все статьи', uk: 'Усі статті' },": "{ id: 'all', ru: 'Все статьи', uk: 'Усі статті', en: 'All articles' },",
+                  "{ id: 'live', ru: 'LIVE & Стриминг', uk: 'LIVE & Стрімінг' },": "{ id: 'live', ru: 'LIVE & Стриминг', uk: 'LIVE & Стрімінг', en: 'LIVE & Streaming' },",
+                  "{ id: 'video', ru: 'Видеопроизводство', uk: 'Відеовиробництво' },": "{ id: 'video', ru: 'Видеопроизводство', uk: 'Відеовиробництво', en: 'Video Production' },",
+                  "{ id: 'construction', ru: 'Стройка & Таймлапс', uk: 'Будівництво & Таймлапс' },": "{ id: 'construction', ru: 'Стройка & Таймлапс', uk: 'Будівництво & Таймлапс', en: 'Construction & Timelapse' },",
+                  "{ id: 'photo', ru: 'Фото', uk: 'Фото' },": "{ id: 'photo', ru: 'Фото', uk: 'Фото', en: 'Photography' },",
+                  "{ id: 'tech', ru: 'Технологии', uk: 'Технології' },": "{ id: 'tech', ru: 'Технологии', uk: 'Технології', en: 'Technology' },",
+              }
+              for old, new in replacements.items():
+                  if old not in s:
+                      raise SystemExit(f'MediaCenter category row not found: {old}')
                   s = s.replace(old, new, 1)
-          s = s.replace("{isUk ? category.uk : category.ru}", "{locale === 'en' ? category.en : isUk ? category.uk : category.ru}")
+          s = s.replace(
+              "{isUk ? category.uk : category.ru}",
+              "{locale === 'en' ? category.en : isUk ? category.uk : category.ru}",
+          )
           p.write_text(s, encoding='utf-8')
 
           Path('.github/workflows/i18n-wire-public-overrides.yml').unlink(missing_ok=True)
