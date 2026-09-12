@@ -1,0 +1,35 @@
+name: Audit unused code and dependencies
+
+on:
+  push:
+    branches:
+      - audit/dead-code-dependencies
+    paths:
+      - .github/workflows/audit-unused.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Audit dependency issues
+        run: |
+          echo '===== KNIP DEPENDENCIES ====='
+          bunx knip --dependencies || true
+
+      - name: Audit unused files and exports
+        run: |
+          echo '===== KNIP FILES + EXPORTS ====='
+          bunx knip --include files,exports --include-entry-exports || true
