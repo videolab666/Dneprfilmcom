@@ -37,11 +37,12 @@ jobs:
           done
           test -n "$CHROME"
           routes=('' 'live' 'video' 'construction' 'photo' 'cases' 'media-center' 'about' 'contacts' 'does-not-exist')
+          failed=0
           for route in "${routes[@]}"; do
             url="http://127.0.0.1:4173/Dneprfilmcom/${route}?lang=en"
             echo "Auditing $url"
             "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=7000 --dump-dom "$url" > /tmp/en.html 2>/tmp/chrome.log || true
-            ROUTE="$route" python3 - <<'PY'
+            if ! ROUTE="$route" python3 - <<'PY'
           import html as h, os, re, sys
           src=open('/tmp/en.html',encoding='utf-8').read()
           m=re.search(r'<body[^>]*>(.*?)</body>',src,re.I|re.S)
@@ -65,4 +66,8 @@ jobs:
               sys.exit(1)
           print('OK', '/' + (os.environ.get('ROUTE') or ''))
           PY
+            then
+              failed=1
+            fi
           done
+          exit "$failed"
