@@ -19,11 +19,20 @@
       (() => {
         const recoveryKey = 'dneprfilm_asset_reload';
 
-        const showBootError = () => {
+        const showBootError = (details = '') => {
           const fallback = document.getElementById('boot-fallback');
           if (!fallback) return;
-          fallback.innerHTML = '<strong style="display:block;margin-bottom:10px">Не вдалося завантажити сайт</strong>' +
-            '<span>Оновіть сторінку або натисніть Ctrl+F5. Якщо помилка повторюється, відкрийте сайт у новій вкладці.</span>';
+          const safeDetails = String(details)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+          fallback.innerHTML = '<div style="max-width:760px">' +
+            '<strong style="display:block;margin-bottom:10px;color:#fff">Не вдалося запустити сайт</strong>' +
+            '<span>Оновіть сторінку або натисніть Ctrl+F5.</span>' +
+            (safeDetails ? '<code style="display:block;margin-top:16px;padding:12px;border-radius:8px;background:#0f172a;color:#fca5a5;text-align:left;white-space:pre-wrap;word-break:break-word">' + safeDetails + '</code>' : '') +
+            '</div>';
         };
 
         const recover = () => {
@@ -36,7 +45,7 @@
 
           const now = Date.now();
           if (lastAttempt && now - lastAttempt < 15000) {
-            showBootError();
+            showBootError('Повторна помилка завантаження JS/CSS після автоматичного оновлення.');
             return;
           }
 
@@ -60,7 +69,14 @@
           const target = event.target;
           if (target instanceof HTMLScriptElement || target instanceof HTMLLinkElement) {
             const url = target instanceof HTMLScriptElement ? target.src : target.href;
-            if (url && url.includes('/assets/')) recover();
+            if (url && url.includes('/assets/')) {
+              recover();
+              return;
+            }
+          }
+
+          if (event instanceof ErrorEvent && event.message) {
+            showBootError(event.message);
           }
         }, true);
 
@@ -73,8 +89,17 @@
           ) {
             event.preventDefault();
             recover();
+            return;
           }
+
+          if (message) showBootError(message);
         });
+
+        window.setTimeout(() => {
+          if (document.getElementById('boot-fallback')) {
+            showBootError('JavaScript не завершив запуск протягом 10 секунд.');
+          }
+        }, 10000);
       })();
     </script>
   </head>
