@@ -192,8 +192,8 @@ export function CasesManager() {
   };
 
   const cancelEditing = async () => {
-    const orphaned = [...new Set(newUploadPaths)];
-    if (orphaned.length) await Promise.all(orphaned.map(path => deleteCaseImage(path)));
+    const orphaned = Array.from(new Set<string>(newUploadPaths));
+    if (orphaned.length) await Promise.all(orphaned.map((path: string) => deleteCaseImage(path)));
     setNewUploadPaths([]);
     setPendingDeletePaths([]);
     setEditing(null);
