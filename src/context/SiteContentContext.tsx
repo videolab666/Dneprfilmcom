@@ -291,6 +291,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
     const en = CASE_TRANSLATIONS_EN[c.id];
     return {
       ...c,
+      client: en?.client || translateEnglishValue(c.client),
       title: c.title_en || en?.title || translateEnglishValue(c.title_uk || uk?.title || c.title),
       categoryLabel: c.categoryLabel_en || en?.categoryLabel || translateEnglishValue(c.categoryLabel_uk || uk?.categoryLabel || c.categoryLabel),
       description: c.description_en || en?.description || translateEnglishValue(c.description_uk || uk?.description || c.description),
