@@ -40,7 +40,6 @@ function coverForCase(item: CaseStudy): string {
 export function Cases() {
   const { settings, getLocalizedCase, l } = useSiteContent();
   const [cases, setCases] = useState<CaseStudy[]>(INITIAL_CASES);
-  const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<'ALL' | 'LIVE' | 'VIDEO' | 'CONSTRUCTION'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [inquiryCase, setInquiryCase] = useState<CaseStudy | null>(null);
@@ -57,11 +56,9 @@ export function Cases() {
         : snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as CaseStudy));
       loaded.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       setCases(loaded.filter(item => item.published !== false));
-      setLoading(false);
     }, error => {
       console.warn('Could not subscribe to cases from Firestore, using initial cases:', error);
       setCases(INITIAL_CASES.filter(item => item.published !== false));
-      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -192,9 +189,7 @@ export function Cases() {
 
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {loading ? (
-            <div className="flex min-h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-b-indigo-600" /></div>
-          ) : filteredCases.length === 0 ? (
+          {filteredCases.length === 0 ? (
             <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
               <Briefcase className="mx-auto h-12 w-12 text-slate-300" />
               <h2 className="mt-4 text-lg font-bold">{l('Проєкти не знайдено', 'Проекты не найдены', 'No projects found')}</h2>
