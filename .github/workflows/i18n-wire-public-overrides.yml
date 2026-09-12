@@ -87,7 +87,11 @@ jobs:
           p = Path('src/pages/MediaCenter.tsx')
           s = p.read_text(encoding='utf-8')
           if "en: 'All articles'" not in s:
-              s = s.replace("const categories: Array<{ id: ArticleCategory | 'all'; ru: string; uk: string }> = [", "const categories: Array<{ id: ArticleCategory | 'all'; ru: string; uk: string; en: string }> = [", 1)
+              old_type = "const categories: Array<{ id: CategoryFilter; ru: string; uk: string }> = ["
+              new_type = "const categories: Array<{ id: CategoryFilter; ru: string; uk: string; en: string }> = ["
+              if old_type not in s:
+                  raise SystemExit('MediaCenter category type not found')
+              s = s.replace(old_type, new_type, 1)
               replacements = {
                   "{ id: 'all', ru: 'Все статьи', uk: 'Усі статті' },": "{ id: 'all', ru: 'Все статьи', uk: 'Усі статті', en: 'All articles' },",
                   "{ id: 'live', ru: 'LIVE & Стриминг', uk: 'LIVE & Стрімінг' },": "{ id: 'live', ru: 'LIVE & Стриминг', uk: 'LIVE & Стрімінг', en: 'LIVE & Streaming' },",
