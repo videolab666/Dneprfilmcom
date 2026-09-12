@@ -15,6 +15,8 @@ const LiveProduction = lazy(() => import('./pages/LiveProduction').then((module)
 const VideoProduction = lazy(() => import('./pages/VideoProduction').then((module) => ({ default: module.VideoProduction })));
 const Cases = lazy(() => import('./pages/Cases').then((module) => ({ default: module.Cases })));
 const CaseDetail = lazy(() => import('./pages/CaseDetail').then((module) => ({ default: module.CaseDetail })));
+const Galleries = lazy(() => import('./pages/Galleries').then((module) => ({ default: module.Galleries })));
+const GalleryDetail = lazy(() => import('./pages/GalleryDetail').then((module) => ({ default: module.GalleryDetail })));
 const ConstructionMedia = lazy(() => import('./pages/ConstructionMedia').then((module) => ({ default: module.ConstructionMedia })));
 const PhotoProduction = lazy(() => import('./pages/PhotoProduction').then((module) => ({ default: module.PhotoProduction })));
 const MediaCenter = lazy(() => import('./pages/MediaCenter').then((module) => ({ default: module.MediaCenter })));
@@ -50,6 +52,8 @@ export default function App() {
                 <Route path="photo" element={<PhotoProduction />} />
                 <Route path="cases" element={<Cases />} />
                 <Route path="cases/:slug" element={<CaseDetail />} />
+                <Route path="galleries" element={<Galleries />} />
+                <Route path="galleries/:slug" element={<GalleryDetail />} />
                 <Route path="media-center" element={<MediaCenter />} />
                 <Route path="about" element={<About />} />
                 <Route path="contacts" element={<Contacts />} />
