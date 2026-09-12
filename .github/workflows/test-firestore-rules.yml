@@ -49,9 +49,6 @@ jobs:
       - name: Install app dependencies
         run: bun install --frozen-lockfile
 
-      - name: Install rules test helper
-        run: bun add --dev --exact @firebase/rules-unit-testing@5.0.2
-
       - name: Run Firebase emulator regression tests
         run: >-
           bunx firebase-tools emulators:exec
