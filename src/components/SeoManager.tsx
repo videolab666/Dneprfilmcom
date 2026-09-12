@@ -53,6 +53,12 @@ const SEO: Record<string, SeoEntry> = {
   },
 };
 
+const NOT_FOUND: SeoEntry = {
+  uk: { title: '404 — Сторінку не знайдено | Dneprfilm', description: 'Запитану сторінку Dneprfilm не знайдено.' },
+  ru: { title: '404 — Страница не найдена | Dneprfilm', description: 'Запрошенная страница Dneprfilm не найдена.' },
+  en: { title: '404 — Page not found | Dneprfilm', description: 'The requested Dneprfilm page could not be found.' },
+};
+
 function upsertMeta(selector: string, attributes: Record<string, string>, content: string) {
   let element = document.head.querySelector<HTMLMetaElement>(selector);
   if (!element) {
@@ -80,24 +86,29 @@ export function SeoManager() {
   useEffect(() => {
     const path = location.pathname === '' ? '/' : location.pathname.replace(/\/$/, '') || '/';
     const isAdmin = path === '/admin' || path.startsWith('/admin/');
-    const entry = SEO[path]?.[locale] ?? SEO['/'][locale];
+    const isKnownPublicRoute = Boolean(SEO[path]);
+    const isNotFound = !isAdmin && !isKnownPublicRoute;
+    const entry = isNotFound ? NOT_FOUND[locale] : (SEO[path]?.[locale] ?? SEO['/'][locale]);
+    const title = isAdmin ? 'Admin — Dneprfilm' : entry.title;
+    const description = isAdmin ? 'Dneprfilm administration panel.' : entry.description;
     const canonicalUrl = `${window.location.origin}${window.location.pathname}`.replace(/\/$/, '') || `${window.location.origin}/`;
+    const shouldIndex = !isAdmin && !isNotFound;
 
-    document.title = isAdmin ? `Admin — Dneprfilm` : entry.title;
+    document.title = title;
 
-    upsertMeta('meta[name="description"]', { name: 'description' }, isAdmin ? 'Dneprfilm administration panel.' : entry.description);
-    upsertMeta('meta[name="robots"]', { name: 'robots' }, isAdmin ? 'noindex, nofollow, noarchive' : 'index, follow, max-image-preview:large');
-    upsertMeta('meta[property="og:title"]', { property: 'og:title' }, isAdmin ? 'Admin — Dneprfilm' : entry.title);
-    upsertMeta('meta[property="og:description"]', { property: 'og:description' }, isAdmin ? 'Dneprfilm administration panel.' : entry.description);
+    upsertMeta('meta[name="description"]', { name: 'description' }, description);
+    upsertMeta('meta[name="robots"]', { name: 'robots' }, shouldIndex ? 'index, follow, max-image-preview:large' : 'noindex, nofollow, noarchive');
+    upsertMeta('meta[property="og:title"]', { property: 'og:title' }, title);
+    upsertMeta('meta[property="og:description"]', { property: 'og:description' }, description);
     upsertMeta('meta[property="og:type"]', { property: 'og:type' }, 'website');
     upsertMeta('meta[property="og:url"]', { property: 'og:url' }, canonicalUrl);
     upsertMeta('meta[property="og:site_name"]', { property: 'og:site_name' }, 'Dneprfilm');
     upsertMeta('meta[property="og:locale"]', { property: 'og:locale' }, locale === 'uk' ? 'uk_UA' : locale === 'ru' ? 'ru_UA' : 'en_US');
     upsertMeta('meta[name="twitter:card"]', { name: 'twitter:card' }, 'summary_large_image');
-    upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title' }, isAdmin ? 'Admin — Dneprfilm' : entry.title);
-    upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description' }, isAdmin ? 'Dneprfilm administration panel.' : entry.description);
+    upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title' }, title);
+    upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description' }, description);
 
-    if (!isAdmin) {
+    if (shouldIndex) {
       upsertCanonical(canonicalUrl);
     } else {
       document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.remove();
