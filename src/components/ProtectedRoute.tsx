@@ -1,6 +1,8 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const ADMIN_EMAIL = 'dneprfilmcom@gmail.com';
+
 export function ProtectedRoute() {
   const { user, loading } = useAuth();
 
@@ -12,7 +14,10 @@ export function ProtectedRoute() {
     );
   }
 
-  if (!user) {
+  const isAdmin =
+    user?.email?.toLowerCase() === ADMIN_EMAIL && user.emailVerified;
+
+  if (!isAdmin) {
     return <Navigate to="/admin/login" replace />;
   }
 
