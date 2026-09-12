@@ -51,7 +51,7 @@ jobs:
 
       - name: Run Firebase emulator regression tests
         run: >-
-          bunx firebase-tools emulators:exec
+          bunx firebase-tools@15.30.0 emulators:exec
           --only firestore,storage
           --project gen-lang-client-0973206519
           "bun scripts/test-firestore-rules.mjs && bun scripts/test-storage-rules.mjs"
