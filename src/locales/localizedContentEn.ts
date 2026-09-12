@@ -2,6 +2,7 @@ import { CaseStudy, Testimonial, BackstageItem } from '../types';
 
 export const CASE_TRANSLATIONS_EN: Record<string, Partial<CaseStudy>> = {
   'case-girtech': {
+    client: 'Girtech BBQ & Ovens',
     title: 'Advertising — Girtech Bravo: Wood-Fired Ovens & Family Grill',
     categoryLabel: 'Product Advertising & Food Styling',
     description: 'A staged commercial for compact wood-fired ovens. Macro cinematography of Neapolitan pizza and juicy steak, live fire, and the warm atmosphere of a family getaway.',
@@ -15,6 +16,7 @@ export const CASE_TRANSLATIONS_EN: Record<string, Partial<CaseStudy>> = {
     ],
   },
   'case-doors': {
+    client: 'Ministry of Doors Factory',
     title: 'Ministry of Doors Factory: Automated Manufacturing Promo',
     categoryLabel: 'Industrial Production',
     description: 'A large-scale brand film covering the full entrance-door manufacturing cycle: laser cutting of rolled steel, robotic welding, powder-coating lines, and geometry quality control.',
@@ -28,6 +30,7 @@ export const CASE_TRANSLATIONS_EN: Record<string, Partial<CaseStudy>> = {
     ],
   },
   'case-live-boxing': {
+    client: 'Sports Promotion League',
     title: 'International Combat Sports Tournament: 8 Cameras, 4K Broadcast & Live Replay',
     categoryLabel: 'Sports Television Broadcast',
     description: 'A live multicamera broadcast of the headline title fight with synchronized score graphics, instant Super Slow-Mo knockdown replays, and a dedicated commentary audio path.',
@@ -40,7 +43,92 @@ export const CASE_TRANSLATIONS_EN: Record<string, Partial<CaseStudy>> = {
       { label: 'Audience', value: '520k+ Live' },
     ],
   },
+  'case-ulka': {
+    client: 'ULKA Global',
+    title: 'ULKA Beauty Equipment — Innovation Showcase for Dubai Expo',
+    categoryLabel: 'Export & Trade Shows',
+    description: 'A premium presentation of manicure dust collectors and professional beauty equipment created specifically for the brand’s Dubai Expo stand in the UAE.',
+    challenge: 'Create polished European-level content that would make the stand visually distinctive among hundreds of international brands.',
+    solution: 'Soft Aputure studio lighting, macro product cinematography, 3D airflow graphics, and an English voice-over with a native British accent.',
+    result: 'The presentation supported direct supply agreements with distributors from the UAE, Saudi Arabia, and EU markets during the exhibition.',
+    metrics: [
+      { label: 'Market', value: 'Middle East & EU' },
+      { label: 'Voice-over', value: 'UK Native Voice' },
+      { label: 'Graphics', value: '3D Motion Flow' },
+    ],
+  },
+  'case-helios': {
+    client: 'Helios Family Health Center',
+    title: 'Helios Health Center: Family Healthcare & Rehabilitation Technology',
+    categoryLabel: 'Medical Production',
+    description: 'A brand film about robotic rehabilitation systems, comfortable patient rooms, and attentive medical care.',
+    challenge: 'Film inside active sterile departments without disturbing patients or disrupting doctors’ schedules.',
+    solution: 'Compact silent Sony FX3 cameras with optical stabilization, lightweight cinema lighting without harsh glare, and relaxed interviews with senior rehabilitation specialists.',
+    result: 'The film was published on the clinic homepage and used in targeted advertising, increasing first-consultation booking conversion by 42%.',
+    metrics: [
+      { label: 'Format', value: 'Interview + Promo' },
+      { label: 'Booking Growth', value: '+42% patients' },
+      { label: 'Duration', value: '2 min + 30 sec' },
+    ],
+  },
+  'case-construction-riverside': {
+    client: 'Grand House Development Group',
+    title: 'Riverside Residential Complex: Construction Media Monitoring & 3D Aerial Panoramas',
+    categoryLabel: 'Development & Monitoring',
+    description: 'Year-round visual monitoring of a 24-storey residential project: autonomous 4K crane timelapse, monthly aerial panoramas, and dynamic progress reports for investors.',
+    challenge: 'Maintain continuous 24/7 visual documentation through frost, heavy rain, construction dust, and crane vibration.',
+    solution: 'Weather-sealed heated camera enclosures with high-resolution sensors, PoE power, and GPS-programmed monthly drone flights from repeatable viewpoints.',
+    result: 'Remote apartment sales at the excavation stage increased by 35%, while the lender received transparent visual confirmation of construction progress.',
+    metrics: [
+      { label: 'Monitoring', value: '24/7, 365 days' },
+      { label: 'Resolution', value: '4K Ultra HD' },
+      { label: 'Remote Sales', value: '+35%' },
+    ],
+  },
+  'case-hyamax': {
+    client: 'HYAMAX Medical Conference',
+    title: 'HYAMAX Aesthetic Academy — Large Conference & Master Classes',
+    categoryLabel: 'Business Forum & Event',
+    description: 'Multicamera coverage and live production for an international aesthetic-medicine conference, including close-up injection procedures displayed on the venue LED screens.',
+    challenge: 'Show delicate injection techniques on a 10×4 m screen with latency below 50 ms for an audience of 400 physicians.',
+    solution: 'Telephoto camera positions on fluid-head tripods, uncompressed SDI routing, and isolated multitrack recording for every speaker.',
+    result: 'Attendees received a clear view of every technique, and the event recap film was delivered within 24 hours.',
+    metrics: [
+      { label: 'Venue Screen', value: '10×4 m LED' },
+      { label: 'Latency', value: '< 50 ms ultra-low' },
+      { label: 'Highlight Film', value: 'Ready in 24 hours' },
+    ],
+  },
+  'case-concert-playlist': {
+    client: 'PlayList Vocal Studio',
+    title: 'PlayList Vocal School Concert: Multicamera Production & Live Sound',
+    categoryLabel: 'Concert & Show',
+    description: 'Television-style multicamera coverage of a major recital concert: six cameras, a camera crane, 32-channel live multitrack audio recording, and dynamic post-production editing.',
+    challenge: 'Handle rapidly changing concert lighting and vocal levels while preserving the emotion of every young performer.',
+    solution: 'Sony cameras in high-dynamic-range S-Log, a roaming stabilizer in the stalls, crane-wide shots, and a multitrack mix from a Midas digital console.',
+    result: 'A complete concert film was produced for the studio’s YouTube channel and generated thousands of views together with strong feedback from parents and instructors.',
+    metrics: [
+      { label: 'Cameras', value: '6 cameras + crane' },
+      { label: 'Audio', value: '32-channel multitrack' },
+      { label: 'Format', value: 'Full HD 50fps' },
+    ],
+  },
+  'case-fit4you': {
+    client: 'Fit4you Club Network',
+    title: 'Fit4you — High-Energy Training & Flagship Program Promo',
+    categoryLabel: 'Fitness & Promo',
+    description: 'A high-energy fitness promo covering CrossFit, boxing, and Pole Dance programs with an emphasis on speed, athleticism, and premium equipment.',
+    challenge: 'Create a fast-paced film without turning it into chaotic montage, while highlighting clean facilities and an energetic atmosphere.',
+    solution: '120 fps slow-motion capture, dynamic stabilizer moves, contrast LED lighting, and a bass-driven soundtrack.',
+    result: 'The film became the flagship creative of the spring campaign, helping annual membership sales exceed target by 27%.',
+    metrics: [
+      { label: 'Capture', value: '120fps Slow-Mo' },
+      { label: 'Membership Sales', value: '+27% season' },
+      { label: 'Lighting', value: 'Contrast LED' },
+    ],
+  },
   'case-timelapse-bartolomeo': {
+    client: 'Bartolomeo Resort Town',
     title: 'Bartolomeo Resort Town: Two-Year 4K Timelapse at 90 m & 3D Panoramas',
     categoryLabel: 'Construction Monitoring & 3D',
     description: 'Long-term continuous monitoring of premium residential towers on the Dnipro riverfront using all-weather cameras with heated glass and monthly aerial surveys of facade progress.',
@@ -54,6 +142,7 @@ export const CASE_TRANSLATIONS_EN: Record<string, Partial<CaseStudy>> = {
     ],
   },
   'case-medical-forum': {
+    client: 'Ukrainian Surgical Congress',
     title: 'Ukrainian Surgical Congress: Teleconference, 3 Halls & Live Operating-Room Feed',
     categoryLabel: 'Medical Broadcasts',
     description: 'A complex hybrid medical-congress broadcast with a live surgery feed over a 4K optical path capable of showing fine tissue structures in detail.',
@@ -67,6 +156,7 @@ export const CASE_TRANSLATIONS_EN: Record<string, Partial<CaseStudy>> = {
     ],
   },
   'case-smart-showroom': {
+    client: 'Business-Class Showroom',
     title: 'Interactive 3D Virtual Tour of a Business-Class Showroom',
     categoryLabel: '3D Scans & Matterport',
     description: 'A high-accuracy digital twin of residential interiors with interactive material information points, floor-plan views, and VR-headset support.',
