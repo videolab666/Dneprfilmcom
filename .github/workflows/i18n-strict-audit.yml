@@ -1,4 +1,4 @@
-# Manual rerun after generated public-English wiring.
+# Final strict audit after source-level public-English fixes.
 name: Temporary strict EN locale audit
 
 on:
@@ -60,7 +60,6 @@ jobs:
               route=os.environ.get('ROUTE') or '/'
               print(f'CYRILLIC_REMAINS /{route}')
               shown=[]
-              # Print representative windows from distinct regions rather than one per letter.
               last_end=-1
               for hit in hits:
                   if hit.start() < last_end:
