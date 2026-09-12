@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -87,7 +87,7 @@ export function Cases() {
     { id: 'CONSTRUCTION', label: l('Будівельний моніторинг', 'Строительный мониторинг', 'Construction media'), count: localizedCases.filter(item => item.category === 'CONSTRUCTION').length, icon: <Building2 className="h-4 w-4" /> },
   ] as const;
 
-  const sendInquiry = async (event: React.FormEvent) => {
+  const sendInquiry = async (event: FormEvent) => {
     event.preventDefault();
     if (!inquiryCase || !clientName.trim() || !clientPhone.trim()) return;
     setSubmitting(true);

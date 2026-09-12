@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { addDoc, collection, onSnapshot } from 'firebase/firestore';
 import {
@@ -103,7 +103,7 @@ export function CaseDetail() {
     if (heroImage) setMeta('meta[property="og:image"]', 'property', 'og:image', heroImage);
   }, [currentCase, heroImage]);
 
-  const submitInquiry = async (event: React.FormEvent) => {
+  const submitInquiry = async (event: FormEvent) => {
     event.preventDefault();
     if (!currentCase || !name.trim() || !phone.trim()) return;
     setSending(true);

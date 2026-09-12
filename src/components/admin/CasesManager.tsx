@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -269,7 +269,7 @@ export function CasesManager() {
     setDraggedMediaId(null);
   };
 
-  const handleSave = async (event: React.FormEvent) => {
+  const handleSave = async (event: FormEvent) => {
     event.preventDefault();
     if (!editing) return;
     const anyTitle = editing.title_uk?.trim() || editing.title?.trim() || editing.title_en?.trim();
