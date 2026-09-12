@@ -11,7 +11,7 @@ interface CloudinaryUploadResponse {
   error?: { message?: string };
 }
 
-interface UploadedAsset {
+export interface UploadedAsset {
   url: string;
   publicId: string;
 }
@@ -78,7 +78,7 @@ async function uploadUnsigned(
   return { url: data.secure_url, publicId: data.public_id };
 }
 
-function videoPosterUrl(url: string): string | undefined {
+export function videoPosterUrl(url: string): string | undefined {
   const marker = '/video/upload/';
   const index = url.indexOf(marker);
   if (index < 0) return undefined;
@@ -98,6 +98,36 @@ export async function uploadCaseImage(file: File, caseId: string): Promise<Uploa
     `dneprfilm/cases/${sanitizeName(caseId)}`,
     `${sanitizeName(file.name)}.webp`,
   );
+}
+
+export async function uploadPortfolioImage(file: File, projectId: string): Promise<UploadedAsset> {
+  const optimized = await optimizeImage(file);
+  return uploadUnsigned(
+    optimized,
+    'image',
+    `dneprfilm/video-projects/${sanitizeName(projectId)}`,
+    `${sanitizeName(file.name)}.webp`,
+  );
+}
+
+export async function uploadPortfolioVideo(
+  file: File,
+  projectId: string,
+): Promise<UploadedAsset & { posterUrl?: string }> {
+  if (!['video/mp4', 'video/webm'].includes(file.type)) {
+    throw new Error('Для видеопортфолио используйте MP4 или WebM.');
+  }
+  if (file.size > MAX_VIDEO_SOURCE_BYTES) {
+    throw new Error('Видео больше 100 МБ. Для больших файлов добавьте прямую ссылку/YouTube/Vimeo.');
+  }
+  const extension = file.type === 'video/webm' ? 'webm' : 'mp4';
+  const uploaded = await uploadUnsigned(
+    file,
+    'video',
+    `dneprfilm/video-projects/${sanitizeName(projectId)}`,
+    `${sanitizeName(file.name)}.${extension}`,
+  );
+  return { ...uploaded, posterUrl: videoPosterUrl(uploaded.url) };
 }
 
 export async function uploadHeroImage(file: File): Promise<UploadedAsset> {
