@@ -538,7 +538,7 @@ export function VideoProduction() {
                   </div>
                 </div>
                 <div className="text-right text-[11px] text-slate-400">
-                  {isUk ? <>Фіксований кошторис<br />після брифу</> : <>Фиксированная смета<br />после брифа</>}
+                  {l("Фіксований кошторис після брифу", "Фиксированная смета после брифа", "Fixed estimate after the brief")}
                 </div>
               </div>
 

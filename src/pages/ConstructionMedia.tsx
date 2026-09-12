@@ -559,9 +559,9 @@ export function ConstructionMedia() {
                 />
                 <div className="flex justify-between text-[10px] text-slate-400 mt-1">
                   <span>3 {l("міс", "мес")}</span>
-                  <span>12 {l("міс (1 рік)", "мес (1 год)")}</span>
-                  <span>24 {l("міс (2 роки)", "мес (2 года)")}</span>
-                  <span>36 {l("міс (3 роки)", "мес (3 года)")}</span>
+                  <span>12 {l("міс (1 рік)", "мес (1 год)", "months (1 yr)")}</span>
+                  <span>24 {l("міс (2 роки)", "мес (2 года)", "months (2 yrs)")}</span>
+                  <span>36 {l("міс (3 роки)", "мес (3 года)", "months (3 yrs)")}</span>
                 </div>
               </div>
 

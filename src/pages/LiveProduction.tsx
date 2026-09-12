@@ -71,31 +71,36 @@ export function LiveProduction() {
 
     setSubmitting(true);
     try {
-      const formatNames = isUk ? {
-        sports: 'Спортивна трансляція',
-        conference: 'Бізнес-конференція / Форум',
-        corporate: 'Корпоративний ефір',
-        concert: 'Концерт / Шоу'
-      } : {
-        sports: 'Спортивная трансляция',
-        conference: 'Бизнес-конференция / Форум',
-        corporate: 'Корпоративный эфир',
-        concert: 'Концерт / Шоу'
-      };
+      const formatNames = isEn ? {
+      sports: 'Sports broadcast',
+      conference: 'Business conference / Forum',
+      corporate: 'Corporate broadcast',
+      concert: 'Concert / Show'
+    } : isUk ? {
+      sports: 'Спортивна трансляція',
+      conference: 'Бізнес-конференція / Форум',
+      corporate: 'Корпоративний ефір',
+      concert: 'Концерт / Шоу'
+    } : {
+      sports: 'Спортивная трансляция',
+      conference: 'Бизнес-конференция / Форум',
+      corporate: 'Корпоративный эфир',
+      concert: 'Концерт / Шоу'
+    };
 
       const selectedServices = [];
-      if (hasStarlink) selectedServices.push(l("Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM бондинг"));
-      if (needGraphics) selectedServices.push(l("Ефірна графіка та титри", "Эфирная графика и титры"));
-      if (needReplay) selectedServices.push(l("Система повторів (Replay)", "Система повторов (Replay)"));
-      if (needTranslation) selectedServices.push(l("Синхронний переклад", "Синхронный перевод"));
-      if (needLedOutput) selectedServices.push(l("Виведення на екрани зали (LED)", "Вывод на экраны зала (LED)"));
+      if (hasStarlink) selectedServices.push(l("Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM bonding"));
+      if (needGraphics) selectedServices.push(l("Ефірна графіка та титри", "Эфирная графика и титры", "Broadcast graphics and titles"));
+      if (needReplay) selectedServices.push(l("Система повторів (Replay)", "Система повторов (Replay)", "Replay system"));
+      if (needTranslation) selectedServices.push(l("Синхронний переклад", "Синхронный перевод", "Simultaneous interpretation"));
+      if (needLedOutput) selectedServices.push(l("Виведення на екрани зали (LED)", "Вывод на экраны зала (LED)", "Venue LED screen output"));
 
       await addDoc(collection(db, 'leads'), {
         name: clientName,
         phone: clientPhone,
         email: clientEmail,
         eventType: formatNames[format],
-        cameraCount: isUk ? `${cameraCount} камер(и)` : `${cameraCount} камер(ы)`,
+        cameraCount: isEn ? `${cameraCount} ${cameraCount === 1 ? 'camera' : 'cameras'}` : isUk ? `${cameraCount} камер(и)` : `${cameraCount} камер(ы)`,
         location: city,
         hasStarlink,
         additionalServices: selectedServices,
@@ -720,7 +725,7 @@ export function LiveProduction() {
                 <div className="flex justify-between text-slate-600">
                   <span>{l("Камерні оператори:", "Камерные операторы:")}</span>
                   <span className="font-semibold text-slate-900">
-                    {isUk ? `${cameraCount} ос.` : `${cameraCount} чел.`}
+                    {isEn ? `${cameraCount}` : isUk ? `${cameraCount} ос.` : `${cameraCount} чел.`}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-600">
@@ -882,7 +887,7 @@ export function LiveProduction() {
                 </div>
                 <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-500">
                   <span>{l("2 паралельні потоки", "2 параллельных потока")}</span>
-                  <span className="font-semibold text-slate-800">Сайт + YouTube</span>
+                  <span className="font-semibold text-slate-800">{l("Сайт + YouTube", "Сайт + YouTube", "Website + YouTube")}</span>
                 </div>
               </div>
             </div>
