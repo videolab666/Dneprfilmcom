@@ -16,6 +16,8 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run lint
+      - name: Static English coverage inventory
+        run: bunx tsx scripts/audit-en-coverage.ts
       - run: bun run build
         env:
           VITE_BASE_PATH: /Dneprfilmcom/
@@ -57,12 +59,18 @@ jobs:
               route=os.environ.get('ROUTE') or '/'
               print(f'CYRILLIC_REMAINS /{route}')
               shown=[]
+              # Print representative windows from distinct regions rather than one per letter.
+              last_end=-1
               for hit in hits:
-                  snippet=text[max(0,hit.start()-100):min(len(text),hit.end()+180)].strip()
-                  if snippet not in shown:
-                      shown.append(snippet)
-                      print(' -',snippet)
-                  if len(shown)>=12: break
+                  if hit.start() < last_end:
+                      continue
+                  start=max(0, hit.start()-100)
+                  end=min(len(text), hit.start()+320)
+                  snippet=text[start:end].strip()
+                  shown.append(snippet)
+                  print(' -',snippet)
+                  last_end=end
+                  if len(shown)>=24: break
               sys.exit(1)
           print('OK', '/' + (os.environ.get('ROUTE') or ''))
           PY
