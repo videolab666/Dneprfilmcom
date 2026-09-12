@@ -1,0 +1,138 @@
+name: Audit Rendered Ukrainian
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rendered-uk-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+        env:
+          VITE_BASE_PATH: /Dneprfilmcom/
+
+      - name: Audit rendered Ukrainian routes
+        env:
+          VITE_BASE_PATH: /Dneprfilmcom/
+        run: |
+          set -euo pipefail
+
+          bun run preview -- --host 127.0.0.1 --port 4173 > /tmp/dneprfilm-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID" 2>/dev/null || true' EXIT
+
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/Dneprfilmcom/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          CHROME=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              CHROME="$(command -v "$candidate")"
+              break
+            fi
+          done
+          test -n "$CHROME"
+
+          routes=(
+            ''
+            'live'
+            'video'
+            'construction'
+            'photo'
+            'cases'
+            'media-center'
+            'about'
+            'contacts'
+            'does-not-exist'
+          )
+
+          failures=0
+          for route in "${routes[@]}"; do
+            url="http://127.0.0.1:4173/Dneprfilmcom/${route}?lang=uk"
+            echo "Auditing Ukrainian text: ${url}"
+
+            "$CHROME" \
+              --headless=new \
+              --no-sandbox \
+              --disable-gpu \
+              --disable-dev-shm-usage \
+              --virtual-time-budget=9000 \
+              --dump-dom \
+              "$url" > /tmp/dneprfilm-uk.html 2>/tmp/dneprfilm-chrome.log || true
+
+            ROUTE="$route" python3 - <<'PY' || failures=1
+          import html as html_module
+          import os
+          import re
+          import sys
+
+          source = open('/tmp/dneprfilm-uk.html', encoding='utf-8').read()
+          if not source.strip():
+              print('Browser returned empty DOM')
+              sys.exit(1)
+
+          match = re.search(r'<body[^>]*>(.*?)</body>', source, re.I | re.S)
+          body = match.group(1) if match else source
+          body = re.sub(r'<script\b[^>]*>.*?</script>', ' ', body, flags=re.I | re.S)
+          body = re.sub(r'<style\b[^>]*>.*?</style>', ' ', body, flags=re.I | re.S)
+          text = html_module.unescape(re.sub(r'<[^>]+>', ' ', body))
+          text = re.sub(r'\s+', ' ', text).strip()
+
+          checks = [
+              ('Russian-only letter', re.compile(r'[ЫыЭэЪъЁё]')),
+              ('Russian conjunction и', re.compile(r'(?<![А-Яа-яЁёІіЇїЄєҐґ])и(?![А-Яа-яЁёІіЇїЄєҐґ])', re.I)),
+              ('Russian -ия/-ция morphology', re.compile(r'\b[А-Яа-яЁё]*(?:ия|ция|ции|ций|ение|ания|ений)[А-Яа-яЁё]*\b', re.I)),
+              ('Russian UI/copy word', re.compile(r'\b(?:это|или|чтобы|здесь|только|также|после|всех|среди|клиент|описание|решение|задача|смотреть|подробнее|отправить|оставить|производств\w*|строительств\w*|оборудован\w*|режиссер\w*|руководител\w*|съем\w*|съём\w*|днепр|киев)\b', re.I)),
+          ]
+
+          hits = []
+          for label, pattern in checks:
+              for found in pattern.finditer(text):
+                  start = max(0, found.start() - 85)
+                  end = min(len(text), found.end() + 125)
+                  snippet = text[start:end].strip()
+                  item = (label, found.group(0), snippet)
+                  if item not in hits:
+                      hits.append(item)
+                  if len(hits) >= 30:
+                      break
+              if len(hits) >= 30:
+                  break
+
+          route = os.environ.get('ROUTE') or '/'
+          if hits:
+              print(f'Possible Russian text leaked into Ukrainian locale on /{route}:')
+              for label, token, snippet in hits:
+                  print(f'  [{label}] {token!r}: {snippet}')
+              sys.exit(1)
+
+          print(f'OK /{route}: no high-confidence Russian markers in rendered Ukrainian text.')
+          PY
+          done
+
+          if [ "$failures" -ne 0 ]; then
+            echo 'Rendered Ukrainian language audit found suspicious text.'
+            exit 1
+          fi
+
+          echo 'Rendered Ukrainian language audit passed.'
