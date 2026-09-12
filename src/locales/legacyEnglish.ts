@@ -9,7 +9,6 @@ import type { Locale } from '../types';
 export const LEGACY_EN_TRANSLATIONS: Record<string, string> = {
   // Common / actions
   "Головна": "Home",
-  "Рішення": "Solutions",
   "Детальніше": "Learn more",
   "Всі": "All",
   "Усі": "All",
