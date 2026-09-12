@@ -1,41 +1,48 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Briefcase, 
-  Search, 
-  Play, 
-  Sparkles, 
-  Radio, 
-  Video, 
-  Building2, 
-  CheckCircle2, 
-  ArrowRight, 
-  ExternalLink, 
-  X, 
-  Layers, 
-  Send, 
-  Phone, 
-  Filter,
-  ShieldCheck,
-  Award,
-  ChevronRight
+import {
+  ArrowRight,
+  Briefcase,
+  Building2,
+  CheckCircle2,
+  Image as ImageIcon,
+  Layers,
+  Play,
+  Radio,
+  Search,
+  Send,
+  Sparkles,
+  Video,
+  X,
 } from 'lucide-react';
-import { collection, onSnapshot, addDoc } from 'firebase/firestore';
+import { addDoc, collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { CaseStudy } from '../types';
+import type { CaseStudy } from '../types';
 import { INITIAL_CASES } from '../data/initialCases';
+import { getCasePath, getMediaPreview, normalizedCaseMedia } from '../lib/caseMedia';
 import { useSiteContent } from '../context/SiteContentContext';
 import { ClientsMarquee } from '../components/ClientsMarquee';
 
+const FALLBACK_COVER = 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?auto=format&fit=crop&q=80';
+
+function categoryIcon(category: CaseStudy['category']) {
+  if (category === 'LIVE') return <Radio className="h-3.5 w-3.5" />;
+  if (category === 'CONSTRUCTION') return <Building2 className="h-3.5 w-3.5" />;
+  return <Video className="h-3.5 w-3.5" />;
+}
+
+function coverForCase(item: CaseStudy): string {
+  if (item.imageUrl) return item.imageUrl;
+  const mediaPreview = normalizedCaseMedia(item).map(getMediaPreview).find(Boolean);
+  return mediaPreview || FALLBACK_COVER;
+}
+
 export function Cases() {
-  const { settings, isUk, getLocalizedCase, l } = useSiteContent();
+  const { settings, getLocalizedCase, l } = useSiteContent();
   const [cases, setCases] = useState<CaseStudy[]>(INITIAL_CASES);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<'ALL' | 'LIVE' | 'VIDEO' | 'CONSTRUCTION'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCase, setSelectedCase] = useState<CaseStudy | null>(null);
-
-  // Quick inquiry state
   const [inquiryCase, setInquiryCase] = useState<CaseStudy | null>(null);
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
@@ -44,578 +51,262 @@ export function Cases() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'cases'), (snapshot) => {
-      if (!snapshot.empty) {
-        const firestoreCases = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as CaseStudy[];
-        firestoreCases.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        setCases(firestoreCases);
-      } else {
-        setCases(INITIAL_CASES);
-      }
+    const unsubscribe = onSnapshot(collection(db, 'cases'), snapshot => {
+      const loaded = snapshot.empty
+        ? INITIAL_CASES
+        : snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as CaseStudy));
+      loaded.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      setCases(loaded.filter(item => item.published !== false));
       setLoading(false);
-    }, (err) => {
-      console.warn('Could not subscribe to cases from Firestore, using initial cases:', err);
-      setCases(INITIAL_CASES);
+    }, error => {
+      console.warn('Could not subscribe to cases from Firestore, using initial cases:', error);
+      setCases(INITIAL_CASES.filter(item => item.published !== false));
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
-  const localizedCases = useMemo(() => {
-    return cases.map(c => getLocalizedCase(c));
-  }, [cases, getLocalizedCase]);
+  const localizedCases = useMemo(() => cases.map(item => getLocalizedCase(item)), [cases, getLocalizedCase]);
 
   const filteredCases = useMemo(() => {
     return localizedCases.filter(item => {
-      const matchesCategory = activeCategory === 'ALL' || item.category === activeCategory;
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch = !q || (
-        item.title.toLowerCase().includes(q) ||
-        item.client.toLowerCase().includes(q) ||
-        (item.description && item.description.toLowerCase().includes(q)) ||
-        (item.categoryLabel && item.categoryLabel.toLowerCase().includes(q)) ||
-        (item.solution && item.solution.toLowerCase().includes(q))
-      );
-      return matchesCategory && matchesSearch;
+      const categoryMatch = activeCategory === 'ALL' || item.category === activeCategory;
+      const query = searchQuery.toLowerCase().trim();
+      if (!query) return categoryMatch;
+      const searchMatch = [item.title, item.client, item.description, item.categoryLabel, item.solution]
+        .filter(Boolean)
+        .some(value => String(value).toLowerCase().includes(query));
+      return categoryMatch && searchMatch;
     });
   }, [localizedCases, activeCategory, searchQuery]);
 
-  const handleSendInquiry = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!clientName || !clientPhone) return;
+  const categories = [
+    { id: 'ALL', label: l('Усі проєкти', 'Все проекты', 'All projects'), count: localizedCases.length, icon: <Layers className="h-4 w-4" /> },
+    { id: 'LIVE', label: l('Прямі трансляції', 'Прямые трансляции', 'Live production'), count: localizedCases.filter(item => item.category === 'LIVE').length, icon: <Radio className="h-4 w-4" /> },
+    { id: 'VIDEO', label: l('Реклама & продакшн', 'Реклама & продакшн', 'Video production'), count: localizedCases.filter(item => item.category === 'VIDEO').length, icon: <Video className="h-4 w-4" /> },
+    { id: 'CONSTRUCTION', label: l('Будівельний моніторинг', 'Строительный мониторинг', 'Construction media'), count: localizedCases.filter(item => item.category === 'CONSTRUCTION').length, icon: <Building2 className="h-4 w-4" /> },
+  ] as const;
 
+  const sendInquiry = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!inquiryCase || !clientName.trim() || !clientPhone.trim()) return;
     setSubmitting(true);
     try {
       await addDoc(collection(db, 'leads'), {
-        name: clientName,
-        phone: clientPhone,
-        service: inquiryCase ? `${l("Кейс", "Кейс")}: ${inquiryCase.title}` : (l("Запит щодо портфоліо", "Запрос по портфолио")),
-        eventType: inquiryCase?.category || 'Портфолио',
-        message: clientNote || (inquiryCase ? `${l("Цікавить реалізація проєкту за аналогією з кейсом", "Интересует реализация проекта по аналогии с кейсом")} "${inquiryCase.title}"` : (l("Заявка зі сторінки кейсів", "Заявка со страницы кейсов"))),
+        name: clientName.trim(),
+        phone: clientPhone.trim(),
+        service: `${l('Кейс', 'Кейс', 'Case')}: ${inquiryCase.title}`,
+        eventType: inquiryCase.category,
+        message: clientNote.trim() || l(
+          `Цікавить реалізація проєкту за аналогією з кейсом «${inquiryCase.title}»`,
+          `Интересует реализация проекта по аналогии с кейсом «${inquiryCase.title}»`,
+          `Interested in a project similar to “${inquiryCase.title}”`,
+        ),
         status: 'new',
-        createdAt: Date.now()
+        createdAt: Date.now(),
       });
       setSubmitted(true);
     } catch (error) {
-      console.error('Error submitting inquiry:', error);
-      alert(l("Помилка під час надсилання заявки. Будь ласка, зателефонуйте нам напряму.", "Ошибка при отправке заявки. Пожалуйста, позвоните нам напрямую."));
+      console.error('Error submitting portfolio inquiry:', error);
+      alert(l(
+        'Помилка під час надсилання заявки. Будь ласка, зателефонуйте нам напряму.',
+        'Ошибка при отправке заявки. Пожалуйста, позвоните нам напрямую.',
+        'Could not send the request. Please call us directly.',
+      ));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const categories = [
-    { id: 'ALL', label: l("Всі проекти", "Все проекты"), count: localizedCases.length, icon: <Layers className="w-4 h-4" /> },
-    { id: 'LIVE', label: l("Прямі трансляції", "Прямые трансляции"), count: localizedCases.filter(c => c.category === 'LIVE').length, icon: <Radio className="w-4 h-4" /> },
-    { id: 'VIDEO', label: l("Реклама & Продакшн", "Реклама & Продакшн"), count: localizedCases.filter(c => c.category === 'VIDEO').length, icon: <Video className="w-4 h-4" /> },
-    { id: 'CONSTRUCTION', label: l("Будівельний моніторинг", "Строительный мониторинг"), count: localizedCases.filter(c => c.category === 'CONSTRUCTION').length, icon: <Building2 className="w-4 h-4" /> },
-  ] as const;
+  const closeInquiry = () => {
+    setInquiryCase(null);
+    setSubmitted(false);
+    setClientName('');
+    setClientPhone('');
+    setClientNote('');
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-600 selection:text-white">
-      {/* 1. Header / Hero Section */}
-      <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 bg-slate-950 text-white overflow-hidden">
-        {/* Glow decoration */}
-        <div className="absolute inset-0 pointer-events-none opacity-20">
-          <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-indigo-600 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-amber-500 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <section className="relative overflow-hidden bg-slate-950 pb-16 pt-16 text-white lg:pb-24 lg:pt-24">
+        <div className="pointer-events-none absolute inset-0 opacity-20">
+          <div className="absolute left-1/3 top-1/4 h-96 w-96 rounded-full bg-indigo-600 blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 h-80 w-80 rounded-full bg-amber-500 blur-3xl" />
         </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-6">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>
-                {l("Реалізовані проекти студії ", "Реализованные проекты студии ")}
-                {settings.studioName || 'LIVE & VIDEO'}
-              </span>
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-indigo-300">
+              <Sparkles className="h-3.5 w-3.5" />
+              {l('Реалізовані проєкти студії', 'Реализованные проекты студии', 'Selected studio projects')}
             </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] mb-6">
-              {l("Портфоліо & ", "Портфолио & ")}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-indigo-300 to-indigo-500">
-                {l("перевірені рішення", "проверенные решения")}
-              </span>
+            <h1 className="text-4xl font-black leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
+              {l('Портфоліо & перевірені рішення', 'Портфолио & проверенные решения', 'Portfolio & proven solutions')}
             </h1>
-
-            <p className="text-base sm:text-xl text-slate-300 font-normal leading-relaxed mb-8">
-              {l("Кожен проєкт — це закінчене інженерне та творче завдання. Ми не просто знімаємо гарну картинку, а створюємо стабільний телеефір, залучаємо дилерів на міжнародних виставках або організовуємо цілодобовий відеоконтроль будівництва.", "Каждый проект — это законченная инженерная и творческая задача. Мы не просто снимаем красивую картинку, а создаем стабильный телеэфир, привлекаем дилеров на международных выставках или организуем круглосуточный видеоконтроль строительства.")}
-            </p>
-
-            {/* Quick Metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-800">
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-white">400+</div>
-                <div className="text-xs text-slate-400 mt-0.5">{l("Виконаних робіт", "Выполненных работ")}</div>
-              </div>
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-400">100%</div>
-                <div className="text-xs text-slate-400 mt-0.5">{l("Ефірів без збоїв", "Эфиров без сбоев")}</div>
-              </div>
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-indigo-400">4K HDR</div>
-                <div className="text-xs text-slate-400 mt-0.5">{l("Кінооптика Sony", "Кинооптика Sony")}</div>
-              </div>
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-emerald-400">Starlink</div>
-                <div className="text-xs text-slate-400 mt-0.5">{l("Резервні канали", "Резервные каналы")}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. Filter Bar & Search Container */}
-      <section className="sticky top-20 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 py-4 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            {/* Category Tabs */}
-            <div className="flex items-center space-x-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id as any)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                    activeCategory === cat.id
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
-                >
-                  {cat.icon}
-                  <span>{cat.label}</span>
-                  <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-black ${
-                    activeCategory === cat.id ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    {cat.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {/* Search Input */}
-            <div className="relative w-full md:w-72">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder={l("Пошук за клієнтом або завданням...", "Поиск по клиенту или задаче...")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+            <p className="mt-6 max-w-3xl text-base leading-relaxed text-slate-300 sm:text-xl">
+              {l(
+                'Кожен кейс — це завершене інженерне та творче завдання: від ідеї й знімального сетапу до ефіру, постпродакшну та вимірюваного результату.',
+                'Каждый кейс — это законченная инженерная и творческая задача: от идеи и съёмочного сетапа до эфира, постпродакшна и измеримого результата.',
+                'Each case is a complete creative and engineering project: from concept and production setup to broadcast, post-production and measurable results.',
               )}
+            </p>
+            <div className="mt-8 grid grid-cols-2 gap-4 border-t border-slate-800 pt-6 sm:grid-cols-4">
+              <div><div className="text-3xl font-black">400+</div><div className="mt-1 text-xs text-slate-400">{l('Виконаних робіт', 'Выполненных работ', 'Projects delivered')}</div></div>
+              <div><div className="text-3xl font-black text-amber-400">100%</div><div className="mt-1 text-xs text-slate-400">{l('Ефірів без збоїв', 'Эфиров без сбоев', 'Reliable broadcasts')}</div></div>
+              <div><div className="text-3xl font-black text-indigo-400">4K</div><div className="mt-1 text-xs text-slate-400">{l('Продакшн', 'Продакшн', 'Production')}</div></div>
+              <div><div className="text-3xl font-black text-emerald-400">Starlink</div><div className="mt-1 text-xs text-slate-400">{l('Резервні канали', 'Резервные каналы', 'Backup connectivity')}</div></div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. Cases Grid */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {filteredCases.length === 0 ? (
-            <div className="text-center py-24 bg-white rounded-3xl border border-slate-200 p-8 max-w-md mx-auto">
-              <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-slate-900 mb-2">
-                {l("Проєкти не знайдено", "Проекты не найдены")}
-              </h3>
-              <p className="text-xs text-slate-500 mb-6">
-                {isUk
-                  ? `За запитом «${searchQuery}» нічого не знайдено. Спробуйте змінити параметри пошуку або скинути фільтри.`
-                  : `По запросу «${searchQuery}» ничего не найдено. Попробуйте изменить параметры поиска или сбросить фильтры.`}
-              </p>
+      <section className="sticky top-20 z-20 border-b border-slate-200 bg-white/95 py-4 shadow-sm backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
+            {categories.map(category => (
               <button
-                onClick={() => { setSearchQuery(''); setActiveCategory('ALL'); }}
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-500 transition-colors cursor-pointer"
+                key={category.id}
+                type="button"
+                onClick={() => setActiveCategory(category.id)}
+                className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-bold transition ${activeCategory === category.id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'}`}
               >
-                {l("Скинути фільтри", "Сбросить фильтры")}
+                {category.icon}
+                <span>{category.label}</span>
+                <span className={`rounded-full px-1.5 text-[10px] ${activeCategory === category.id ? 'bg-white/20' : 'bg-slate-200 text-slate-700'}`}>{category.count}</span>
+              </button>
+            ))}
+          </div>
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={searchQuery}
+              onChange={event => setSearchQuery(event.target.value)}
+              placeholder={l('Пошук за клієнтом або завданням…', 'Поиск по клиенту или задаче…', 'Search by client or project…')}
+              className="w-full rounded-xl border border-slate-200 bg-slate-100 py-2.5 pl-10 pr-9 text-xs outline-none transition focus:border-indigo-500 focus:bg-white"
+            />
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"><X className="h-4 w-4" /></button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {loading ? (
+            <div className="flex min-h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-b-indigo-600" /></div>
+          ) : filteredCases.length === 0 ? (
+            <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+              <Briefcase className="mx-auto h-12 w-12 text-slate-300" />
+              <h2 className="mt-4 text-lg font-bold">{l('Проєкти не знайдено', 'Проекты не найдены', 'No projects found')}</h2>
+              <button type="button" onClick={() => { setSearchQuery(''); setActiveCategory('ALL'); }} className="mt-5 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-500">
+                {l('Скинути фільтри', 'Сбросить фильтры', 'Reset filters')}
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredCases.map((cs) => (
-                <div
-                  key={cs.id}
-                  className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-indigo-400 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Visual Media Header */}
-                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-900">
-                      <img
-                        src={cs.imageUrl || 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?auto=format&fit=crop&q=80'}
-                        alt={cs.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20" />
-
-                      {/* Top Badges */}
-                      <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between">
-                        <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[11px] font-bold border border-white/10">
-                          {cs.category === 'LIVE' && <Radio className="w-3 h-3 text-red-400" />}
-                          {cs.category === 'VIDEO' && <Video className="w-3 h-3 text-amber-400" />}
-                          {cs.category === 'CONSTRUCTION' && <Building2 className="w-3 h-3 text-blue-400" />}
-                          <span>{cs.categoryLabel || cs.category}</span>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {filteredCases.map(item => {
+                const media = normalizedCaseMedia(item);
+                const videoCount = media.filter(mediaItem => mediaItem.type !== 'image').length;
+                const imageCount = media.filter(mediaItem => mediaItem.type === 'image').length;
+                return (
+                  <article key={item.id} className="group flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-xl">
+                    <Link to={getCasePath(item)} className="relative block aspect-[16/10] overflow-hidden bg-slate-900">
+                      <img src={coverForCase(item)} alt={item.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
+                      <div className="absolute left-3.5 right-3.5 top-3.5 flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-slate-950/75 px-3 py-1 text-[11px] font-bold text-white backdrop-blur">
+                          {categoryIcon(item.category)}
+                          {item.categoryLabel || item.category}
                         </span>
-
-                        {cs.videoBadge && (
-                          <span className="px-2.5 py-0.5 rounded-full bg-indigo-600/90 text-white text-[10px] font-bold shadow-md">
-                            {cs.videoBadge}
-                          </span>
-                        )}
+                        {item.videoBadge && <span className="rounded-full bg-indigo-600/90 px-2.5 py-1 text-[10px] font-bold text-white">{item.videoBadge}</span>}
                       </div>
+                      {(videoCount > 0 || imageCount > 1) && (
+                        <div className="absolute bottom-3.5 right-3.5 flex gap-2">
+                          {videoCount > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur"><Play className="h-3 w-3 fill-current" />{videoCount}</span>}
+                          {imageCount > 1 && <span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur"><ImageIcon className="h-3 w-3" />{imageCount}</span>}
+                        </div>
+                      )}
+                    </Link>
 
-                      {/* Client bottom overlay */}
-                      <div className="absolute bottom-3 left-3.5 right-3.5 text-xs text-slate-200 font-semibold truncate">
-                        {l("Клієнт", "Клиент")}: {cs.client}
-                      </div>
-                    </div>
+                    <div className="flex flex-1 flex-col p-6">
+                      <div className="text-xs font-semibold text-slate-400">{item.client}</div>
+                      <Link to={getCasePath(item)} className="mt-2 text-xl font-black leading-snug text-slate-950 transition hover:text-indigo-600">{item.title}</Link>
+                      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">{item.description}</p>
 
-                    {/* Content Section */}
-                    <div className="p-6">
-                      <h3 className="text-lg font-bold text-slate-900 leading-snug group-hover:text-indigo-600 transition-colors mb-3">
-                        {cs.title}
-                      </h3>
-
-                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-6">
-                        {cs.description}
-                      </p>
-
-                      {/* Metrics row */}
-                      {cs.metrics && cs.metrics.length > 0 && (
-                        <div className="grid grid-cols-3 gap-2 py-3 px-3 bg-slate-50 rounded-2xl border border-slate-100 mb-6">
-                          {cs.metrics.map((m, idx) => (
-                            <div key={idx} className="text-center">
-                              <div className="text-[11px] font-black text-indigo-600 truncate">{m.value}</div>
-                              <div className="text-[9px] text-slate-500 truncate">{m.label}</div>
+                      {item.metrics && item.metrics.length > 0 && (
+                        <div className="mt-5 grid grid-cols-3 gap-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                          {item.metrics.slice(0, 3).map((metric, index) => (
+                            <div key={`${metric.label}-${index}`} className="min-w-0 text-center">
+                              <div className="truncate text-[11px] font-black text-indigo-600">{metric.value}</div>
+                              <div className="mt-0.5 truncate text-[9px] text-slate-500">{metric.label}</div>
                             </div>
                           ))}
                         </div>
                       )}
 
-                      {/* Challenge & Solution snippets */}
-                      <div className="space-y-3 text-xs">
-                        {cs.challenge && (
-                          <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-slate-700">
-                            <span className="font-bold text-amber-900 block mb-0.5">
-                              {l("Виклик завдання:", "Вызов задачи:")}
-                            </span>
-                            <span className="text-slate-600 line-clamp-2">{cs.challenge}</span>
-                          </div>
-                        )}
-
-                        {cs.solution && (
-                          <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20 text-slate-700">
-                            <span className="font-bold text-indigo-950 block mb-0.5">
-                              {l("Інженерне рішення:", "Инженерное решение:")}
-                            </span>
-                            <span className="text-slate-600 line-clamp-2">{cs.solution}</span>
-                          </div>
-                        )}
+                      <div className="mt-auto flex gap-3 border-t border-slate-100 pt-5">
+                        <Link to={getCasePath(item)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-indigo-600">
+                          {l('Дивитися кейс', 'Смотреть кейс', 'View case')}
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                        <button type="button" onClick={() => { setInquiryCase(item); setSubmitted(false); }} className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100">
+                          {l('Хочу так само', 'Хочу так же', 'I want this')}
+                        </button>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Actions footer */}
-                  <div className="px-6 pb-6 pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
-                    <button
-                      onClick={() => setSelectedCase(cs)}
-                      className="flex-1 inline-flex items-center justify-center space-x-1.5 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white text-xs font-bold transition-colors cursor-pointer"
-                    >
-                      <span>{l("Аналіз кейсу", "Разбор кейса")}</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setInquiryCase(cs);
-                        setSubmitted(false);
-                      }}
-                      className="inline-flex items-center justify-center py-2.5 px-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors border border-indigo-200 cursor-pointer"
-                    >
-                      <span>{l("Хочу так само", "Хочу так же")}</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
       </section>
 
-      {/* Clients & Partners Strip */}
       <ClientsMarquee showStats={false} />
 
-      {/* 4. Bottom Call-To-Action Banner */}
-      <section className="py-20 bg-slate-900 text-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold mb-4 border border-indigo-500/30">
-            <Award className="w-3.5 h-3.5" />
-            <span>{l("Індивідуальний інженерний розрахунок", "Индивидуальный инженерный расчет")}</span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-4">
-            {l("Готові обговорити ваш ефір чи зйомку?", "Готовы обсудить ваш эфир или съемку?")}
-          </h2>
-          <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto mb-8">
-            {l("Засновник студії Олександр Пітель особисто вивчить технічне завдання, запропонує оптимальну конфігурацію знімального тракту та надасть прозорий кошторис без прихованих переплат.", "Основатель студии Александр Питель лично изучит техническое задание, предложит оптимальную конфигурацию съемочного тракта и предоставит прозрачную смету без скрытых переплат.")}
+      <section className="bg-slate-950 py-20 text-white">
+        <div className="mx-auto max-w-5xl px-4 text-center sm:px-6">
+          <h2 className="text-3xl font-black sm:text-4xl">{l('Готові обговорити ваш проєкт?', 'Готовы обсудить ваш проект?', 'Ready to discuss your project?')}</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
+            {l(
+              'Олександр Пітель особисто вивчить завдання, запропонує оптимальну конфігурацію та прозорий кошторис.',
+              'Александр Питель лично изучит задачу, предложит оптимальную конфигурацию и прозрачную смету.',
+              'Oleksandr Pitel will review the brief personally and propose an efficient production setup with a transparent estimate.',
+            )}
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <button
-              onClick={() => {
-                setInquiryCase(null);
-                setSubmitted(false);
-              }}
-              className="inline-flex items-center space-x-2 px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-600/30 transition-all transform active:scale-95 cursor-pointer"
-            >
-              <span>{l("Залишити заявку на розрахунок", "Оставить заявку на расчет")}</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <a
-              href="https://www.youtube.com/@dneprfilm152/playlists"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center space-x-2 px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-semibold transition-colors"
-            >
-              <Play className="w-4 h-4 text-red-500 fill-red-500" />
-              <span>{l("Дивитися плейлисти на YouTube", "Смотреть плейлисты на YouTube")}</span>
-              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-            </a>
-          </div>
+          <Link to="/contacts" className="mt-8 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3.5 text-sm font-bold shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-500">
+            {l('Отримати розрахунок', 'Получить расчёт', 'Get a quote')}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
 
-      {/* MODAL 1: Full Case Study Breakdown Details */}
-      {selectedCase && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
-          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in duration-200">
-            {/* Close Button */}
-            <button
-              onClick={() => setSelectedCase(null)}
-              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-slate-900/60 hover:bg-slate-900 text-white flex items-center justify-center backdrop-blur-sm transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Media Banner */}
-            <div className="relative aspect-video bg-slate-900">
-              <img
-                src={selectedCase.imageUrl || 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?auto=format&fit=crop&q=80'}
-                alt={selectedCase.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
-              <div className="absolute bottom-6 left-6 right-6 text-white">
-                <span className="inline-block px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold mb-2">
-                  {selectedCase.categoryLabel || selectedCase.category}
-                </span>
-                <h3 className="text-xl sm:text-2xl font-black leading-tight">
-                  {selectedCase.title}
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-300 mt-1 font-medium">
-                  {l("Замовник", "Заказчик")}: {selectedCase.client}
-                </p>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 sm:p-8 space-y-6">
-              {/* Metrics bar if available */}
-              {selectedCase.metrics && selectedCase.metrics.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-100">
-                  {selectedCase.metrics.map((m, idx) => (
-                    <div key={idx} className="text-center">
-                      <div className="text-sm font-black text-indigo-700">{m.value}</div>
-                      <div className="text-[10px] text-slate-500">{m.label}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Description */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  {l("Огляд проєкту", "Обзор проекта")}
-                </h4>
-                <p className="text-sm text-slate-700 leading-relaxed">
-                  {selectedCase.description}
-                </p>
-              </div>
-
-              {/* Challenge */}
-              {selectedCase.challenge && (
-                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900 mb-1 flex items-center">
-                    <span>{l("Складність та виклик завдання", "Сложность и вызов задачи")}</span>
-                  </h4>
-                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                    {selectedCase.challenge}
-                  </p>
-                </div>
-              )}
-
-              {/* Solution */}
-              {selectedCase.solution && (
-                <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 mb-1 flex items-center">
-                    <span>{l("Інженерне рішення та знімальний сетап", "Инженерное решение и съемочный сетап")}</span>
-                  </h4>
-                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                    {selectedCase.solution}
-                  </p>
-                </div>
-              )}
-
-              {/* Result */}
-              {selectedCase.result && (
-                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-1 flex items-center">
-                    <span>{l("Підсумковий результат та показники", "Итоговый результат и показатели")}</span>
-                  </h4>
-                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                    {selectedCase.result}
-                  </p>
-                </div>
-              )}
-
-              {/* Action buttons inside modal */}
-              <div className="pt-4 border-t border-slate-200 flex flex-wrap gap-3 items-center justify-between">
-                <a
-                  href={selectedCase.videoUrl || "https://www.youtube.com/@dneprfilm152"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors"
-                >
-                  <Play className="w-3.5 h-3.5 text-red-400 fill-red-400" />
-                  <span>{l("Відкрити на YouTube каналі", "Открыть на YouTube каналу")}</span>
-                  <ExternalLink className="w-3 h-3 text-slate-400" />
-                </a>
-
-                <button
-                  onClick={() => {
-                    const c = selectedCase;
-                    setSelectedCase(null);
-                    setInquiryCase(c);
-                    setSubmitted(false);
-                  }}
-                  className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
-                >
-                  <span>{l("Замовити подібний проєкт", "Заказать подобный проект")}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 2: Quick Project Inquiry Modal */}
-      {inquiryCase !== undefined && inquiryCase !== null && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in duration-200">
-            <button
-              onClick={() => setInquiryCase(null)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
+      {inquiryCase && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-8">
+            <button type="button" onClick={closeInquiry} className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"><X className="h-4 w-4" /></button>
             {submitted ? (
-              <div className="py-8 text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  {l("Заявку успішно надіслано!", "Заявка успешно отправлена!")}
-                </h3>
-                <p className="text-xs text-slate-600 max-w-xs mx-auto">
-                  {l("Олександр Пітель зв'яжеться з вами протягом 15 хвилин для обговорення завдання та складання кошторису.", "Александр Питель свяжется с вами в течение 15 минут для обсуждения задачи и составления сметы.")}
-                </p>
-                <button
-                  onClick={() => setInquiryCase(null)}
-                  className="mt-4 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-500 transition-colors cursor-pointer"
-                >
-                  {l("Закрити", "Закрыть")}
-                </button>
+              <div className="py-7 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"><CheckCircle2 className="h-6 w-6" /></div>
+                <h3 className="mt-4 text-xl font-black">{l('Заявку надіслано', 'Заявка отправлена', 'Request sent')}</h3>
+                <p className="mt-2 text-sm text-slate-500">{l('Ми зв’яжемося з вами найближчим часом.', 'Мы свяжемся с вами в ближайшее время.', 'We will contact you shortly.')}</p>
+                <button type="button" onClick={closeInquiry} className="mt-5 rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-bold text-white">OK</button>
               </div>
             ) : (
-              <div>
-                <div className="mb-6">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 block mb-1">
-                    {l("Швидкий розрахунок проєкту", "Быстрый расчет проекта")}
-                  </span>
-                  <h3 className="text-xl font-black text-slate-900">
-                    {l("Хочу проєкт як", "Хочу проект как")}: {inquiryCase.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {l("Вкажіть ваші контактні дані, і ми підготуємо кошторис за аналогічною схемою виробництва.", "Укажите ваши контактные данные, и мы подготовим смету по аналогичной схеме производства.")}
-                  </p>
+              <form onSubmit={sendInquiry} className="space-y-4">
+                <div className="pr-10">
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">{l('Схожий проєкт', 'Похожий проект', 'Similar project')}</div>
+                  <h3 className="mt-2 text-2xl font-black">{inquiryCase.title}</h3>
                 </div>
-
-                <form onSubmit={handleSendInquiry} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {l("Ваше ім'я / Компанія *", "Ваше имя / Компания *")}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      placeholder={l("Іван, Торгова марка", "Иван, Торговая марка")}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {l("Телефон / Telegram / WhatsApp *", "Телефон / Telegram / WhatsApp *")}
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      value={clientPhone}
-                      onChange={(e) => setClientPhone(e.target.value)}
-                      placeholder="+380 (__) ___-__-__"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {l("Коментар або побажання щодо дати / локації", "Комментарий или пожелания по дате / локации")}
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={clientNote}
-                      onChange={(e) => setClientNote(e.target.value)}
-                      placeholder={l("Потрібен аналогічний ефір / ролик наступного місяця...", "Нужен аналогичный эфир / ролик в следующем месяце...")}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white resize-none"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center space-x-2 cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>
-                      {submitting
-                        ? (l("Відправка заявки...", "Отправка заявки..."))
-                        : (l("Отримати кошторис проєкту", "Получить смету проекта"))}
-                    </span>
-                  </button>
-                </form>
-              </div>
+                <input required value={clientName} onChange={event => setClientName(event.target.value)} placeholder={l('Ваше ім’я', 'Ваше имя', 'Your name')} className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-500" />
+                <input required value={clientPhone} onChange={event => setClientPhone(event.target.value)} placeholder={l('Телефон', 'Телефон', 'Phone')} className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-500" />
+                <textarea rows={4} value={clientNote} onChange={event => setClientNote(event.target.value)} placeholder={l('Коротко про ваше завдання', 'Коротко о вашей задаче', 'Tell us briefly about your project')} className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-500" />
+                <button type="submit" disabled={submitting} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3.5 text-sm font-bold text-white transition hover:bg-indigo-500 disabled:opacity-60">
+                  <Send className="h-4 w-4" />
+                  {submitting ? l('Надсилання…', 'Отправка…', 'Sending…') : l('Надіслати заявку', 'Отправить заявку', 'Send request')}
+                </button>
+                {settings.phone && <div className="text-center text-xs text-slate-400">{settings.phone}</div>}
+              </form>
             )}
           </div>
         </div>
