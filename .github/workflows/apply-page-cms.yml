@@ -1,0 +1,33 @@
+name: Apply page CMS migration
+
+on:
+  push:
+    branches:
+      - feature/expand-cms-pages
+    paths:
+      - '.github/workflows/apply-page-cms.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  transform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/expand-cms-pages
+          fetch-depth: 0
+
+      - name: Apply CMS source transformation
+        run: node scripts/apply-page-cms.mjs
+
+      - name: Commit transformed pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "Connect secondary pages to CMS content"
+          git push origin HEAD:feature/expand-cms-pages
