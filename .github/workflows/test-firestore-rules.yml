@@ -1,4 +1,4 @@
-name: Test Firestore Rules
+name: Test Firebase Rules
 
 on:
   push:
@@ -6,18 +6,24 @@ on:
       - main
     paths:
       - firestore.rules
+      - storage.rules
       - firebase.json
       - src/lib/firebase.ts
+      - src/lib/mediaUpload.ts
       - scripts/test-firestore-rules.mjs
+      - scripts/test-storage-rules.mjs
       - .github/workflows/test-firestore-rules.yml
   pull_request:
     branches:
       - main
     paths:
       - firestore.rules
+      - storage.rules
       - firebase.json
       - src/lib/firebase.ts
+      - src/lib/mediaUpload.ts
       - scripts/test-firestore-rules.mjs
+      - scripts/test-storage-rules.mjs
       - .github/workflows/test-firestore-rules.yml
   workflow_dispatch:
 
@@ -43,9 +49,12 @@ jobs:
       - name: Install app dependencies
         run: bun install --frozen-lockfile
 
-      - name: Run Firestore emulator regression tests
+      - name: Install rules test helper
+        run: bun add --dev --exact @firebase/rules-unit-testing@5.0.2
+
+      - name: Run Firebase emulator regression tests
         run: >-
           bunx firebase-tools emulators:exec
-          --only firestore
+          --only firestore,storage
           --project gen-lang-client-0973206519
-          "bun scripts/test-firestore-rules.mjs"
+          "bun scripts/test-firestore-rules.mjs && bun scripts/test-storage-rules.mjs"
