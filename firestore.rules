@@ -2,23 +2,19 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Administrative writes are limited to the verified Dneprfilm administrator.
-    // Keeping this check in Firestore rules is essential: client-side route guards
-    // are UX only and must never be treated as the security boundary.
     function isAdmin() {
       return request.auth != null
         && request.auth.token.email == 'dneprfilmcom@gmail.com'
         && request.auth.token.email_verified == true;
     }
 
-    // Public site content is readable by everyone, editable only by the admin.
     match /cases/{caseId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
     match /articles/{articleId} {
-      allow read: if true;
+      allow read: if isAdmin() || resource.data.published == true;
       allow write: if isAdmin();
     }
 
@@ -42,13 +38,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Visitors may submit leads, but only the verified admin may inspect or modify them.
     match /leads/{leadId} {
       allow create: if true;
       allow read, update, delete: if isAdmin();
     }
 
-    // Everything else is private to the verified administrator.
     match /{document=**} {
       allow read, write: if isAdmin();
     }
