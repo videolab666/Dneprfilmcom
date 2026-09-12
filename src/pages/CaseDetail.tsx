@@ -73,7 +73,6 @@ export function CaseDetail() {
   const media = useMemo(() => {
     if (!rawCase) return [];
     const items = normalizedCaseMedia(rawCase);
-    if (items.length <= 1) return [];
     return items.filter(item => !(item.type === 'image' && rawCase.imageUrl && item.url === rawCase.imageUrl));
   }, [rawCase]);
 
