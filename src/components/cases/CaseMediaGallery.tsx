@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, ExternalLink, Play, X } from 'lucide-react';
 import type { CaseMediaItem } from '../../types';
 import { getMediaPreview, getVideoEmbedUrl, localizeMediaItem } from '../../lib/caseMedia';
 import { useSiteContent } from '../../context/SiteContentContext';
+import { ResponsiveImage } from '../ResponsiveImage';
 
 interface CaseMediaGalleryProps {
   media: CaseMediaItem[];
@@ -64,7 +65,7 @@ function EmbeddedVideo({ item }: { item: CaseMediaItem }) {
       aria-label="Play video"
     >
       {preview ? (
-        <img src={preview} alt="" className="h-full w-full object-cover opacity-85 transition duration-500 group-hover:scale-105 group-hover:opacity-70" loading="lazy" />
+        <ResponsiveImage src={preview} alt="" displayWidth={1200} sizes="(max-width: 768px) 100vw, 50vw" className="h-full w-full object-cover opacity-85 transition duration-500 group-hover:scale-105 group-hover:opacity-70" />
       ) : (
         <div className="h-full w-full bg-gradient-to-br from-slate-800 via-slate-950 to-indigo-950" />
       )}
@@ -123,11 +124,12 @@ export function CaseMediaGallery({ media, caseTitle }: CaseMediaGalleryProps) {
                     className="group h-full w-full cursor-zoom-in"
                     aria-label={item.alt || item.title || caseTitle}
                   >
-                    <img
+                    <ResponsiveImage
                       src={item.url}
                       alt={item.alt || item.title || caseTitle}
+                      displayWidth={1400}
+                      sizes={isWide ? '(max-width: 1024px) 100vw, 900px' : '(max-width: 768px) 100vw, 50vw'}
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
-                      loading="lazy"
                     />
                   </button>
                 ) : (
@@ -183,9 +185,12 @@ export function CaseMediaGallery({ media, caseTitle }: CaseMediaGalleryProps) {
           )}
 
           <div className="flex max-h-[92vh] max-w-[94vw] flex-col items-center gap-3">
-            <img
+            <ResponsiveImage
               src={lightboxItem.url}
               alt={lightboxItem.alt || lightboxItem.title || caseTitle}
+              displayWidth={2400}
+              sizes="94vw"
+              loading="eager"
               className="max-h-[82vh] max-w-full rounded-2xl object-contain shadow-2xl"
             />
             {(lightboxItem.title || lightboxItem.caption) && (
