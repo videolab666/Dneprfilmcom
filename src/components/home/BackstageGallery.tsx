@@ -6,6 +6,33 @@ import { BackstageItem } from '../../types';
 import { useSiteContent } from '../../context/SiteContentContext';
 import { DEFAULT_BACKSTAGE_ITEMS } from '../../data/cmsSeeds';
 
+const LEGACY_BACKSTAGE_UK: Record<string, Partial<BackstageItem>> = {
+  'backstage-1': {
+    title: 'Мобільний режисерський вузол ПТС',
+    category: 'Режисерська',
+    tech: 'vMix Pro 4K + Blackmagic ATEM Constellation',
+    description: 'Центр керування ефіром: мультив’юер на 16 джерел, станція повторів Slow Motion та титрувальний сервер.',
+  },
+  'backstage-2': {
+    title: 'Операторська група на рингу та стадіоні',
+    category: 'Оператори',
+    tech: 'Sony FX6 / FX9 + довгофокусна кінооптика G Master',
+    description: 'Оператори працюють на бездротових радіофокусах і радіоканалах зв’язку з режисером у режимі нульової затримки.',
+  },
+  'backstage-3': {
+    title: 'Комутація та резервування тракту 12G-SDI',
+    category: 'Комутація',
+    tech: 'Броньовані оптичні кабелі + конвертери Neutrik',
+    description: 'Захищені кабель-канали (капи) для безпеки учасників і чистий цифровий сигнал без наведень.',
+  },
+  'backstage-4': {
+    title: 'Автономна станція зв’язку та Starlink',
+    category: 'Зв’язок і живлення',
+    tech: 'Starlink Gen 2 + LiveU / Peplink мульти-SIM бондинг',
+    description: 'Гарантія стабільної віддачі потоку 50+ Мбіт/с навіть на стадіонах і заміських полігонах без дротового інтернету.',
+  },
+};
+
 export function BackstageGallery() {
   const [items, setItems] = useState<BackstageItem[]>(DEFAULT_BACKSTAGE_ITEMS);
   const { isUk, getLocalizedBackstageItem, l } = useSiteContent();
@@ -46,7 +73,10 @@ export function BackstageGallery() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {items.map((rawItem, index) => {
-            const item = getLocalizedBackstageItem(rawItem);
+            const localizedItem = getLocalizedBackstageItem(rawItem);
+            const item = isUk && LEGACY_BACKSTAGE_UK[rawItem.id]
+              ? { ...localizedItem, ...LEGACY_BACKSTAGE_UK[rawItem.id] }
+              : localizedItem;
             return (
               <article key={item.id || index} className="group bg-slate-800/80 rounded-3xl overflow-hidden border border-slate-700/60 hover:border-indigo-500/50 transition-colors">
                 <div className="relative aspect-[16/10] overflow-hidden bg-slate-950">
