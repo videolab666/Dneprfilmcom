@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { ArrowRight, CalendarDays, Images, MapPin, Sparkles } from 'lucide-react';
 import { db } from '../lib/firebase';
+import { ResponsiveImage } from '../components/ResponsiveImage';
 import {
   GALLERY_COLLECTION,
   galleryCover,
@@ -121,7 +122,7 @@ export function Galleries() {
                   <article key={gallery.id} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-xl">
                     <Link to={getGalleryPath(gallery)} className="relative block aspect-[4/3] overflow-hidden bg-slate-900">
                       {cover ? (
-                        <img src={cover} alt={gallery.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+                        <ResponsiveImage src={cover} alt={gallery.title} displayWidth={900} sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                       ) : (
                         <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950 text-white/40">
                           <Images className="h-16 w-16" />
