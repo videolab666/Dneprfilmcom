@@ -15,9 +15,75 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Dneprfilm — відеопродакшн і прямі трансляції" />
     <meta name="twitter:description" content="Відеопродакшн повного циклу, багатокамерні прямі трансляції, фотографія та медіасупровід будівництва в Україні." />
+    <script>
+      (() => {
+        const recoveryKey = 'dneprfilm_asset_reload';
+
+        const showBootError = () => {
+          const fallback = document.getElementById('boot-fallback');
+          if (!fallback) return;
+          fallback.innerHTML = '<strong style="display:block;margin-bottom:10px">Не вдалося завантажити сайт</strong>' +
+            '<span>Оновіть сторінку або натисніть Ctrl+F5. Якщо помилка повторюється, відкрийте сайт у новій вкладці.</span>';
+        };
+
+        const recover = () => {
+          let lastAttempt = 0;
+          try {
+            lastAttempt = Number(sessionStorage.getItem(recoveryKey) || '0');
+          } catch {
+            // ignore storage errors
+          }
+
+          const now = Date.now();
+          if (lastAttempt && now - lastAttempt < 15000) {
+            showBootError();
+            return;
+          }
+
+          try {
+            sessionStorage.setItem(recoveryKey, String(now));
+          } catch {
+            // ignore storage errors
+          }
+
+          const next = new URL(window.location.href);
+          next.searchParams.set('_refresh', String(now));
+          window.location.replace(next.toString());
+        };
+
+        window.addEventListener('vite:preloadError', (event) => {
+          event.preventDefault();
+          recover();
+        });
+
+        window.addEventListener('error', (event) => {
+          const target = event.target;
+          if (target instanceof HTMLScriptElement || target instanceof HTMLLinkElement) {
+            const url = target instanceof HTMLScriptElement ? target.src : target.href;
+            if (url && url.includes('/assets/')) recover();
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', (event) => {
+          const message = String(event.reason?.message || event.reason || '');
+          if (
+            message.includes('Failed to fetch dynamically imported module') ||
+            message.includes('Importing a module script failed') ||
+            message.includes('Unable to preload CSS')
+          ) {
+            event.preventDefault();
+            recover();
+          }
+        });
+      })();
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-fallback" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#020617;color:#cbd5e1;font:16px/1.6 system-ui,sans-serif;text-align:center">
+        Завантаження Dneprfilm…
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
