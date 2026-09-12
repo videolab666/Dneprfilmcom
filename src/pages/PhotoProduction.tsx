@@ -19,7 +19,7 @@ import {
   Calendar,
   Layers
 } from 'lucide-react';
-import { INITIAL_PHOTOS, INITIAL_PHOTOS_UK, PHOTO_PACKAGES, PHOTO_PACKAGES_UK, PhotoItem } from '../data/initialPhotos';
+import type { PhotoItem } from '../data/initialPhotos';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
