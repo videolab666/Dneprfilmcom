@@ -21,6 +21,7 @@ const Contacts = lazy(() => import('./pages/Contacts').then((module) => ({ defau
 const About = lazy(() => import('./pages/About').then((module) => ({ default: module.About })));
 const AdminLogin = lazy(() => import('./pages/AdminLogin').then((module) => ({ default: module.AdminLogin })));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
+const NotFound = lazy(() => import('./pages/NotFound').then((module) => ({ default: module.NotFound })));
 
 const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
 
@@ -56,6 +57,8 @@ export default function App() {
                 <Route element={<ProtectedRoute />}>
                   <Route path="admin" element={<AdminDashboard />} />
                 </Route>
+
+                <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>
           </Suspense>
