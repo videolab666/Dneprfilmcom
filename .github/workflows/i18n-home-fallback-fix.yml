@@ -23,7 +23,14 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          # 1) Make old Firestore content use translated Ukrainian data as EN fallback.
+          def replace_between(text: str, anchor: str, start_marker: str, end_marker: str, replacement: str) -> str:
+              anchor_pos = text.index(anchor)
+              start = text.index(start_marker, anchor_pos)
+              end = text.index(end_marker, start)
+              return text[:start] + replacement + text[end:]
+
+          # Firestore/CMS English fallback: explicit EN wins; otherwise translate
+          # the Ukrainian representation instead of leaking Russian content.
           p = Path('src/context/SiteContentContext.tsx')
           s = p.read_text()
           s = s.replace(
@@ -31,22 +38,7 @@ jobs:
               "import { legacyText, legacyValue, translateEnglishValue } from '../locales/legacyEnglish';"
           )
 
-          old_blocks = """    if (locale === 'en') {
-              return blocks.map(block => {
-                if (block.config_en) {
-                  return {
-                    ...block,
-                    title: block.title_en || block.title,
-                    config: {
-                      ...block.config,
-                      ...block.config_en,
-                    }
-                  };
-                }
-                return block;
-              });
-            }"""
-          new_blocks = """    if (locale === 'en') {
+          blocks_en = """    if (locale === 'en') {
               const ukDefaultsMap = new Map(DEFAULT_SITE_BLOCKS_UK.map(b => [b.id, b]));
               return blocks.map(block => {
                 const ukDefault = ukDefaultsMap.get(block.id);
@@ -71,25 +63,18 @@ jobs:
                   },
                 };
               });
-            }"""
-          if old_blocks not in s:
-              raise SystemExit('EN block fallback section not found')
-          s = s.replace(old_blocks, new_blocks)
+            }
 
-          old_case = """    if (locale === 'en') {
-              return {
-                ...c,
-                title: c.title_en || c.title_uk || c.title,
-                categoryLabel: c.categoryLabel_en || c.categoryLabel_uk || c.categoryLabel,
-                description: c.description_en || c.description_uk || c.description,
-                challenge: c.challenge_en || c.challenge_uk || c.challenge,
-                problem: c.problem_en || c.problem_uk || c.problem,
-                solution: c.solution_en || c.solution_uk || c.solution,
-                result: c.result_en || c.result_uk || c.result,
-                metrics: c.metrics,
-              };
-            }"""
-          new_case = """    if (locale === 'en') {
+          """
+          s = replace_between(
+              s,
+              'const localizedBlocks = useMemo<SiteBlock[]>',
+              "    if (locale === 'en') {",
+              "    if (locale === 'uk') {",
+              blocks_en,
+          )
+
+          case_en = """    if (locale === 'en') {
               const uk = CASE_TRANSLATIONS_UK[c.id];
               return {
                 ...c,
@@ -102,22 +87,11 @@ jobs:
                 result: c.result_en || translateEnglishValue(c.result_uk || uk?.result || c.result),
                 metrics: translateEnglishValue(uk?.metrics || c.metrics),
               };
-            }"""
-          if old_case not in s:
-              raise SystemExit('EN case helper not found')
-          s = s.replace(old_case, new_case)
+            }
+          """
+          s = replace_between(s, 'const getLocalizedCase', "    if (locale === 'en') {", "    if (locale === 'uk') {", case_en)
 
-          old_testimonial = """    if (locale === 'en') {
-              return {
-                ...item,
-                author: item.author_en || item.author_uk || item.author,
-                role: item.role_en || item.role_uk || item.role,
-                company: item.company_en || item.company_uk || item.company,
-                project: item.project_en || item.project_uk || item.project,
-                quote: item.quote_en || item.quote_uk || item.quote,
-              };
-            }"""
-          new_testimonial = """    if (locale === 'en') {
+          testimonial_en = """    if (locale === 'en') {
               const uk = TESTIMONIALS_TRANSLATIONS_UK[item.id];
               return {
                 ...item,
@@ -127,21 +101,11 @@ jobs:
                 project: item.project_en || translateEnglishValue(item.project_uk || uk?.project || item.project),
                 quote: item.quote_en || translateEnglishValue(item.quote_uk || uk?.quote || item.quote),
               };
-            }"""
-          if old_testimonial not in s:
-              raise SystemExit('EN testimonial helper not found')
-          s = s.replace(old_testimonial, new_testimonial)
+            }
+          """
+          s = replace_between(s, 'const getLocalizedTestimonial', "    if (locale === 'en') {", "    if (locale === 'uk') {", testimonial_en)
 
-          old_backstage = """    if (locale === 'en') {
-              return {
-                ...item,
-                title: item.title_en || item.title_uk || item.title,
-                category: item.category_en || item.category_uk || item.category,
-                tech: item.tech_en || item.tech_uk || item.tech,
-                description: item.description_en || item.description_uk || item.description,
-              };
-            }"""
-          new_backstage = """    if (locale === 'en') {
+          backstage_en = """    if (locale === 'en') {
               const uk = BACKSTAGE_TRANSLATIONS_UK[item.id];
               return {
                 ...item,
@@ -150,50 +114,45 @@ jobs:
                 tech: item.tech_en || translateEnglishValue(item.tech_uk || uk?.tech || item.tech),
                 description: item.description_en || translateEnglishValue(item.description_uk || uk?.description || item.description),
               };
-            }"""
-          if old_backstage not in s:
-              raise SystemExit('EN backstage helper not found')
-          s = s.replace(old_backstage, new_backstage)
+            }
+          """
+          s = replace_between(s, 'const getLocalizedBackstageItem', "    if (locale === 'en') {", "    if (locale === 'uk') {", backstage_en)
           p.write_text(s)
 
-          # 2) Localize the legacy client catalog before rendering it.
+          # Client catalog has rich per-client copy; use an explicit EN dataset.
           p = Path('src/components/ClientsMarquee.tsx')
           s = p.read_text()
-          s = s.replace(
-              "const { isUk, t } = useSiteContent();",
-              "const { isUk, t, legacy } = useSiteContent();"
-          )
-          marker = "  const [selectedIndustry, setSelectedIndustry] = useState<string>('all');\n\n"
-          insert = """  const [selectedIndustry, setSelectedIndustry] = useState<string>('all');
+          import_anchor = "import { CLIENTS_LIST, CLIENT_STATS, ClientLogo } from '../data/clientsData';"
+          s = s.replace(import_anchor, import_anchor + "\nimport { CLIENTS_EN, CLIENT_STATS_EN } from '../data/clientEnglish';")
+          s = s.replace("const { isUk, t } = useSiteContent();", "const { isUk, t, locale } = useSiteContent();")
+          state = "  const [selectedIndustry, setSelectedIndustry] = useState<string>('all');\n\n"
+          localized = """  const [selectedIndustry, setSelectedIndustry] = useState<string>('all');
 
-              const localizedClients = CLIENTS_LIST.map(client => ({
-                ...client,
-                name: legacy(client.name, client.name),
-                shortName: legacy(client.shortName, client.shortName),
-                industryLabel: legacy(client.industryLabelUk || client.industryLabel, client.industryLabel),
-                workDone: legacy(client.workDoneUk || client.workDone, client.workDone),
-                scope: legacy(client.scopeUk || client.scope, client.scope),
-                location: legacy(client.locationUk || client.location, client.location),
-                quote: client.quote ? legacy(client.quoteUk || client.quote, client.quote) : client.quote,
-                quoteAuthor: client.quoteAuthor ? legacy(client.quoteAuthorUk || client.quoteAuthor, client.quoteAuthor) : client.quoteAuthor,
-              }));
+              const localizedClients = CLIENTS_LIST.map(client => {
+                if (locale !== 'en') return client;
+                const en = CLIENTS_EN[client.id];
+                return en ? { ...client, ...en } : client;
+              });
 
           """
-          if marker not in s:
-              raise SystemExit('Clients state marker not found')
-          s = s.replace(marker, insert, 1)
+          if state not in s:
+              raise SystemExit('Client state insertion point not found')
+          s = s.replace(state, localized, 1)
           s = s.replace("? CLIENTS_LIST\n    : CLIENTS_LIST.filter", "? localizedClients\n    : localizedClients.filter")
           s = s.replace("const row1 = CLIENTS_LIST.slice(0, 6);", "const row1 = localizedClients.slice(0, 6);")
           s = s.replace("const row2 = CLIENTS_LIST.slice(6);", "const row2 = localizedClients.slice(6);")
-          s = s.replace("{isUk ? (stat.labelUk || stat.label) : stat.label}", "{legacy(stat.labelUk || stat.label, stat.label)}")
+          s = s.replace(
+              "{isUk ? (stat.labelUk || stat.label) : stat.label}",
+              "{locale === 'en' ? CLIENT_STATS_EN[idx] : isUk ? (stat.labelUk || stat.label) : stat.label}",
+          )
           p.write_text(s)
 
-          # 3) English strings for the client component's t() keys.
+          # Complete translation keys consumed by ClientsMarquee.
           p = Path('src/locales/enTranslations.ts')
           s = p.read_text()
-          anchor = "  'clients.subtitle': 'Sports federations, IT corporations, construction developers, and media agencies.',\n"
-          addition = """  'clients.subtitle': 'Sports federations, IT corporations, construction developers, and media agencies.',
-              'clients.marqueeTab': 'Logo Marquee',
+          if "'clients.marqueeTab'" not in s:
+              anchor = "  'clients.subtitle': 'Sports federations, IT corporations, construction developers, and media agencies.',\n"
+              addition = anchor + """  'clients.marqueeTab': 'Logo Marquee',
               'clients.catalogTab': 'Directory',
               'clients.hint': '💡 Hover over a logo to pause the marquee and view details of the completed project',
               'clients.allIndustries': 'All Industries',
@@ -210,99 +169,9 @@ jobs:
               'clients.viewCase': 'View Case Study',
               'clients.nda': 'Project protected by corporate NDA',
           """
-          if anchor not in s:
-              raise SystemExit('EN clients anchor not found')
-          s = s.replace(anchor, addition, 1)
-          p.write_text(s)
-
-          # 4) English values for client catalog content and stats.
-          p = Path('src/locales/legacyEnglish.ts')
-          s = p.read_text()
-          marker = "\n};\n\nexport function translateEnglishValue"
-          if marker not in s:
-              raise SystemExit('English dictionary closing marker not found')
-          entries = r'''
-            // Client catalog & stats
-            "Корпоративних замовників": "Corporate clients",
-            "Років безперервного продакшну": "Years of continuous production",
-            "Успішних прямих ефірів": "Successful live broadcasts",
-            "Безготівковий розрахунок з ПДВ/без": "Cashless corporate payments",
-            "Міністерство Дверей": "Ministry of Doors",
-            "МД": "MD",
-            "Промисловість & Експорт": "Industry & Export",
-            "Іміджевий промо-фільм заводу 12 000 м²": "12,000 m² factory brand film",
-            "FPV-дрон, кінокамери Sony FX6, саунд-дизайн": "FPV drone, Sony FX6 cinema cameras, sound design",
-            "Дніпро / Експорт до ЄС": "Dnipro / EU export",
-            "«Зйомки всередині працюючого роботизованого цеху пройшли без зупинки конвеєра. Фільм допоміг укласти 4 нових дилерських контракти в ЄС».": "“Filming inside an operating robotic workshop was completed without stopping the production line. The film helped secure four new dealer contracts in the EU.”",
-            "Дирекція з маркетингу": "Marketing Department",
-            "Продуктовий бренд": "Product Brand",
-            "Рекламний ролик дров'яних печей Bravo": "Commercial for Bravo wood-fired ovens",
-            "Фуд-стилізм, макрозйомка, 4K 10-bit S-Log3": "Food styling, macro cinematography, 4K 10-bit S-Log3",
-            "Київ / Міжнародні продажі": "Kyiv / International sales",
-            "«Після запуску рекламної кампанії передзамовлення на печі зросли на 38%. Ідеальна передача кольору вогню та текстури страв».": "“After the campaign launched, pre-orders for the ovens increased by 38%. The fire and food textures were reproduced with excellent color accuracy.”",
-            "Керівник e-commerce": "E-commerce Lead",
-            "Девелопмент & ЖК": "Development & Residential",
-            "Моніторинг будівництва ЖК Riverside 24/7": "24/7 construction monitoring of Riverside residential complex",
-            "Термобокс з підігрівом, таймлапс на крані, аеропанорами": "Heated weatherproof housing, crane-mounted timelapse, aerial panoramas",
-            "Дніпро, набережна": "Dnipro riverfront",
-            "«Таймлапс-камера відпрацювала дві зими без збоїв. Відеозвіти підняли дистанційні продажі на етапі котловану на 35%».": "“The timelapse camera operated through two winters without a failure. Video reports increased remote sales at the excavation stage by 35%.”",
-            "Головний девелопер проєкту": "Lead Project Developer",
-            "Експорт & Виставки": "Export & Trade Shows",
-            "Презентаційне відео для Dubai Expo": "Presentation video for Dubai Expo",
-            "Макрозйомка деталей, студійне світло Aputure, UK диктор": "Macro product filming, Aputure studio lighting, English voice-over",
-            "ОАЕ, Дубай / Україна": "UAE, Dubai / Ukraine",
-            "«На стенді в Дубаї наш ролик приваблював баєрів з усього Близького Сходу. Європейський візуальний рівень».": "“At our Dubai stand, the video attracted buyers from across the Middle East. The visual quality matched a European production standard.”",
-            "Спортивні трансляції": "Sports Broadcasts",
-            "Прямий ефір турніру з боксу (8 камер)": "Live boxing tournament broadcast (8 cameras)",
-            "ПТС vMix, Starlink + 4G бондинг, Super Slow-Mo повтори": "vMix OB production, Starlink + 4G bonding, Super Slow-Mo replay",
-            "Київ / YouTube Live": "Kyiv / YouTube Live",
-            "«Заміська арена без кабельного інтернету, але ефір на 520 000 глядачів пройшов з нульовою затримкою і без жодного фризу».": "“The venue had no wired internet, yet the broadcast reached 520,000 viewers without freezes or connectivity failures.”",
-            "Генеральний продюсер ліги": "League Executive Producer",
-            "Центр Здоров’я «Геліос»": "Helios Health Center",
-            "Медицина & Реабілітація": "Healthcare & Rehabilitation",
-            "Іміджевий фільм про робототехніку та реабілітацію": "Brand film about robotics and rehabilitation",
-            "Sony FX3, безшумна зйомка в операційних, інтерв'ю": "Sony FX3, silent operating-room filming, interviews",
-            "Дніпро": "Dnipro",
-            "«Команда спрацювала дуже тактовно, не потурбувавши жодного пацієнта в реанімаційному відділенні. Конверсія записів +42%».": "“The crew worked very discreetly without disturbing patients in intensive care. Appointment conversion increased by 42%.”",
-            "Головний лікар клініки": "Clinic Chief Physician",
-            "Міжнародні форуми": "International Forums",
-            "Багатокамерна зйомка конгресу та трансляція на LED": "Multicamera congress production and LED-screen live feed",
-            "Виведення на екран 10x4м із затримкою <50мс, телеоб'єктиви": "10×4 m screen output with <50 ms latency, telephoto lenses",
-            "КВЦ Парковий, Київ": "Parkovy Convention and Exhibition Center, Kyiv",
-            "«Ідеальна деталізація складних ін'єкцій крупним планом для 400 лікарів у залі. Звітний ролик отримали вже через 24 години».": "“Detailed close-ups of complex injections were delivered clearly to 400 doctors in the hall. The recap film was ready within 24 hours.”",
-            "Оргкомітет конгресу": "Congress Organizing Committee",
-            "Спорт & Фітнес": "Sports & Fitness",
-            "Динамічне рекламне промо фітнес-мережі": "Dynamic advertising promo for a fitness-club network",
-            "120fps Slow-Mo, електронні стедіками, контрастний LED": "120fps slow motion, electronic stabilizers, contrast LED lighting",
-            "Мережа з 4 клубів": "Network of 4 clubs",
-            "«Ролик підірвав Instagram та таргет. План продажів клубних карток перевиконано на 27% у перший же місяць».": "“The campaign performed strongly on Instagram and paid social. Membership sales beat the monthly target by 27%.”",
-            "Комерційний директор": "Commercial Director",
-            "Концерти & Шоу": "Concerts & Shows",
-            "Телевізійна мультикамерна зйомка шоу (6 камер)": "Six-camera television multicam production",
-            "Операторський кран, поканальний мультитрек 32 канали": "Camera crane, 32-channel multitrack recording",
-            "Театр опери та балету": "Opera and Ballet Theatre",
-            "«Живий звук зведено бездоганно, а прольоти на операторському крані створили відчуття справжнього європейського телешоу».": "“The live sound mix was excellent, while the crane shots gave the production the feel of a polished European television show.”",
-            "Художній керівник": "Artistic Director",
-            "Агробізнес & Елеватори": "Agribusiness & Grain Elevators",
-            "Презентація елеваторного комплексу та збиральної кампанії": "Presentation of a grain-elevator complex and harvesting campaign",
-            "Аерозйомка дронами DJI Mavic 3 Cine, зйомка в полі": "DJI Mavic 3 Cine aerial filming, field production",
-            "Центральна Україна": "Central Ukraine",
-            "«Зняли збиральну кампанію на тисячах гектарів. Кадри з дрона в золоту годину увійшли до інвестиційної презентації холдингу».": "“We filmed the harvest across thousands of hectares. Golden-hour drone footage became part of the holding company's investor presentation.”",
-            "Прес-служба холдингу": "Holding Press Office",
-            "Логістика & Склади класу А": "Logistics & Class-A Warehouses",
-            "Аеромоніторинг та промо розподільчого центру 45 000 м²": "Aerial monitoring and promo of a 45,000 m² distribution center",
-            "3D ортофотоплани, інспекція покрівлі, презентаційний фільм": "3D orthophoto maps, roof inspection, presentation film",
-            "Траса М-04": "M-04 Highway",
-            "«Якісна зйомка логістичного хабу привабила міжнародних орендарів ще до введення другої черги об'єкта».": "“High-quality media coverage of the logistics hub attracted international tenants before the second phase was commissioned.”",
-            "Керуюча компанія": "Management Company",
-            "IT & Бізнес-форуми": "IT & Business Forums",
-            "Гібридна трансляція форуму на 3 паралельні потоки": "Hybrid forum broadcast across 3 parallel streams",
-            "Інтеграція Zoom кімнат, синхронний переклад, стрім 1080p60": "Zoom room integration, simultaneous interpretation, 1080p60 streaming",
-            "Конференц-центр Menorah": "Menorah Conference Center",
-            "«Складний сетап із трьома залами та синхронним перекладом англійською відпрацював як швейцарський годинник».": "“The complex three-hall setup with simultaneous English interpretation ran like clockwork.”",
-            "Координатор саміту": "Summit Coordinator",
-          '''
-          s = s.replace(marker, entries + marker, 1)
+              if anchor not in s:
+                  raise SystemExit('EN client translation insertion point not found')
+              s = s.replace(anchor, addition, 1)
           p.write_text(s)
           PY
 
