@@ -1,0 +1,54 @@
+name: One-time fix QuickContact English copy
+on:
+  push:
+    branches: [i18n/complete-public-locales]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[quick-contact-en]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: i18n/complete-public-locales
+          fetch-depth: 0
+      - name: Patch QuickContact English paragraph
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/components/home/QuickContactCTA.tsx')
+          s = p.read_text(encoding='utf-8')
+          old = '''              <p className="text-sm sm:text-base text-slate-300 font-light leading-relaxed">
+                {isUk ? (
+                  <>
+                    Розкажіть про ваше завдання. Засновник студії <strong className="text-white font-medium">Олександр Пітель</strong> або провідний інженер зв'яжуться з вами, щоб запропонувати оптимальний склад групи та обладнання без переплат.
+                  </>
+                ) : (
+                  <>
+                    Расскажите о вашей задаче. Основатель студии <strong className="text-white font-medium">Александр Питель</strong> или ведущий инженер свяжутся с вами, чтобы предложить оптимальный состав группы и оборудования без переплат.
+                  </>
+                )}
+              </p>'''
+          new = '''              <p className="text-sm sm:text-base text-slate-300 font-light leading-relaxed">
+                {l(
+                  "Розкажіть про ваше завдання. Засновник студії Олександр Пітель або провідний інженер зв'яжуться з вами, щоб запропонувати оптимальний склад групи та обладнання без переплат.",
+                  "Расскажите о вашей задаче. Основатель студии Александр Питель или ведущий инженер свяжутся с вами, чтобы предложить оптимальный состав группы и оборудования без переплат.",
+                  "Tell us about your project. Studio founder Alexander Pitel or a lead engineer will contact you to recommend the optimal crew and equipment setup without unnecessary costs."
+                )}
+              </p>'''
+          if old not in s:
+              raise SystemExit('Expected QuickContact paragraph was not found')
+          s = s.replace(old, new, 1)
+          # isUk is no longer needed in this component.
+          s = s.replace('  const { isUk, settings, l } = useSiteContent();', '  const { settings, l } = useSiteContent();', 1)
+          p.write_text(s, encoding='utf-8')
+          Path('.github/workflows/i18n-fix-quick-contact-en.yml').unlink(missing_ok=True)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/home/QuickContactCTA.tsx .github/workflows
+          git commit -m "Fix QuickContact English copy [quick-contact-en]"
+          git push origin HEAD:i18n/complete-public-locales
