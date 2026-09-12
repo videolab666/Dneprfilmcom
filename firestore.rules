@@ -8,6 +8,99 @@ service cloud.firestore {
         && request.auth.token.email_verified == true;
     }
 
+    function optionalString(data, field, maxLength) {
+      return data.get(field, '') is string
+        && data.get(field, '').size() <= maxLength;
+    }
+
+    function optionalBudget(data, field) {
+      return data.get(field, 0) is number
+        && data.get(field, 0) >= 0
+        && data.get(field, 0) <= 100000000;
+    }
+
+    function validCalculatorDetails(data) {
+      let details = data.get('calculatorDetails', {});
+      return details is map
+        && details.keys().hasOnly([
+          'videoType',
+          'duration',
+          'needScript',
+          'needActors',
+          'needDrone',
+          'needVoiceover',
+          'needGraphics3D'
+        ])
+        && details.get('videoType', '') is string
+        && details.get('videoType', '').size() <= 50
+        && details.get('duration', '') is string
+        && details.get('duration', '').size() <= 50
+        && details.get('needScript', false) is bool
+        && details.get('needActors', false) is bool
+        && details.get('needDrone', false) is bool
+        && details.get('needVoiceover', false) is bool
+        && details.get('needGraphics3D', false) is bool;
+    }
+
+    function validPublicLead(data) {
+      return data.keys().hasAll(['name', 'phone', 'createdAt'])
+        && data.keys().hasOnly([
+          'name',
+          'phone',
+          'email',
+          'service',
+          'eventType',
+          'calculatedCost',
+          'calculatorDetails',
+          'message',
+          'status',
+          'createdAt',
+          'company',
+          'source',
+          'contactDetail',
+          'serviceType',
+          'desiredDate',
+          'locationDetails',
+          'comment',
+          'location',
+          'cameraCount',
+          'preferredContact',
+          'eventDate',
+          'hasStarlink',
+          'additionalServices',
+          'estimatedCost'
+        ])
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 200
+        && data.phone is string
+        && data.phone.size() > 0
+        && data.phone.size() <= 100
+        && optionalString(data, 'email', 320)
+        && optionalString(data, 'service', 200)
+        && optionalString(data, 'eventType', 500)
+        && optionalString(data, 'message', 5000)
+        && optionalString(data, 'company', 200)
+        && optionalString(data, 'source', 100)
+        && optionalString(data, 'contactDetail', 500)
+        && optionalString(data, 'serviceType', 200)
+        && optionalString(data, 'desiredDate', 100)
+        && optionalString(data, 'locationDetails', 1000)
+        && optionalString(data, 'comment', 5000)
+        && optionalString(data, 'location', 500)
+        && optionalString(data, 'cameraCount', 100)
+        && optionalString(data, 'preferredContact', 100)
+        && optionalString(data, 'eventDate', 100)
+        && data.get('status', 'new') == 'new'
+        && (data.createdAt is int || data.createdAt is timestamp)
+        && data.get('hasStarlink', false) is bool
+        && data.get('additionalServices', []) is list
+        && data.get('additionalServices', []).size() <= 20
+        && optionalBudget(data, 'calculatedCost')
+        && optionalBudget(data, 'estimatedCost')
+        && validCalculatorDetails(data);
+    }
+
     match /cases/{caseId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -39,7 +132,7 @@ service cloud.firestore {
     }
 
     match /leads/{leadId} {
-      allow create: if true;
+      allow create: if isAdmin() || validPublicLead(request.resource.data);
       allow read, update, delete: if isAdmin();
     }
 

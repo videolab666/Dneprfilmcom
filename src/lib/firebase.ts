@@ -6,12 +6,13 @@ import firebaseConfig from '../../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Use initializeFirestore with experimentalForceLongPolling to eliminate the 10-second
-// backend connection timeout in sandboxed preview / proxy iframe environments
+// Long polling improves reliability in proxied/sandboxed environments.
+// Optional form fields may be undefined, so omit them rather than failing the write.
 export const db = initializeFirestore(
   app,
   {
     experimentalForceLongPolling: true,
+    ignoreUndefinedProperties: true,
   },
-  firebaseConfig.firestoreDatabaseId || "ai-studio-2b172e30-4fd3-4131-ba5b-61712d198b9e"
+  firebaseConfig.firestoreDatabaseId || 'ai-studio-2b172e30-4fd3-4131-ba5b-61712d198b9e'
 );
