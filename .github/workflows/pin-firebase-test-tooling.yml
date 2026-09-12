@@ -27,26 +27,10 @@ jobs:
       - name: Pin Firebase rule-test tooling
         run: bun add --dev --exact @firebase/rules-unit-testing@5.0.2 firebase-tools@15.30.0
 
-      - name: Simplify Firebase rules workflow
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('.github/workflows/test-firestore-rules.yml')
-          text = path.read_text()
-          helper = "\n      - name: Install rules test helper\n        run: bun add --dev --exact @firebase/rules-unit-testing@5.0.2\n"
-          if helper not in text:
-              raise SystemExit('rules test helper step not found')
-          path.write_text(text.replace(helper, '', 1))
-          PY
-
-      - name: Remove one-time workflow
-        run: rm .github/workflows/pin-firebase-test-tooling.yml
-
-      - name: Commit pinned tooling
+      - name: Commit pinned package metadata
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add package.json bun.lock .github/workflows/test-firestore-rules.yml .github/workflows/pin-firebase-test-tooling.yml
+          git add package.json bun.lock
           git commit -m "Pin Firebase rules test tooling"
           git push origin HEAD:chore/pin-firebase-test-tooling
