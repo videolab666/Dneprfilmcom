@@ -1,6 +1,7 @@
 const CLOUDINARY_CLOUD_NAME = 'n6l9imb7';
 const CLOUDINARY_UPLOAD_PRESET = '123123';
-const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
+const MAX_IMAGE_SOURCE_BYTES = 25 * 1024 * 1024;
+const MAX_VIDEO_SOURCE_BYTES = 100 * 1024 * 1024;
 const MAX_EDGE = 2400;
 const WEBP_QUALITY = 0.88;
 
@@ -10,13 +11,18 @@ interface CloudinaryUploadResponse {
   error?: { message?: string };
 }
 
+interface UploadedAsset {
+  url: string;
+  publicId: string;
+}
+
 function sanitizeName(name: string): string {
   return name
     .replace(/\.[^.]+$/, '')
     .toLowerCase()
     .replace(/[^a-z0-9_-]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 70) || 'image';
+    .slice(0, 70) || 'media';
 }
 
 async function loadBitmap(file: File): Promise<ImageBitmap> {
@@ -26,7 +32,7 @@ async function loadBitmap(file: File): Promise<ImageBitmap> {
 
 async function optimizeImage(file: File): Promise<Blob> {
   if (!file.type.startsWith('image/')) throw new Error('Можно загружать только изображения.');
-  if (file.size > MAX_SOURCE_BYTES) throw new Error('Исходное изображение больше 25 МБ.');
+  if (file.size > MAX_IMAGE_SOURCE_BYTES) throw new Error('Исходное изображение больше 25 МБ.');
 
   const bitmap = await loadBitmap(file);
   const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
@@ -48,16 +54,19 @@ async function optimizeImage(file: File): Promise<Blob> {
   return blob;
 }
 
-export async function uploadCaseImage(file: File, caseId: string): Promise<{ url: string; publicId: string }> {
-  const optimized = await optimizeImage(file);
+async function uploadUnsigned(
+  file: Blob,
+  resourceType: 'image' | 'video',
+  folder: string,
+  filename: string,
+): Promise<UploadedAsset> {
   const formData = new FormData();
-  formData.append('file', optimized, `${sanitizeName(file.name)}.webp`);
+  formData.append('file', file, filename);
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-  formData.append('folder', `dneprfilm/cases/${sanitizeName(caseId)}`);
-  formData.append('filename_override', `${sanitizeName(file.name)}.webp`);
+  formData.append('folder', folder);
 
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
     { method: 'POST', body: formData },
   );
   const data = await response.json() as CloudinaryUploadResponse;
@@ -67,4 +76,53 @@ export async function uploadCaseImage(file: File, caseId: string): Promise<{ url
   }
 
   return { url: data.secure_url, publicId: data.public_id };
+}
+
+function videoPosterUrl(url: string): string | undefined {
+  const marker = '/video/upload/';
+  const index = url.indexOf(marker);
+  if (index < 0) return undefined;
+  const prefix = url.slice(0, index + marker.length);
+  const rest = url.slice(index + marker.length);
+  const queryIndex = rest.indexOf('?');
+  const pathPart = queryIndex >= 0 ? rest.slice(0, queryIndex) : rest;
+  const withoutExtension = pathPart.replace(/\.[a-z0-9]+$/i, '');
+  return `${prefix}so_0,f_jpg,q_auto/${withoutExtension}.jpg`;
+}
+
+export async function uploadCaseImage(file: File, caseId: string): Promise<UploadedAsset> {
+  const optimized = await optimizeImage(file);
+  return uploadUnsigned(
+    optimized,
+    'image',
+    `dneprfilm/cases/${sanitizeName(caseId)}`,
+    `${sanitizeName(file.name)}.webp`,
+  );
+}
+
+export async function uploadHeroImage(file: File): Promise<UploadedAsset> {
+  const optimized = await optimizeImage(file);
+  return uploadUnsigned(
+    optimized,
+    'image',
+    'dneprfilm/hero',
+    `${sanitizeName(file.name)}.webp`,
+  );
+}
+
+export async function uploadHeroVideo(file: File): Promise<UploadedAsset & { posterUrl?: string }> {
+  if (!['video/mp4', 'video/webm'].includes(file.type)) {
+    throw new Error('Для Hero используйте MP4 или WebM.');
+  }
+  if (file.size > MAX_VIDEO_SOURCE_BYTES) {
+    throw new Error('Видео Hero больше 100 МБ. Сожмите клип или добавьте его URL.');
+  }
+  const extension = file.type === 'video/webm' ? 'webm' : 'mp4';
+  const uploaded = await uploadUnsigned(
+    file,
+    'video',
+    'dneprfilm/hero',
+    `${sanitizeName(file.name)}.${extension}`,
+  );
+  return { ...uploaded, posterUrl: videoPosterUrl(uploaded.url) };
 }

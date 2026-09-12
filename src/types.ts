@@ -1,5 +1,37 @@
 export type Locale = 'uk' | 'ru' | 'en';
 
+export type HeroSlideType = 'image' | 'video';
+
+export interface HeroSlide {
+  id: string;
+  type: HeroSlideType;
+  url: string;
+  mobileUrl?: string;
+  posterUrl?: string;
+  cloudinaryPublicId?: string;
+  durationMs?: number;
+  overlayOpacity?: number;
+  objectPosition?: string;
+  enabled?: boolean;
+  badge?: string;
+  badge_uk?: string;
+  badge_en?: string;
+  title?: string;
+  title_uk?: string;
+  title_en?: string;
+  subtitle?: string;
+  subtitle_uk?: string;
+  subtitle_en?: string;
+  ctaPrimaryText?: string;
+  ctaPrimaryText_uk?: string;
+  ctaPrimaryText_en?: string;
+  ctaPrimaryLink?: string;
+  ctaSecondaryText?: string;
+  ctaSecondaryText_uk?: string;
+  ctaSecondaryText_en?: string;
+  ctaSecondaryLink?: string;
+}
+
 export type CaseMediaType = 'image' | 'youtube' | 'vimeo' | 'video';
 
 export interface CaseMediaItem {
@@ -149,6 +181,7 @@ export interface SiteSetting {
   heroCtaSecondaryText_en?: string;
   heroCtaSecondaryLink: string;
   heroBgImage: string;
+  heroSlides?: HeroSlide[];
   founderName: string;
   founderName_uk?: string;
   founderName_en?: string;
