@@ -22,9 +22,10 @@ import { BackstageManager } from '../components/admin/BackstageManager';
 import { LeadsCRM } from '../components/admin/LeadsCRM';
 import { ArticlesManager } from '../components/admin/ArticlesManager';
 import { PageContentManager } from '../components/admin/PageContentManager';
+import { PageCopyManager } from '../components/admin/PageCopyManager';
 import { useSiteContent } from '../context/SiteContentContext';
 
-type AdminTab = 'blocks' | 'settings' | 'pages' | 'cases' | 'testimonials' | 'backstage' | 'leads' | 'articles';
+type AdminTab = 'blocks' | 'settings' | 'pages' | 'page-copy' | 'cases' | 'testimonials' | 'backstage' | 'leads' | 'articles';
 
 interface NavItem {
   id: AdminTab;
@@ -46,7 +47,8 @@ export function AdminDashboard() {
   const navItems: NavItem[] = [
     { id: 'blocks', label: isUk ? 'Конструктор блоків' : 'Конструктор блоков', icon: <Layers className="w-4 h-4" />, badge: 'CMS' },
     { id: 'settings', label: isUk ? 'Головна & Засновник' : 'Главная & Основатель', icon: <Sliders className="w-4 h-4" /> },
-    { id: 'pages', label: isUk ? 'Контент сторінок' : 'Контент страниц', icon: <Layers className="w-4 h-4" />, badge: 'NEW' },
+    { id: 'pages', label: isUk ? 'Контент сторінок' : 'Контент страниц', icon: <Layers className="w-4 h-4" /> },
+    { id: 'page-copy', label: isUk ? 'Тексти & FAQ' : 'Тексты & FAQ', icon: <FileText className="w-4 h-4" />, badge: 'CMS' },
     { id: 'cases', label: isUk ? 'Кейси студії' : 'Кейсы студии', icon: <Briefcase className="w-4 h-4" /> },
     { id: 'testimonials', label: isUk ? 'Відгуки клієнтів' : 'Отзывы клиентов', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'backstage', label: isUk ? 'ПТС та Бекстейдж' : 'ПТС и Бэкстейдж', icon: <Radio className="w-4 h-4" /> },
@@ -95,6 +97,7 @@ export function AdminDashboard() {
         {activeTab === 'blocks' && <BlocksManager />}
         {activeTab === 'settings' && <SiteSettingsEditor />}
         {activeTab === 'pages' && <PageContentManager />}
+        {activeTab === 'page-copy' && <PageCopyManager />}
         {activeTab === 'cases' && <CasesManager />}
         {activeTab === 'testimonials' && <TestimonialsManager />}
         {activeTab === 'backstage' && <BackstageManager />}
