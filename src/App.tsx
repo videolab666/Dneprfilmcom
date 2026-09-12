@@ -13,6 +13,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 const Home = lazy(() => import('./pages/Home').then((module) => ({ default: module.Home })));
 const LiveProduction = lazy(() => import('./pages/LiveProduction').then((module) => ({ default: module.LiveProduction })));
 const VideoProduction = lazy(() => import('./pages/VideoProduction').then((module) => ({ default: module.VideoProduction })));
+const Videos = lazy(() => import('./pages/Videos').then((module) => ({ default: module.Videos })));
+const VideoDetail = lazy(() => import('./pages/VideoDetail').then((module) => ({ default: module.VideoDetail })));
 const Cases = lazy(() => import('./pages/Cases').then((module) => ({ default: module.Cases })));
 const CaseDetail = lazy(() => import('./pages/CaseDetail').then((module) => ({ default: module.CaseDetail })));
 const Galleries = lazy(() => import('./pages/Galleries').then((module) => ({ default: module.Galleries })));
@@ -48,6 +50,8 @@ export default function App() {
 
                 <Route path="live" element={<LiveProduction />} />
                 <Route path="video" element={<VideoProduction />} />
+                <Route path="videos" element={<Videos />} />
+                <Route path="videos/:slug" element={<VideoDetail />} />
                 <Route path="construction" element={<ConstructionMedia />} />
                 <Route path="photo" element={<PhotoProduction />} />
                 <Route path="cases" element={<Cases />} />
