@@ -44,6 +44,91 @@ jobs:
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
 
+      - name: Browser smoke test
+        run: |
+          set -euo pipefail
+
+          bun run preview -- --host 127.0.0.1 --port 4173 > /tmp/dneprfilm-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID" 2>/dev/null || true' EXIT
+
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/Dneprfilmcom/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          if ! curl -fsS http://127.0.0.1:4173/Dneprfilmcom/ >/dev/null; then
+            echo 'Vite preview did not become ready.'
+            cat /tmp/dneprfilm-preview.log
+            exit 1
+          fi
+
+          CHROME=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              CHROME="$(command -v "$candidate")"
+              break
+            fi
+          done
+
+          if [ -z "$CHROME" ]; then
+            echo 'No Chromium-compatible browser found on the runner.'
+            exit 1
+          fi
+
+          routes=(
+            ''
+            'live'
+            'video'
+            'construction'
+            'photo'
+            'cases'
+            'media-center'
+            'about'
+            'contacts'
+            'admin/login'
+            'does-not-exist'
+          )
+
+          for route in "${routes[@]}"; do
+            url="http://127.0.0.1:4173/Dneprfilmcom/${route}"
+            echo "Smoke testing ${url}"
+
+            html="$($CHROME \
+              --headless=new \
+              --no-sandbox \
+              --disable-gpu \
+              --disable-dev-shm-usage \
+              --virtual-time-budget=5000 \
+              --dump-dom \
+              "$url" 2>/tmp/dneprfilm-chrome.log || true)"
+
+            if [ -z "$html" ]; then
+              echo "Browser returned no DOM for ${url}"
+              cat /tmp/dneprfilm-chrome.log || true
+              exit 1
+            fi
+
+            if grep -q 'id="boot-fallback"' <<< "$html"; then
+              echo "Static boot fallback was still present for ${url}"
+              exit 1
+            fi
+
+            if grep -q 'animate-spin' <<< "$html"; then
+              echo "React route fallback was still present for ${url}"
+              exit 1
+            fi
+
+            if ! grep -q 'id="root"' <<< "$html"; then
+              echo "React root is missing for ${url}"
+              exit 1
+            fi
+          done
+
+          echo 'Browser smoke tests passed.'
+
       - name: Configure Pages
         if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v6
