@@ -1,0 +1,45 @@
+name: Test Firestore Rules
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - firestore.rules
+      - firebase.json
+      - src/lib/firebase.ts
+      - scripts/test-firestore-rules.mjs
+      - .github/workflows/test-firestore-rules.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - firestore.rules
+      - firebase.json
+      - src/lib/firebase.ts
+      - scripts/test-firestore-rules.mjs
+      - .github/workflows/test-firestore-rules.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install app dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run Firestore emulator regression tests
+        run: >-
+          bunx firebase-tools emulators:exec
+          --only firestore
+          --project gen-lang-client-0973206519
+          "bun scripts/test-firestore-rules.mjs"
