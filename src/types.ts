@@ -46,6 +46,8 @@ export interface CaseStudy {
   description_uk?: string;
   description_en?: string;
   metrics?: { label: string; value: string }[];
+  metrics_uk?: { label: string; value: string }[];
+  metrics_en?: { label: string; value: string }[];
   year?: string;
   location?: string;
   location_uk?: string;

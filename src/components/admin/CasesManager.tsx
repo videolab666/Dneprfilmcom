@@ -63,6 +63,8 @@ const emptyCase = (): CaseStudy => ({
   location_en: '',
   year: '',
   metrics: [],
+  metrics_uk: [],
+  metrics_en: [],
   imageUrl: '',
   videoUrl: '',
   videoBadge: '',
@@ -107,6 +109,7 @@ export function CasesManager() {
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [draggedMediaId, setDraggedMediaId] = useState<string | null>(null);
   const [pendingDeletePaths, setPendingDeletePaths] = useState<string[]>([]);
+  const [newUploadPaths, setNewUploadPaths] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchCases = async () => {
@@ -140,6 +143,7 @@ export function CasesManager() {
     setLanguage('uk');
     setError('');
     setPendingDeletePaths([]);
+    setNewUploadPaths([]);
     setNewMediaUrl('');
   };
 
@@ -148,6 +152,7 @@ export function CasesManager() {
     setLanguage('uk');
     setError('');
     setPendingDeletePaths([]);
+    setNewUploadPaths([]);
     setNewMediaUrl('');
   };
 
@@ -165,6 +170,33 @@ export function CasesManager() {
       return;
     }
     setEditing({ ...editing, [`${base}_${language}`]: value });
+  };
+
+  const getLocalizedMetrics = (): { label: string; value: string }[] => {
+    if (!editing) return [];
+    if (language === 'uk') return editing.metrics_uk || editing.metrics || [];
+    if (language === 'en') return editing.metrics_en || editing.metrics_uk || editing.metrics || [];
+    return editing.metrics || [];
+  };
+
+  const setLocalizedMetrics = (value: string) => {
+    if (!editing) return;
+    const next = textToMetrics(value);
+    if (language === 'uk') {
+      setEditing({ ...editing, metrics_uk: next });
+    } else if (language === 'en') {
+      setEditing({ ...editing, metrics_en: next });
+    } else {
+      setEditing({ ...editing, metrics: next });
+    }
+  };
+
+  const cancelEditing = async () => {
+    const orphaned = [...new Set(newUploadPaths)];
+    if (orphaned.length) await Promise.all(orphaned.map(path => deleteCaseImage(path)));
+    setNewUploadPaths([]);
+    setPendingDeletePaths([]);
+    setEditing(null);
   };
 
   const media = editing?.media || [];
@@ -211,6 +243,7 @@ export function CasesManager() {
       const added: CaseMediaItem[] = [];
       for (const file of Array.from(files).slice(0, 20)) {
         const uploaded = await uploadCaseImage(file, editing.id);
+        setNewUploadPaths(paths => [...paths, uploaded.storagePath]);
         added.push({
           ...createCaseMediaItem('image', uploaded.url),
           storagePath: uploaded.storagePath,
@@ -308,8 +341,12 @@ export function CasesManager() {
       };
 
       await setDoc(doc(db, 'cases', editing.id), payload);
-      await Promise.all(pendingDeletePaths.map(path => deleteCaseImage(path)));
+      const referencedPaths = new Set(cleanedMedia.map(item => item.storagePath).filter(Boolean));
+      const orphanedUploads = newUploadPaths.filter(path => !referencedPaths.has(path));
+      const pathsToDelete = [...new Set([...pendingDeletePaths, ...orphanedUploads])];
+      await Promise.all(pathsToDelete.map(path => deleteCaseImage(path)));
       setPendingDeletePaths([]);
+      setNewUploadPaths([]);
       setEditing(null);
       await fetchCases();
     } catch (e) {
@@ -395,7 +432,7 @@ export function CasesManager() {
                   <h3 className="text-xl font-black">Редактор кейса</h3>
                   <p className="mt-1 text-xs text-slate-400">ID: {editing.id}</p>
                 </div>
-                <button type="button" onClick={() => setEditing(null)} className="h-fit rounded-full p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+                <button type="button" onClick={() => void cancelEditing()} className="h-fit rounded-full p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
               </div>
 
               <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -429,8 +466,8 @@ export function CasesManager() {
                   </label>
                   <label className="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={editing.published !== false} onChange={e => setEditing({ ...editing, published: e.target.checked })} className="h-4 w-4" /> Опубликован</label>
                   <label className="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={editing.featured !== false} onChange={e => setEditing({ ...editing, featured: e.target.checked })} className="h-4 w-4" /> Показывать на главной</label>
-                  <label className="text-xs font-bold text-slate-700 sm:col-span-2">Метрики: одна строка = Название | Значение
-                    <textarea rows={4} value={metricsToText(editing.metrics)} onChange={e => setEditing({ ...editing, metrics: textToMetrics(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 font-normal text-sm" />
+                  <label className="text-xs font-bold text-slate-700 sm:col-span-2">Метрики ({language.toUpperCase()}): одна строка = Название | Значение
+                    <textarea rows={4} value={metricsToText(getLocalizedMetrics())} onChange={e => setLocalizedMetrics(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 font-normal text-sm" />
                   </label>
                 </div>
               </section>
@@ -539,7 +576,7 @@ export function CasesManager() {
               </section>
 
               <div className="sticky bottom-0 -mx-5 flex justify-end gap-3 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur sm:-mx-8 sm:px-8">
-                <button type="button" onClick={() => setEditing(null)} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Отмена</button>
+                <button type="button" onClick={() => void cancelEditing()} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Отмена</button>
                 <button type="submit" disabled={saving || uploading} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   {saving ? 'Сохранение…' : 'Сохранить кейс'}
