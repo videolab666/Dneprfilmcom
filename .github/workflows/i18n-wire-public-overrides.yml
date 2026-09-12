@@ -13,13 +13,13 @@ jobs:
         with:
           ref: i18n/complete-public-locales
           fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
       - name: Wire overrides and fix raw locale branches
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
 
-          # 1. Shared curated overrides for legacy l()/legacy() copy.
           p = Path('src/locales/legacyEnglish.ts')
           s = p.read_text(encoding='utf-8')
           if "import { PUBLIC_EN_OVERRIDES } from './publicEnglishOverrides';" not in s:
@@ -32,27 +32,15 @@ jobs:
               marker = '\nexport function translateEnglishValue<T>(value: T): T {'
               if marker not in s:
                   raise SystemExit('legacyEnglish translateEnglishValue marker not found')
-              s = s.replace(
-                  marker,
-                  '\nObject.assign(LEGACY_EN_TRANSLATIONS, PUBLIC_EN_OVERRIDES);\n' + marker,
-                  1,
-              )
+              s = s.replace(marker, '\nObject.assign(LEGACY_EN_TRANSLATIONS, PUBLIC_EN_OVERRIDES);\n' + marker, 1)
           p.write_text(s, encoding='utf-8')
 
-          # 2. LIVE configurator: repair raw locale branches that bypass l()/legacy().
           p = Path('src/pages/LiveProduction.tsx')
           s = p.read_text(encoding='utf-8')
           if 'const { isUk, isEn, l, legacy } = useSiteContent();' not in s:
-              s = s.replace(
-                  'const { isUk, l, legacy } = useSiteContent();',
-                  'const { isUk, isEn, l, legacy } = useSiteContent();',
-                  1,
-              )
-
+              s = s.replace('const { isUk, l, legacy } = useSiteContent();', 'const { isUk, isEn, l, legacy } = useSiteContent();', 1)
           camera_pattern = re.compile(
-              r"\{isUk\s*\?\s*`\$\{cameraCount\}\s+\$\{cameraCount\s*===\s*1\s*\?\s*'камера'\s*:\s*cameraCount\s*<\s*5\s*\?\s*'камери'\s*:\s*'камер'\}`\s*:\s*`\$\{cameraCount\}\s+\$\{cameraCount\s*===\s*1\s*\?\s*'камера'\s*:\s*cameraCount\s*<\s*5\s*\?\s*'камеры'\s*:\s*'камер'\}`\s*\}",
-              re.S,
-          )
+              r"\{isUk\s*\?\s*`\$\{cameraCount\}\s+\$\{cameraCount\s*===\s*1\s*\?\s*'камера'\s*:\s*cameraCount\s*<\s*5\s*\?\s*'камери'\s*:\s*'камер'\}`\s*:\s*`\$\{cameraCount\}\s+\$\{cameraCount\s*===\s*1\s*\?\s*'камера'\s*:\s*cameraCount\s*<\s*5\s*\?\s*'камеры'\s*:\s*'камер'\}`\s*\}", re.S)
           camera_replacement = """{isEn
                       ? `${cameraCount} ${cameraCount === 1 ? 'camera' : 'cameras'}`
                       : isUk
@@ -63,11 +51,8 @@ jobs:
               s, n = camera_pattern.subn(camera_replacement, s, count=1)
               if n != 1:
                   raise SystemExit(f'LIVE camera-count replacement count={n}')
-
           city_pattern = re.compile(
-              r"\{\(isUk\s*\?\s*\['Київ',\s*'Дніпро',\s*'Львів',\s*'Одеса',\s*'Інше'\]\s*:\s*\['Киев',\s*'Днепр',\s*'Львов',\s*'Одесса',\s*'Другой'\]\s*\)\.map\(\(loc\)\s*=>\s*\(",
-              re.S,
-          )
+              r"\{\(isUk\s*\?\s*\['Київ',\s*'Дніпро',\s*'Львів',\s*'Одеса',\s*'Інше'\]\s*:\s*\['Киев',\s*'Днепр',\s*'Львов',\s*'Одесса',\s*'Другой'\]\s*\)\.map\(\(loc\)\s*=>\s*\(", re.S)
           city_replacement = """{(isEn
                     ? ['Kyiv', 'Dnipro', 'Lviv', 'Odesa', 'Other']
                     : isUk
@@ -78,22 +63,13 @@ jobs:
               s, n = city_pattern.subn(city_replacement, s, count=1)
               if n != 1:
                   raise SystemExit(f'LIVE city replacement count={n}')
-
-          s = s.replace(
-              '>Starlink + Multi-SIM бондинг</div>',
-              '>{l("Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM bonding")}</div>',
-              1,
-          )
+          s = s.replace('>Starlink + Multi-SIM бондинг</div>', '>{l("Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM bonding")}</div>', 1)
           p.write_text(s, encoding='utf-8')
 
-          # 3. Contacts service selector: EN previously fell through to RU.
           p = Path('src/pages/Contacts.tsx')
           s = p.read_text(encoding='utf-8')
           if 'LIVE Broadcast (sports, forum, show)' not in s:
-              service_pattern = re.compile(
-                  r'''\{isUk\s*\?\s*\(\s*<>\s*<option value="LIVE">LIVE Пряма трансляція.*?</>\s*\)\s*:\s*\(\s*<>\s*<option value="LIVE">LIVE Прямая трансляция.*?</>\s*\)\s*\}''',
-                  re.S,
-              )
+              service_pattern = re.compile(r'''\{isUk\s*\?\s*\(\s*<>\s*<option value="LIVE">LIVE Пряма трансляція.*?</>\s*\)\s*:\s*\(\s*<>\s*<option value="LIVE">LIVE Прямая трансляция.*?</>\s*\)\s*\}''', re.S)
               service_replacement = '''<>
                             <option value="LIVE">{l("LIVE Пряма трансляція (спорт, форум, шоу)", "LIVE Прямая трансляция (спорт, форум, шоу)", "LIVE Broadcast (sports, forum, show)")}</option>
                             <option value="VIDEO">{l("Іміджевий корпоративний фільм / промо", "Имиджевый корпоративный фильм / промо", "Corporate brand film / promo")}</option>
@@ -108,15 +84,10 @@ jobs:
                   raise SystemExit(f'Contacts service-selector replacement count={n}')
           p.write_text(s, encoding='utf-8')
 
-          # 4. Media Center category tabs: EN previously fell through to RU.
           p = Path('src/pages/MediaCenter.tsx')
           s = p.read_text(encoding='utf-8')
           if "en: 'All articles'" not in s:
-              s = s.replace(
-                  "const categories: Array<{ id: ArticleCategory | 'all'; ru: string; uk: string }> = [",
-                  "const categories: Array<{ id: ArticleCategory | 'all'; ru: string; uk: string; en: string }> = [",
-                  1,
-              )
+              s = s.replace("const categories: Array<{ id: ArticleCategory | 'all'; ru: string; uk: string }> = [", "const categories: Array<{ id: ArticleCategory | 'all'; ru: string; uk: string; en: string }> = [", 1)
               replacements = {
                   "{ id: 'all', ru: 'Все статьи', uk: 'Усі статті' },": "{ id: 'all', ru: 'Все статьи', uk: 'Усі статті', en: 'All articles' },",
                   "{ id: 'live', ru: 'LIVE & Стриминг', uk: 'LIVE & Стрімінг' },": "{ id: 'live', ru: 'LIVE & Стриминг', uk: 'LIVE & Стрімінг', en: 'LIVE & Streaming' },",
@@ -129,10 +100,7 @@ jobs:
                   if old not in s:
                       raise SystemExit(f'MediaCenter category row not found: {old}')
                   s = s.replace(old, new, 1)
-          s = s.replace(
-              "{isUk ? category.uk : category.ru}",
-              "{locale === 'en' ? category.en : isUk ? category.uk : category.ru}",
-          )
+          s = s.replace("{isUk ? category.uk : category.ru}", "{locale === 'en' ? category.en : isUk ? category.uk : category.ru}")
           p.write_text(s, encoding='utf-8')
 
           Path('.github/workflows/i18n-wire-public-overrides.yml').unlink(missing_ok=True)
