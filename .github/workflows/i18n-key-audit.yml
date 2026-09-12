@@ -1,0 +1,32 @@
+name: Temporary missing EN key audit
+
+on:
+  push:
+    branches:
+      - i18n/complete-public-locales
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compare UK and EN translation keys
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          uk_src = Path('src/locales/translations.ts').read_text()
+          en_src = Path('src/locales/enTranslations.ts').read_text()
+          uk_block = uk_src.split('const UK_TRANSLATIONS', 1)[1].split('const RU_TRANSLATIONS', 1)[0]
+          pair = re.compile(r"['\"]([^'\"]+)['\"]\s*:\s*(['\"])(.*?)\2,?", re.S)
+          uk = {m.group(1): m.group(3).replace('\\\'', "'") for m in pair.finditer(uk_block)}
+          en = {m.group(1) for m in pair.finditer(en_src)}
+          missing = [(k, v) for k, v in uk.items() if k not in en]
+          print(f'MISSING_EN_KEYS={len(missing)}')
+          for k, v in missing:
+              print(f'{k}\t{v}')
+          PY
