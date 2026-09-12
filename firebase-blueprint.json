@@ -1,0 +1,161 @@
+{
+  "entities": {
+    "Lead": {
+      "title": "Lead",
+      "description": "Incoming client request or calculator submission",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Customer name" },
+        "phone": { "type": "string", "description": "Customer phone" },
+        "email": { "type": "string", "description": "Customer email" },
+        "eventType": { "type": "string", "description": "Type of event or project" },
+        "cameraCount": { "type": "string", "description": "Selected camera count" },
+        "location": { "type": "string", "description": "Event location" },
+        "hasStarlink": { "type": "boolean", "description": "Whether Starlink satellite backup is needed" },
+        "additionalServices": { "type": "array", "description": "List of selected additional services" },
+        "estimatedCost": { "type": "number", "description": "Estimated budget or calculation" },
+        "message": { "type": "string", "description": "Additional customer requirements" },
+        "status": { "type": "string", "description": "Lead status: new, in_progress, completed, archived" },
+        "createdAt": { "type": "number", "description": "Creation timestamp" }
+      },
+      "required": ["name", "phone", "createdAt"]
+    },
+    "CaseStudy": {
+      "title": "CaseStudy",
+      "description": "Portfolio case study project",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Project title" },
+        "category": { "type": "string", "description": "Project category: LIVE, VIDEO, CONSTRUCTION, OTHER" },
+        "client": { "type": "string", "description": "Client or organizer name" },
+        "problem": { "type": "string", "description": "Business challenge" },
+        "solution": { "type": "string", "description": "Production solution" },
+        "result": { "type": "string", "description": "Achieved outcome" },
+        "description": { "type": "string", "description": "General description" },
+        "imageUrl": { "type": "string", "description": "Cover image URL" },
+        "videoUrl": { "type": "string", "description": "Optional video embed URL" },
+        "createdAt": { "type": "number", "description": "Creation timestamp" }
+      },
+      "required": ["title", "category", "client", "createdAt"]
+    },
+    "Article": {
+      "title": "Article",
+      "description": "Media center educational and SEO publication",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Article headline" },
+        "category": { "type": "string", "description": "Article category" },
+        "content": { "type": "string", "description": "Full text content" },
+        "excerpt": { "type": "string", "description": "Short excerpt for previews" },
+        "imageUrl": { "type": "string", "description": "Cover image URL" },
+        "createdAt": { "type": "number", "description": "Creation timestamp" }
+      },
+      "required": ["title", "category", "content", "createdAt"]
+    },
+    "SiteSetting": {
+      "title": "SiteSetting",
+      "description": "General site configuration, hero section, founder info and contacts",
+      "type": "object",
+      "properties": {
+        "studioName": { "type": "string", "description": "Brand name" },
+        "phone": { "type": "string", "description": "Primary phone" },
+        "email": { "type": "string", "description": "Primary email" },
+        "telegram": { "type": "string", "description": "Telegram contact or link" },
+        "whatsapp": { "type": "string", "description": "WhatsApp contact or link" },
+        "address": { "type": "string", "description": "Physical address or city" },
+        "heroBadge": { "type": "string", "description": "Top pill badge in hero section" },
+        "heroTitle": { "type": "string", "description": "Hero H1 main headline" },
+        "heroSubtitle": { "type": "string", "description": "Hero subheadline" },
+        "heroCtaPrimaryText": { "type": "string", "description": "Primary CTA button text" },
+        "heroCtaPrimaryLink": { "type": "string", "description": "Primary CTA button URL" },
+        "heroCtaSecondaryText": { "type": "string", "description": "Secondary CTA button text" },
+        "heroCtaSecondaryLink": { "type": "string", "description": "Secondary CTA button URL" },
+        "heroBgImage": { "type": "string", "description": "Hero background image URL" },
+        "founderName": { "type": "string", "description": "Founder name" },
+        "founderRole": { "type": "string", "description": "Founder title/role" },
+        "founderQuote": { "type": "string", "description": "Founder prominent quote" },
+        "founderBio": { "type": "string", "description": "Founder background text" },
+        "founderPhoto": { "type": "string", "description": "Founder portrait photo URL" },
+        "announcementEnabled": { "type": "boolean", "description": "Whether to display the top notification bar" },
+        "announcementText": { "type": "string", "description": "Notification bar text" },
+        "announcementLink": { "type": "string", "description": "Notification bar link" },
+        "updatedAt": { "type": "number", "description": "Last update timestamp" }
+      }
+    },
+    "SiteBlock": {
+      "title": "SiteBlock",
+      "description": "Customizable modular block rendered on site pages",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Admin reference title" },
+        "type": { "type": "string", "description": "Block type: cta, text_image, features_grid, stats_counter, faq, video_embed, partners" },
+        "order": { "type": "number", "description": "Sort order on page" },
+        "isActive": { "type": "boolean", "description": "Visibility flag" },
+        "page": { "type": "string", "description": "Target page identifier (e.g. home)" },
+        "config": { "type": "object", "description": "Dynamic configuration parameters specific to block type" },
+        "updatedAt": { "type": "number", "description": "Last update timestamp" }
+      },
+      "required": ["type", "order", "isActive"]
+    },
+    "Testimonial": {
+      "title": "Testimonial",
+      "description": "Client or partner review",
+      "type": "object",
+      "properties": {
+        "author": { "type": "string", "description": "Reviewer name" },
+        "role": { "type": "string", "description": "Reviewer title/position" },
+        "company": { "type": "string", "description": "Company name" },
+        "project": { "type": "string", "description": "Project title or scope" },
+        "quote": { "type": "string", "description": "Review text" },
+        "avatar": { "type": "string", "description": "Avatar photo URL" },
+        "rating": { "type": "number", "description": "Star rating 1-5" },
+        "createdAt": { "type": "number", "description": "Creation timestamp" }
+      },
+      "required": ["author", "company", "quote"]
+    },
+    "BackstageItem": {
+      "title": "BackstageItem",
+      "description": "Behind the scenes photo and equipment card",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title" },
+        "category": { "type": "string", "description": "Category: Режиссерская, Операторы, Коммутация, Связь" },
+        "tech": { "type": "string", "description": "Tech specification" },
+        "imageUrl": { "type": "string", "description": "Photo URL" },
+        "description": { "type": "string", "description": "Description" },
+        "createdAt": { "type": "number", "description": "Creation timestamp" }
+      },
+      "required": ["title", "tech", "imageUrl"]
+    }
+  },
+  "firestore": {
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Submitted client leads and inquiries"
+    },
+    "/cases/{caseId}": {
+      "schema": "CaseStudy",
+      "description": "Portfolio case studies"
+    },
+    "/articles/{articleId}": {
+      "schema": "Article",
+      "description": "Media center articles"
+    },
+    "/site_settings/{docId}": {
+      "schema": "SiteSetting",
+      "description": "Site-wide general and section settings"
+    },
+    "/site_blocks/{blockId}": {
+      "schema": "SiteBlock",
+      "description": "Modular dynamic site blocks"
+    },
+    "/testimonials/{testimonialId}": {
+      "schema": "Testimonial",
+      "description": "Client testimonials"
+    },
+    "/backstage/{backstageId}": {
+      "schema": "BackstageItem",
+      "description": "Backstage gallery items"
+    }
+  }
+}
