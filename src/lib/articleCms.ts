@@ -1,5 +1,6 @@
 import { Article, ArticleCategory, ArticleTranslation, Locale } from '../types';
 import { MEDIA_ARTICLES, MEDIA_ARTICLES_UK, MediaArticle } from '../data/mediaCenterData';
+import { MEDIA_ARTICLES_EN } from '../data/mediaCenterDataEn';
 
 const CATEGORY_MAP: Record<string, ArticleCategory> = {
   LIVE: 'live',
@@ -49,6 +50,7 @@ function mediaArticleToTranslation(item: MediaArticle): ArticleTranslation {
 
 export const DEFAULT_ARTICLES: Article[] = MEDIA_ARTICLES.map((ru, index) => {
   const uk = MEDIA_ARTICLES_UK.find(item => item.id === ru.id) || ru;
+  const en = MEDIA_ARTICLES_EN.find(item => item.id === ru.id);
   const publishedAt = Date.now() - index * 60_000;
 
   return {
@@ -61,6 +63,7 @@ export const DEFAULT_ARTICLES: Article[] = MEDIA_ARTICLES.map((ru, index) => {
     createdAt: publishedAt,
     ru: mediaArticleToTranslation(ru),
     uk: mediaArticleToTranslation(uk),
+    en: en ? mediaArticleToTranslation(en) : undefined,
   };
 });
 
@@ -107,9 +110,10 @@ export function normalizeArticle(id: string, value: unknown): Article {
   if (isModernArticleData(data)) {
     const ruFallback = seed?.ru || EMPTY_TRANSLATION;
     const ukFallback = seed?.uk || ruFallback;
+    const enFallback = seed?.en || EMPTY_TRANSLATION;
     const ru = normalizeTranslation(data.ru, ruFallback);
     const uk = normalizeTranslation(data.uk, ukFallback);
-    const en = data.en ? normalizeTranslation(data.en, uk) : undefined;
+    const en = data.en ? normalizeTranslation(data.en, enFallback) : seed?.en;
     const publishedAt = typeof data.publishedAt === 'number'
       ? data.publishedAt
       : typeof data.createdAt === 'number'
@@ -159,12 +163,24 @@ export function normalizeArticle(id: string, value: unknown): Article {
     createdAt,
     ru: legacyTranslation,
     uk: seed?.uk || legacyTranslation,
-    en: undefined,
+    en: seed?.en,
   };
 }
 
+export function hasArticleLocale(article: Article, locale: Locale): boolean {
+  if (locale !== 'en') return true;
+  const text = article.en;
+  return Boolean(
+    text &&
+    text.title.trim() &&
+    text.categoryLabel.trim() &&
+    text.summary.trim() &&
+    text.content.length > 0,
+  );
+}
+
 export function localizeArticle(article: Article, locale: Locale): ArticleTranslation {
-  if (locale === 'en') return article.en || article.uk || article.ru;
+  if (locale === 'en') return article.en || EMPTY_TRANSLATION;
   if (locale === 'uk') return article.uk || article.ru;
   return article.ru || article.uk;
 }
