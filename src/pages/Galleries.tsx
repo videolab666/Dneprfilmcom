@@ -96,8 +96,17 @@ export function Galleries() {
       <section className="py-14 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {loading ? (
-            <div className="flex min-h-72 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-b-indigo-600" />
+            <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-3" aria-label={l('Завантаження фотогалерей', 'Загрузка фотогалерей', 'Loading photo galleries')}>
+              {[0, 1, 2].map(item => (
+                <div key={item} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  <div className="aspect-[4/3] animate-pulse bg-slate-200" />
+                  <div className="space-y-3 p-6">
+                    <div className="h-5 w-3/4 animate-pulse rounded bg-slate-200" />
+                    <div className="h-3 w-1/2 animate-pulse rounded bg-slate-100" />
+                    <div className="h-3 w-full animate-pulse rounded bg-slate-100" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : localizedGalleries.length === 0 ? (
             <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
