@@ -99,6 +99,7 @@ export function HeroSlider() {
 
   const slide = slides[activeIndex] || slides[0];
   const mediaUrl = isMobile && slide.mobileUrl ? slide.mobileUrl : slide.url;
+  const objectPosition = slide.objectPosition || 'center center';
   const overlayOpacity = Math.min(90, Math.max(20, slide.overlayOpacity ?? 58));
   const baseOpacity = overlayOpacity / 100;
   const overlayStyle = {
@@ -145,6 +146,7 @@ export function HeroSlider() {
                 playsInline
                 loop
                 preload="metadata"
+                style={{ objectPosition }}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -154,6 +156,7 @@ export function HeroSlider() {
                   src={slide.url || FALLBACK_HERO_IMAGE}
                   alt=""
                   fetchPriority={activeIndex === 0 ? 'high' : 'auto'}
+                  style={{ objectPosition }}
                   className="h-full w-full object-cover"
                 />
               </picture>
