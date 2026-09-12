@@ -1,4 +1,5 @@
 import type { Locale } from '../types';
+import { PUBLIC_EN_OVERRIDES } from './publicEnglishOverrides';
 
 /**
  * English equivalents for legacy public copy that still lives directly in
@@ -565,6 +566,8 @@ export const LEGACY_EN_TRANSLATIONS: Record<string, string> = {
   "Надіслати запит": "Send request",
   "Ключові висновки": "Key takeaways",
 };
+
+Object.assign(LEGACY_EN_TRANSLATIONS, PUBLIC_EN_OVERRIDES);
 
 export function translateEnglishValue<T>(value: T): T {
   if (typeof value === 'string') {

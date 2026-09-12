@@ -29,7 +29,7 @@ import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
 
 export function LiveProduction() {
-  const { isUk, l, legacy } = useSiteContent();
+  const { isUk, isEn, l, legacy } = useSiteContent();
 
   // Configurator state
   const [format, setFormat] = useState<'sports' | 'conference' | 'corporate' | 'concert'>('conference');
@@ -539,10 +539,12 @@ export function LiveProduction() {
                     {l("2. Кількість камер", "2. Количество камер")}
                   </label>
                   <span className="text-xs font-semibold px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-full">
-                    {isUk 
-                      ? `${cameraCount} ${cameraCount === 1 ? 'камера' : cameraCount < 5 ? 'камери' : 'камер'}`
-                      : `${cameraCount} ${cameraCount === 1 ? 'камера' : cameraCount < 5 ? 'камеры' : 'камер'}`
-                    }
+                    {isEn
+            ? `${cameraCount} ${cameraCount === 1 ? 'camera' : 'cameras'}`
+            : isUk
+              ? `${cameraCount} ${cameraCount === 1 ? 'камера' : cameraCount < 5 ? 'камери' : 'камер'}`
+              : `${cameraCount} ${cameraCount === 1 ? 'камера' : cameraCount < 5 ? 'камеры' : 'камер'}`
+          }
                   </span>
                 </div>
                 <div className="grid grid-cols-4 gap-2.5">
@@ -575,10 +577,12 @@ export function LiveProduction() {
                   {l("3. Локація заходу", "3. Локация мероприятия")}
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                  {(isUk 
-                    ? ['Київ', 'Дніпро', 'Львів', 'Одеса', 'Інше'] 
-                    : ['Киев', 'Днепр', 'Львов', 'Одесса', 'Другой']
-                  ).map((loc) => (
+                  {(isEn
+          ? ['Kyiv', 'Dnipro', 'Lviv', 'Odesa', 'Other']
+          : isUk
+            ? ['Київ', 'Дніпро', 'Львів', 'Одеса', 'Інше']
+            : ['Киев', 'Днепр', 'Львов', 'Одесса', 'Другой']
+        ).map((loc) => (
                     <button
                       key={loc}
                       type="button"
@@ -610,7 +614,7 @@ export function LiveProduction() {
                         className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
                       />
                       <div>
-                        <div className="text-xs sm:text-sm font-semibold text-slate-900">Starlink + Multi-SIM бондинг</div>
+                        <div className="text-xs sm:text-sm font-semibold text-slate-900">{l("Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM bonding")}</div>
                         <div className="text-xs text-slate-500">
                           {l("100% гарантія ефіру без перебоїв зі зв'язком", "100% гарантия эфира без перебоев со связью")}
                         </div>

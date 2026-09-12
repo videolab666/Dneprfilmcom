@@ -457,27 +457,15 @@ export function Contacts() {
                         onChange={(e) => setService(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 text-sm font-medium text-slate-900"
                       >
-                        {isUk ? (
-                          <>
-                            <option value="LIVE">LIVE Пряма трансляція (спорт, форум, шоу)</option>
-                            <option value="VIDEO">Іміджевий корпоративний фільм / промо</option>
-                            <option value="CONSTRUCTION">Моніторинг будівництва / 4K таймлапс</option>
-                            <option value="DRONE">Аерозйомка & FPV-прольоти цехів</option>
-                            <option value="COMMERCIAL">Реклама продукту / фуд-відео</option>
-                            <option value="PHOTO">Репортажна або студійна фотозйомка</option>
-                            <option value="FULL_PACKAGE">Комплексний медіа-пакет під ключ</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="LIVE">LIVE Прямая трансляция (спорт, форум, шоу)</option>
-                            <option value="VIDEO">Имиджевый корпоративный фильм / промо</option>
-                            <option value="CONSTRUCTION">Мониторинг строительства / 4K таймлапс</option>
-                            <option value="DRONE">Аэросъемка & FPV-пролеты цехов</option>
-                            <option value="COMMERCIAL">Реклама продукта / фуд-видео</option>
-                            <option value="PHOTO">Репортажная или студийная фотосъемка</option>
-                            <option value="FULL_PACKAGE">Комплексный медиа-пакет под ключ</option>
-                          </>
-                        )}
+                        <>
+                  <option value="LIVE">{l("LIVE Пряма трансляція (спорт, форум, шоу)", "LIVE Прямая трансляция (спорт, форум, шоу)", "LIVE Broadcast (sports, forum, show)")}</option>
+                  <option value="VIDEO">{l("Іміджевий корпоративний фільм / промо", "Имиджевый корпоративный фильм / промо", "Corporate brand film / promo")}</option>
+                  <option value="CONSTRUCTION">{l("Моніторинг будівництва / 4K таймлапс", "Мониторинг строительства / 4K таймлапс", "Construction monitoring / 4K timelapse")}</option>
+                  <option value="DRONE">{l("Аерозйомка & FPV-прольоти цехів", "Аэросъемка & FPV-пролеты цехов", "Aerial filming & FPV factory fly-throughs")}</option>
+                  <option value="COMMERCIAL">{l("Реклама продукту / фуд-відео", "Реклама продукта / фуд-видео", "Product advertising / food video")}</option>
+                  <option value="PHOTO">{l("Репортажна або студійна фотозйомка", "Репортажная или студийная фотосъемка", "Event or studio photography")}</option>
+                  <option value="FULL_PACKAGE">{l("Комплексний медіа-пакет під ключ", "Комплексный медиа-пакет под ключ", "Turnkey full media package")}</option>
+                </>
                       </select>
                     </div>
 

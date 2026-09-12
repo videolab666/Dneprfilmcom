@@ -133,13 +133,13 @@ export function MediaCenter() {
     }
   };
 
-  const categories: Array<{ id: CategoryFilter; ru: string; uk: string }> = [
-    { id: 'all', ru: 'Все статьи', uk: 'Усі статті' },
-    { id: 'live', ru: 'LIVE & Стриминг', uk: 'LIVE & Стрімінг' },
-    { id: 'video', ru: 'Видеопроизводство', uk: 'Відеовиробництво' },
-    { id: 'construction', ru: 'Стройка & Таймлапс', uk: 'Будівництво & Таймлапс' },
-    { id: 'photo', ru: 'Фото', uk: 'Фото' },
-    { id: 'tech', ru: 'Технологии', uk: 'Технології' },
+  const categories: Array<{ id: CategoryFilter; ru: string; uk: string; en: string }> = [
+    { id: 'all', ru: 'Все статьи', uk: 'Усі статті', en: 'All articles' },
+    { id: 'live', ru: 'LIVE & Стриминг', uk: 'LIVE & Стрімінг', en: 'LIVE & Streaming' },
+    { id: 'video', ru: 'Видеопроизводство', uk: 'Відеовиробництво', en: 'Video Production' },
+    { id: 'construction', ru: 'Стройка & Таймлапс', uk: 'Будівництво & Таймлапс', en: 'Construction & Timelapse' },
+    { id: 'photo', ru: 'Фото', uk: 'Фото', en: 'Photography' },
+    { id: 'tech', ru: 'Технологии', uk: 'Технології', en: 'Technology' },
   ];
 
   return (
@@ -184,7 +184,7 @@ export function MediaCenter() {
             <div className="flex flex-wrap gap-2">
               {categories.map(category => (
                 <button key={category.id} onClick={() => setSelectedCategory(category.id)} className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${selectedCategory === category.id ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
-                  {isUk ? category.uk : category.ru}
+                  {locale === 'en' ? category.en : isUk ? category.uk : category.ru}
                 </button>
               ))}
             </div>
