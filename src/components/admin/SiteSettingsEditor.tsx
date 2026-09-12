@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useSiteContent } from '../../context/SiteContentContext';
 import { SiteSetting } from '../../types';
+import { HeroSlidesEditor } from './HeroSlidesEditor';
 
 type EditableTextField = 
   | 'studioName' 
@@ -228,6 +229,8 @@ export function SiteSettingsEditor() {
               <span>Настройки первого экрана (Hero Section)</span>
             </h3>
 
+            <HeroSlidesEditor formData={formData} setFormData={setFormData} langTab={langTab} />
+
             {/* Mini visual live preview */}
             <div className="relative rounded-2xl overflow-hidden bg-slate-950 p-6 sm:p-8 text-white border border-slate-800">
               <div className="absolute inset-0 opacity-30 bg-center bg-cover" style={{ backgroundImage: `url(${formData.heroBgImage})` }} />
@@ -348,7 +351,7 @@ export function SiteSettingsEditor() {
 
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Фоновое изображение первого экрана (URL)
+                  Fallback-фото Hero (используется, если слайдов нет)
                 </label>
                 <input
                   type="url"

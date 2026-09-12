@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Camera, Radio, Building2, Video, Play, ArrowRight, Sparkles } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Camera, Radio, Building2, Video, Play, ArrowRight } from 'lucide-react';
 import { useSiteContent } from '../context/SiteContentContext';
 import { DynamicBlockRenderer } from '../components/home/DynamicBlockRenderer';
 import { FeaturedCases } from '../components/home/FeaturedCases';
@@ -10,6 +9,7 @@ import { BackstageGallery } from '../components/home/BackstageGallery';
 import { Testimonials } from '../components/home/Testimonials';
 import { QuickContactCTA } from '../components/home/QuickContactCTA';
 import { ClientsMarquee } from '../components/ClientsMarquee';
+import { HeroSlider } from '../components/home/HeroSlider';
 
 export function Home() {
   const { settings, blocks, t, l } = useSiteContent();
@@ -18,91 +18,7 @@ export function Home() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-slate-950">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 to-slate-900/40 mix-blend-multiply z-10" />
-          <img 
-            src={settings.heroBgImage || "https://images.unsplash.com/photo-1590845947698-8924d7409b56?auto=format&fit=crop&q=80"} 
-            alt="Camera operator" 
-            className="w-full h-full object-cover opacity-60"
-          />
-        </div>
-        
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white py-20">
-          {settings.heroBadge && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-indigo-300 text-xs sm:text-sm font-semibold uppercase tracking-wider mb-6"
-            >
-              <Sparkles className="w-4 h-4 text-amber-300" />
-              <span>{settings.heroBadge}</span>
-            </motion.div>
-          )}
-
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 max-w-5xl mx-auto leading-tight"
-          >
-            {settings.heroTitle}
-          </motion.h1>
-
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="mt-6 text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto font-light leading-relaxed"
-          >
-            {settings.heroSubtitle}
-          </motion.p>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center"
-          >
-            {settings.heroCtaPrimaryText && (
-              settings.heroCtaPrimaryLink?.startsWith('#') ? (
-                <a
-                  href={settings.heroCtaPrimaryLink}
-                  className="px-8 py-4 text-base font-semibold rounded-full bg-indigo-600 text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/30"
-                >
-                  {settings.heroCtaPrimaryText}
-                </a>
-              ) : (
-                <Link
-                  to={settings.heroCtaPrimaryLink || '/live'}
-                  className="px-8 py-4 text-base font-semibold rounded-full bg-indigo-600 text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/30"
-                >
-                  {settings.heroCtaPrimaryText}
-                </Link>
-              )
-            )}
-
-            {settings.heroCtaSecondaryText && (
-              settings.heroCtaSecondaryLink?.startsWith('#') ? (
-                <a
-                  href={settings.heroCtaSecondaryLink}
-                  className="px-8 py-4 text-base font-semibold rounded-full bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm transition-colors border border-white/20"
-                >
-                  {settings.heroCtaSecondaryText}
-                </a>
-              ) : (
-                <Link
-                  to={settings.heroCtaSecondaryLink || '#cases-section'}
-                  className="px-8 py-4 text-base font-semibold rounded-full bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm transition-colors border border-white/20"
-                >
-                  {settings.heroCtaSecondaryText}
-                </Link>
-              )
-            )}
-          </motion.div>
-        </div>
-      </section>
+      <HeroSlider />
 
       {/* Clients & Partners Infinite Marquee Strip */}
       <ClientsMarquee />
