@@ -6,7 +6,7 @@ export interface TranslationDictionary {
   [key: string]: string;
 }
 
-export const UK_TRANSLATIONS: TranslationDictionary = {
+const UK_TRANSLATIONS: TranslationDictionary = {
   // Common
   'common.loading': 'Завантаження...',
   'common.error': 'Помилка',
@@ -290,7 +290,7 @@ export const UK_TRANSLATIONS: TranslationDictionary = {
   'mediaCenter.subtitle': 'Корисні матеріали від команди Олександра Пітеля про організацію трансляцій, відеозйомок та роботу з медіа.',
 };
 
-export const RU_TRANSLATIONS: TranslationDictionary = {
+const RU_TRANSLATIONS: TranslationDictionary = {
   // Common
   'common.loading': 'Загрузка...',
   'common.error': 'Ошибка',
