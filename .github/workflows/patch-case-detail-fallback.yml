@@ -1,0 +1,38 @@
+name: One-time patch case detail fallback
+
+on:
+  push:
+    branches:
+      - feature/full-case-media-portfolio
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/full-case-media-portfolio
+      - name: Render bundled case immediately
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('src/pages/CaseDetail.tsx')
+          text = path.read_text()
+          text = text.replace("  const [loading, setLoading] = useState(true);\n", "")
+          text = text.replace("      setLoading(false);\n", "")
+          old = '''  if (loading) {\n    return (\n      <div className="flex min-h-[60vh] items-center justify-center bg-slate-50">\n        <div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-200 border-b-indigo-600" />\n      </div>\n    );\n  }\n\n'''
+          if old not in text:
+              raise SystemExit('Expected CaseDetail loading block not found')
+          path.write_text(text.replace(old, '', 1))
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/pages/CaseDetail.tsx
+          git commit -m "Render case detail fallback immediately"
+          git push origin HEAD:feature/full-case-media-portfolio
