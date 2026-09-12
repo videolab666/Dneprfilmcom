@@ -23,16 +23,39 @@ import { INITIAL_PHOTOS, INITIAL_PHOTOS_UK, PHOTO_PACKAGES, PHOTO_PACKAGES_UK, P
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
+import { usePageCmsContent } from '../hooks/usePageCmsContent';
 
 type CategoryFilter = 'all' | 'interior' | 'food' | 'kids' | 'wedding' | 'corporate';
 
 export function PhotoProduction() {
   const { isUk } = useSiteContent();
+  const { content: pageContent, localize } = usePageCmsContent();
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
-  
-  const allPhotos = isUk ? INITIAL_PHOTOS_UK : INITIAL_PHOTOS;
-  const allPackages = isUk ? PHOTO_PACKAGES_UK : PHOTO_PACKAGES;
+
+  const allPhotos: PhotoItem[] = localize(pageContent.photo.gallery).map(item => ({
+    id: item.id,
+    title: item.text.title || '',
+    category: (item.categoryKey || 'interior') as PhotoItem['category'],
+    categoryLabel: item.text.meta1 || '',
+    location: item.text.meta2 || undefined,
+    client: item.text.meta3 || undefined,
+    description: item.text.description || '',
+    imageUrl: item.imageUrl || '',
+    aspect: item.aspect || 'landscape',
+    specs: item.text.badge || undefined,
+  }));
+
+  const allPackages = localize(pageContent.photo.packages).map(item => ({
+    id: item.id,
+    title: item.text.title || '',
+    subtitle: item.text.subtitle || '',
+    price: item.text.meta1 || '',
+    period: item.text.meta2 || '',
+    badge: item.text.badge || '',
+    features: item.text.items || [],
+    highlight: Boolean(item.highlight),
+  }));
 
   // Form State
   const [formData, setFormData] = useState({
