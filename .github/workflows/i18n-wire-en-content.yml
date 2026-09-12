@@ -1,0 +1,60 @@
+name: One-time wire EN localized content
+
+on:
+  push:
+    branches:
+      - i18n/complete-public-locales
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[wire-en-content]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: i18n/complete-public-locales
+          fetch-depth: 0
+      - name: Patch localized content selectors
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/context/SiteContentContext.tsx')
+          s = p.read_text(encoding='utf-8')
+          anchor = "} from '../locales/localizedContent';\n"
+          addition = "} from '../locales/localizedContent';\nimport {\n  CASE_TRANSLATIONS_EN,\n  TESTIMONIALS_TRANSLATIONS_EN,\n  BACKSTAGE_TRANSLATIONS_EN\n} from '../locales/localizedContentEn';\n"
+          if "from '../locales/localizedContentEn'" not in s:
+              if anchor not in s:
+                  raise SystemExit('localizedContent import anchor missing')
+              s = s.replace(anchor, addition, 1)
+
+          s = s.replace("const uk = CASE_TRANSLATIONS_UK[c.id];\n    return {", "const uk = CASE_TRANSLATIONS_UK[c.id];\n    const en = CASE_TRANSLATIONS_EN[c.id];\n    return {", 1)
+          s = s.replace("title: c.title_en || translateEnglishValue(", "title: c.title_en || en?.title || translateEnglishValue(", 1)
+          s = s.replace("categoryLabel: c.categoryLabel_en || translateEnglishValue(", "categoryLabel: c.categoryLabel_en || en?.categoryLabel || translateEnglishValue(", 1)
+          s = s.replace("description: c.description_en || translateEnglishValue(", "description: c.description_en || en?.description || translateEnglishValue(", 1)
+          s = s.replace("challenge: c.challenge_en || translateEnglishValue(", "challenge: c.challenge_en || en?.challenge || translateEnglishValue(", 1)
+          s = s.replace("problem: c.problem_en || translateEnglishValue(", "problem: c.problem_en || en?.problem || translateEnglishValue(", 1)
+          s = s.replace("solution: c.solution_en || translateEnglishValue(", "solution: c.solution_en || en?.solution || translateEnglishValue(", 1)
+          s = s.replace("result: c.result_en || translateEnglishValue(", "result: c.result_en || en?.result || translateEnglishValue(", 1)
+          s = s.replace("metrics: translateEnglishValue(uk?.metrics || c.metrics),", "metrics: en?.metrics || translateEnglishValue(uk?.metrics || c.metrics),", 1)
+
+          s = s.replace("const uk = TESTIMONIALS_TRANSLATIONS_UK[item.id];\n    return {", "const uk = TESTIMONIALS_TRANSLATIONS_UK[item.id];\n    const en = TESTIMONIALS_TRANSLATIONS_EN[item.id];\n    return {", 1)
+          for field in ('author', 'role', 'company', 'project', 'quote'):
+              s = s.replace(f"{field}: item.{field}_en || translateEnglishValue(", f"{field}: item.{field}_en || en?.{field} || translateEnglishValue(", 1)
+
+          s = s.replace("const uk = BACKSTAGE_TRANSLATIONS_UK[item.id];\n    return {", "const uk = BACKSTAGE_TRANSLATIONS_UK[item.id];\n    const en = BACKSTAGE_TRANSLATIONS_EN[item.id];\n    return {", 1)
+          for field in ('title', 'category', 'tech', 'description'):
+              s = s.replace(f"{field}: item.{field}_en || translateEnglishValue(", f"{field}: item.{field}_en || en?.{field} || translateEnglishValue(", 1)
+
+          p.write_text(s, encoding='utf-8')
+          Path('.github/workflows/i18n-wire-en-content.yml').unlink(missing_ok=True)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/context/SiteContentContext.tsx .github/workflows
+          git commit -m "Use explicit English localized content fallbacks [wire-en-content]"
+          git push origin HEAD:i18n/complete-public-locales
