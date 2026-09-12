@@ -23,6 +23,11 @@ import {
   TESTIMONIALS_TRANSLATIONS_UK, 
   BACKSTAGE_TRANSLATIONS_UK 
 } from '../locales/localizedContent';
+import {
+  CASE_TRANSLATIONS_EN,
+  TESTIMONIALS_TRANSLATIONS_EN,
+  BACKSTAGE_TRANSLATIONS_EN
+} from '../locales/localizedContentEn';
 
 interface SiteContentContextType {
   locale: Locale;
@@ -283,16 +288,17 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   const getLocalizedCase = (c: CaseStudy): CaseStudy => {
     if (locale === 'en') {
     const uk = CASE_TRANSLATIONS_UK[c.id];
+    const en = CASE_TRANSLATIONS_EN[c.id];
     return {
       ...c,
-      title: c.title_en || translateEnglishValue(c.title_uk || uk?.title || c.title),
-      categoryLabel: c.categoryLabel_en || translateEnglishValue(c.categoryLabel_uk || uk?.categoryLabel || c.categoryLabel),
-      description: c.description_en || translateEnglishValue(c.description_uk || uk?.description || c.description),
-      challenge: c.challenge_en || translateEnglishValue(c.challenge_uk || uk?.challenge || c.challenge),
-      problem: c.problem_en || translateEnglishValue(c.problem_uk || uk?.problem || c.problem),
-      solution: c.solution_en || translateEnglishValue(c.solution_uk || uk?.solution || c.solution),
-      result: c.result_en || translateEnglishValue(c.result_uk || uk?.result || c.result),
-      metrics: translateEnglishValue(uk?.metrics || c.metrics),
+      title: c.title_en || en?.title || translateEnglishValue(c.title_uk || uk?.title || c.title),
+      categoryLabel: c.categoryLabel_en || en?.categoryLabel || translateEnglishValue(c.categoryLabel_uk || uk?.categoryLabel || c.categoryLabel),
+      description: c.description_en || en?.description || translateEnglishValue(c.description_uk || uk?.description || c.description),
+      challenge: c.challenge_en || en?.challenge || translateEnglishValue(c.challenge_uk || uk?.challenge || c.challenge),
+      problem: c.problem_en || en?.problem || translateEnglishValue(c.problem_uk || uk?.problem || c.problem),
+      solution: c.solution_en || en?.solution || translateEnglishValue(c.solution_uk || uk?.solution || c.solution),
+      result: c.result_en || en?.result || translateEnglishValue(c.result_uk || uk?.result || c.result),
+      metrics: en?.metrics || translateEnglishValue(uk?.metrics || c.metrics),
     };
   }
     if (locale === 'uk') {
@@ -315,13 +321,14 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   const getLocalizedTestimonial = (item: Testimonial): Testimonial => {
     if (locale === 'en') {
     const uk = TESTIMONIALS_TRANSLATIONS_UK[item.id];
+    const en = TESTIMONIALS_TRANSLATIONS_EN[item.id];
     return {
       ...item,
-      author: item.author_en || translateEnglishValue(item.author_uk || uk?.author || item.author),
-      role: item.role_en || translateEnglishValue(item.role_uk || uk?.role || item.role),
-      company: item.company_en || translateEnglishValue(item.company_uk || uk?.company || item.company),
-      project: item.project_en || translateEnglishValue(item.project_uk || uk?.project || item.project),
-      quote: item.quote_en || translateEnglishValue(item.quote_uk || uk?.quote || item.quote),
+      author: item.author_en || en?.author || translateEnglishValue(item.author_uk || uk?.author || item.author),
+      role: item.role_en || en?.role || translateEnglishValue(item.role_uk || uk?.role || item.role),
+      company: item.company_en || en?.company || translateEnglishValue(item.company_uk || uk?.company || item.company),
+      project: item.project_en || en?.project || translateEnglishValue(item.project_uk || uk?.project || item.project),
+      quote: item.quote_en || en?.quote || translateEnglishValue(item.quote_uk || uk?.quote || item.quote),
     };
   }
     if (locale === 'uk') {
@@ -341,12 +348,13 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   const getLocalizedBackstageItem = (item: BackstageItem): BackstageItem => {
     if (locale === 'en') {
     const uk = BACKSTAGE_TRANSLATIONS_UK[item.id];
+    const en = BACKSTAGE_TRANSLATIONS_EN[item.id];
     return {
       ...item,
-      title: item.title_en || translateEnglishValue(item.title_uk || uk?.title || item.title),
-      category: item.category_en || translateEnglishValue(item.category_uk || uk?.category || item.category),
-      tech: item.tech_en || translateEnglishValue(item.tech_uk || uk?.tech || item.tech),
-      description: item.description_en || translateEnglishValue(item.description_uk || uk?.description || item.description),
+      title: item.title_en || en?.title || translateEnglishValue(item.title_uk || uk?.title || item.title),
+      category: item.category_en || en?.category || translateEnglishValue(item.category_uk || uk?.category || item.category),
+      tech: item.tech_en || en?.tech || translateEnglishValue(item.tech_uk || uk?.tech || item.tech),
+      description: item.description_en || en?.description || translateEnglishValue(item.description_uk || uk?.description || item.description),
     };
   }
     if (locale === 'uk') {
