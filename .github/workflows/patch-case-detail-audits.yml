@@ -1,0 +1,54 @@
+name: One-time patch case detail audits
+
+on:
+  push:
+    branches:
+      - feature/full-case-media-portfolio
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/full-case-media-portfolio
+      - name: Patch case detail and browser audits
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          detail = Path('src/pages/CaseDetail.tsx')
+          text = detail.read_text()
+          old = "    if (items.length <= 1) return [];\n    return items.filter(item => !(item.type === 'image' && rawCase.imageUrl && item.url === rawCase.imageUrl));"
+          new = "    return items.filter(item => !(item.type === 'image' && rawCase.imageUrl && item.url === rawCase.imageUrl));"
+          if old not in text:
+              raise SystemExit('Expected CaseDetail media block not found')
+          detail.write_text(text.replace(old, new, 1))
+
+          deploy = Path('.github/workflows/deploy-pages.yml')
+          text = deploy.read_text()
+          marker = "            'cases'\n            'media-center'"
+          replacement = "            'cases'\n            'cases/case-ulka'\n            'media-center'"
+          count = text.count(marker)
+          if count != 2:
+              raise SystemExit(f'Expected two deploy route markers, got {count}')
+          deploy.write_text(text.replace(marker, replacement))
+
+          uk = Path('.github/workflows/audit-uk-rendered.yml')
+          text = uk.read_text()
+          if marker not in text:
+              raise SystemExit('Expected Ukrainian audit route marker not found')
+          uk.write_text(text.replace(marker, replacement, 1))
+          PY
+          rm .github/workflows/patch-case-detail-audits.yml
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/pages/CaseDetail.tsx .github/workflows/deploy-pages.yml .github/workflows/audit-uk-rendered.yml .github/workflows/patch-case-detail-audits.yml
+          git commit -m "Audit standalone case detail routes"
+          git push origin HEAD:feature/full-case-media-portfolio
