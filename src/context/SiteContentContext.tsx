@@ -18,6 +18,7 @@ import {
 } from '../lib/cmsDefaults';
 import { TRANSLATIONS } from '../locales/translations';
 import { legacyText, legacyValue, translateEnglishValue } from '../locales/legacyEnglish';
+import { DEFAULT_SITE_BLOCKS_EN } from '../locales/siteBlocksEn';
 import { 
   CASE_TRANSLATIONS_UK, 
   TESTIMONIALS_TRANSLATIONS_UK, 
@@ -229,9 +230,14 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   const localizedBlocks = useMemo<SiteBlock[]>(() => {
     if (locale === 'en') {
     const ukDefaultsMap = new Map(DEFAULT_SITE_BLOCKS_UK.map(b => [b.id, b]));
+    const enDefaultsMap = new Map(DEFAULT_SITE_BLOCKS_EN.map(b => [b.id, b]));
+
     return blocks.map(block => {
       const ukDefault = ukDefaultsMap.get(block.id);
+      const enDefault = enDefaultsMap.get(block.id);
       const customUk = block.config_uk;
+      const hasCustomUk = Boolean(customUk || block.title_uk);
+
       const ukConfig = {
         ...block.config,
         badge: customUk?.badge || ukDefault?.config.badge || block.config.badge,
@@ -243,11 +249,20 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
         items: customUk?.items || ukDefault?.config.items || block.config.items,
         faqItems: customUk?.faqItems || ukDefault?.config.faqItems || block.config.faqItems,
       };
+
+      const fallbackConfig = hasCustomUk
+        ? translateEnglishValue(ukConfig)
+        : (enDefault?.config || translateEnglishValue(ukConfig));
+
+      const fallbackTitle = hasCustomUk
+        ? translateEnglishValue(block.title_uk || ukDefault?.title || block.title)
+        : (enDefault?.title || translateEnglishValue(block.title_uk || ukDefault?.title || block.title));
+
       return {
         ...block,
-        title: block.title_en || translateEnglishValue(block.title_uk || ukDefault?.title || block.title),
+        title: block.title_en || fallbackTitle,
         config: {
-          ...translateEnglishValue(ukConfig),
+          ...fallbackConfig,
           ...(block.config_en || {}),
         },
       };
