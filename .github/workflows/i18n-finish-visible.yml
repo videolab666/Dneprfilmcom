@@ -18,23 +18,27 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           # LIVE: visible locale leaks + lead payload language.
           p = Path('src/pages/LiveProduction.tsx')
           s = p.read_text(encoding='utf-8')
 
-          old = """      const formatNames = isUk ? {
-                sports: 'Спортивна трансляція',
-                conference: 'Бізнес-конференція / Форум',
-                corporate: 'Корпоративний ефір',
-                concert: 'Концерт / Шоу'
-              } : {
-                sports: 'Спортивная трансляция',
-                conference: 'Бизнес-конференция / Форум',
-                corporate: 'Корпоративный эфир',
-                concert: 'Концерт / Шоу'
-              };"""
-          new = """      const formatNames = isEn ? {
+          format_pattern = re.compile(
+              r"const formatNames = isUk \? \{\s*"
+              r"sports: 'Спортивна трансляція',\s*"
+              r"conference: 'Бізнес-конференція / Форум',\s*"
+              r"corporate: 'Корпоративний ефір',\s*"
+              r"concert: 'Концерт / Шоу'\s*"
+              r"\} : \{\s*"
+              r"sports: 'Спортивная трансляция',\s*"
+              r"conference: 'Бизнес-конференция / Форум',\s*"
+              r"corporate: 'Корпоративный эфир',\s*"
+              r"concert: 'Концерт / Шоу'\s*"
+              r"\};",
+              re.S,
+          )
+          format_replacement = """const formatNames = isEn ? {
                 sports: 'Sports broadcast',
                 conference: 'Business conference / Forum',
                 corporate: 'Corporate broadcast',
@@ -50,55 +54,24 @@ jobs:
                 corporate: 'Корпоративный эфир',
                 concert: 'Концерт / Шоу'
               };"""
-          if old not in s:
-              raise SystemExit('LIVE formatNames block not found')
-          s = s.replace(old, new, 1)
+          s, n = format_pattern.subn(format_replacement, s, count=1)
+          if n != 1:
+              raise SystemExit(f'LIVE formatNames replacement count={n}')
 
-          s = s.replace(
-              'if (hasStarlink) selectedServices.push(l("Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM бондинг"));',
-              'if (hasStarlink) selectedServices.push(l("Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM bonding"));',
-              1,
-          )
-          s = s.replace(
-              'if (needGraphics) selectedServices.push(l("Ефірна графіка та титри", "Эфирная графика и титры"));',
-              'if (needGraphics) selectedServices.push(l("Ефірна графіка та титри", "Эфирная графика и титры", "Broadcast graphics and titles"));',
-              1,
-          )
-          s = s.replace(
-              'if (needReplay) selectedServices.push(l("Система повторів (Replay)", "Система повторов (Replay)"));',
-              'if (needReplay) selectedServices.push(l("Система повторів (Replay)", "Система повторов (Replay)", "Replay system"));',
-              1,
-          )
-          s = s.replace(
-              'if (needTranslation) selectedServices.push(l("Синхронний переклад", "Синхронный перевод"));',
-              'if (needTranslation) selectedServices.push(l("Синхронний переклад", "Синхронный перевод", "Simultaneous interpretation"));',
-              1,
-          )
-          s = s.replace(
-              'if (needLedOutput) selectedServices.push(l("Виведення на екрани зали (LED)", "Вывод на экраны зала (LED)"));',
-              'if (needLedOutput) selectedServices.push(l("Виведення на екрани зали (LED)", "Вывод на экраны зала (LED)", "Venue LED screen output"));',
-              1,
-          )
-          s = s.replace(
-              'cameraCount: isUk ? `${cameraCount} камер(и)` : `${cameraCount} камер(ы)`,',
-              "cameraCount: isEn ? `${cameraCount} ${cameraCount === 1 ? 'camera' : 'cameras'}` : isUk ? `${cameraCount} камер(и)` : `${cameraCount} камер(ы)`,",
-              1,
-          )
-          s = s.replace(
-              '{isUk ? `${cameraCount} ос.` : `${cameraCount} чел.`}',
-              "{isEn ? `${cameraCount}` : isUk ? `${cameraCount} ос.` : `${cameraCount} чел.`}",
-              1,
-          )
-          s = s.replace(
-              '<span className="font-semibold text-slate-800">Сайт + YouTube</span>',
-              '<span className="font-semibold text-slate-800">{l("Сайт + YouTube", "Сайт + YouTube", "Website + YouTube")}</span>',
-              1,
-          )
-          s = s.replace(
-              'alert(l("Сталася помилка під час надсилання заявки. Будь ласка, зв\'яжіться з нами безпосередньо за телефоном.", "Произошла ошибка при отправке заявки. Пожалуйста, свяжитесь с нами напрямую по телефону.")',
-              'alert(l("Сталася помилка під час надсилання заявки. Будь ласка, зв\'яжіться з нами безпосередньо за телефоном.", "Произошла ошибка при отправке заявки. Пожалуйста, свяжитесь с нами напрямую по телефону.", "There was an error sending your request. Please contact us directly by phone.")',
-              1,
-          )
+          replacements = {
+              'if (hasStarlink) selectedServices.push(l("Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM бондинг"));': 'if (hasStarlink) selectedServices.push(l("Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM бондинг", "Starlink + Multi-SIM bonding"));',
+              'if (needGraphics) selectedServices.push(l("Ефірна графіка та титри", "Эфирная графика и титры"));': 'if (needGraphics) selectedServices.push(l("Ефірна графіка та титри", "Эфирная графика и титры", "Broadcast graphics and titles"));',
+              'if (needReplay) selectedServices.push(l("Система повторів (Replay)", "Система повторов (Replay)"));': 'if (needReplay) selectedServices.push(l("Система повторів (Replay)", "Система повторов (Replay)", "Replay system"));',
+              'if (needTranslation) selectedServices.push(l("Синхронний переклад", "Синхронный перевод"));': 'if (needTranslation) selectedServices.push(l("Синхронний переклад", "Синхронный перевод", "Simultaneous interpretation"));',
+              'if (needLedOutput) selectedServices.push(l("Виведення на екрани зали (LED)", "Вывод на экраны зала (LED)"));': 'if (needLedOutput) selectedServices.push(l("Виведення на екрани зали (LED)", "Вывод на экраны зала (LED)", "Venue LED screen output"));',
+              'cameraCount: isUk ? `${cameraCount} камер(и)` : `${cameraCount} камер(ы)`,': "cameraCount: isEn ? `${cameraCount} ${cameraCount === 1 ? 'camera' : 'cameras'}` : isUk ? `${cameraCount} камер(и)` : `${cameraCount} камер(ы)`,",
+              '{isUk ? `${cameraCount} ос.` : `${cameraCount} чел.`}': "{isEn ? `${cameraCount}` : isUk ? `${cameraCount} ос.` : `${cameraCount} чел.`}",
+              '<span className="font-semibold text-slate-800">Сайт + YouTube</span>': '<span className="font-semibold text-slate-800">{l("Сайт + YouTube", "Сайт + YouTube", "Website + YouTube")}</span>',
+          }
+          for old, new in replacements.items():
+              if old not in s:
+                  raise SystemExit(f'LIVE target not found: {old[:80]}')
+              s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
 
           # Video calculator summary: EN used the RU arm of an isUk ternary.
@@ -114,12 +87,12 @@ jobs:
           # Construction duration labels: add explicit EN rather than falling through.
           p = Path('src/pages/ConstructionMedia.tsx')
           s = p.read_text(encoding='utf-8')
-          replacements = {
+          construction_replacements = {
               'l("міс (1 рік)", "мес (1 год)")': 'l("міс (1 рік)", "мес (1 год)", "months (1 yr)")',
               'l("міс (2 роки)", "мес (2 года)")': 'l("міс (2 роки)", "мес (2 года)", "months (2 yrs)")',
               'l("міс (3 роки)", "мес (3 года)")': 'l("міс (3 роки)", "мес (3 года)", "months (3 yrs)")',
           }
-          for old, new in replacements.items():
+          for old, new in construction_replacements.items():
               if old not in s:
                   raise SystemExit(f'Construction duration label not found: {old}')
               s = s.replace(old, new, 1)
