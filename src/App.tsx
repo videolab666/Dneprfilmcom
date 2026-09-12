@@ -21,15 +21,17 @@ import { About } from './pages/About';
 import { AdminLogin } from './pages/AdminLogin';
 import { AdminDashboard } from './pages/AdminDashboard';
 
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+
 export default function App() {
   return (
     <AuthProvider>
       <SiteContentProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={routerBasename}>
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
-              
+
               <Route path="live" element={<LiveProduction />} />
               <Route path="video" element={<VideoProduction />} />
               <Route path="construction" element={<ConstructionMedia />} />
@@ -38,9 +40,9 @@ export default function App() {
               <Route path="media-center" element={<MediaCenter />} />
               <Route path="about" element={<About />} />
               <Route path="contacts" element={<Contacts />} />
-              
+
               <Route path="admin/login" element={<AdminLogin />} />
-              
+
               <Route element={<ProtectedRoute />}>
                 <Route path="admin" element={<AdminDashboard />} />
               </Route>
@@ -51,5 +53,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-
-
