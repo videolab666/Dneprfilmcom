@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
+import { PortfolioCrosslinks } from './PortfolioCrosslinks';
 import { SeoManager } from '../SeoManager';
 
 export function Layout() {
@@ -10,6 +11,7 @@ export function Layout() {
       <Navbar />
       <main className="flex-grow pt-20">
         <Outlet />
+        <PortfolioCrosslinks />
       </main>
       <Footer />
     </div>

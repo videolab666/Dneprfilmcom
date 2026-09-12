@@ -7,6 +7,7 @@ import {
   Layers,
   Sliders,
   Briefcase,
+  Film,
   Images,
   MessageSquare,
   Radio,
@@ -19,6 +20,7 @@ import { BlocksManager } from '../components/admin/BlocksManager';
 import { SiteSettingsEditor } from '../components/admin/SiteSettingsEditor';
 import { CasesManager } from '../components/admin/CasesManager';
 import { GalleriesManager } from '../components/admin/GalleriesManager';
+import { VideosManager } from '../components/admin/VideosManager';
 import { TestimonialsManager } from '../components/admin/TestimonialsManager';
 import { BackstageManager } from '../components/admin/BackstageManager';
 import { LeadsCRM } from '../components/admin/LeadsCRM';
@@ -27,7 +29,7 @@ import { PageContentManager } from '../components/admin/PageContentManager';
 import { PageCopyManager } from '../components/admin/PageCopyManager';
 import { useSiteContent } from '../context/SiteContentContext';
 
-type AdminTab = 'blocks' | 'settings' | 'pages' | 'page-copy' | 'cases' | 'galleries' | 'testimonials' | 'backstage' | 'leads' | 'articles';
+type AdminTab = 'blocks' | 'settings' | 'pages' | 'page-copy' | 'cases' | 'galleries' | 'videos' | 'testimonials' | 'backstage' | 'leads' | 'articles';
 
 interface NavItem {
   id: AdminTab;
@@ -52,7 +54,8 @@ export function AdminDashboard() {
     { id: 'pages', label: isUk ? 'Контент сторінок' : 'Контент страниц', icon: <Layers className="w-4 h-4" /> },
     { id: 'page-copy', label: isUk ? 'Тексти & FAQ' : 'Тексты & FAQ', icon: <FileText className="w-4 h-4" />, badge: 'CMS' },
     { id: 'cases', label: isUk ? 'Кейси студії' : 'Кейсы студии', icon: <Briefcase className="w-4 h-4" /> },
-    { id: 'galleries', label: isUk ? 'Фотогалереї' : 'Фотогалереи', icon: <Images className="w-4 h-4" />, badge: 'NEW' },
+    { id: 'galleries', label: isUk ? 'Фотогалереї' : 'Фотогалереи', icon: <Images className="w-4 h-4" /> },
+    { id: 'videos', label: isUk ? 'Відеопортфоліо' : 'Видеопортфолио', icon: <Film className="w-4 h-4" />, badge: 'NEW' },
     { id: 'testimonials', label: isUk ? 'Відгуки клієнтів' : 'Отзывы клиентов', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'backstage', label: isUk ? 'ПТС та Бекстейдж' : 'ПТС и Бэкстейдж', icon: <Radio className="w-4 h-4" /> },
     { id: 'leads', label: 'Заявки / CRM', icon: <Inbox className="w-4 h-4" /> },
@@ -103,6 +106,7 @@ export function AdminDashboard() {
         {activeTab === 'page-copy' && <PageCopyManager />}
         {activeTab === 'cases' && <CasesManager />}
         {activeTab === 'galleries' && <GalleriesManager />}
+        {activeTab === 'videos' && <VideosManager />}
         {activeTab === 'testimonials' && <TestimonialsManager />}
         {activeTab === 'backstage' && <BackstageManager />}
         {activeTab === 'leads' && <LeadsCRM />}

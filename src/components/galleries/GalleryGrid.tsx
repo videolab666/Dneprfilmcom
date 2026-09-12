@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { GalleryImage } from '../../lib/galleryContent';
 import { useSiteContent } from '../../context/SiteContentContext';
+import { ResponsiveImage } from '../ResponsiveImage';
 
 interface GalleryGridProps {
   images: GalleryImage[];
@@ -48,11 +49,12 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
               className="group block w-full cursor-zoom-in overflow-hidden bg-slate-100 text-left"
               aria-label={image.alt || `${galleryTitle} — ${index + 1}`}
             >
-              <img
+              <ResponsiveImage
                 src={image.url}
                 alt={image.alt || `${galleryTitle} — ${index + 1}`}
+                displayWidth={1200}
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 className="h-auto w-full object-cover transition duration-500 group-hover:scale-[1.015]"
-                loading="lazy"
               />
             </button>
             {image.caption && (
@@ -109,9 +111,12 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
           )}
 
           <div className="flex max-h-[94vh] max-w-[94vw] flex-col items-center gap-3" onClick={event => event.stopPropagation()}>
-            <img
+            <ResponsiveImage
               src={activeImage.url}
               alt={activeImage.alt || galleryTitle}
+              displayWidth={2400}
+              sizes="94vw"
+              loading="eager"
               className="max-h-[84vh] max-w-full rounded-2xl object-contain shadow-2xl"
             />
             {activeImage.caption && (

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { ArrowRight, CalendarDays, Images, MapPin, Sparkles } from 'lucide-react';
 import { db } from '../lib/firebase';
+import { ResponsiveImage } from '../components/ResponsiveImage';
 import {
   GALLERY_COLLECTION,
   galleryCover,
@@ -95,8 +96,17 @@ export function Galleries() {
       <section className="py-14 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {loading ? (
-            <div className="flex min-h-72 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-b-indigo-600" />
+            <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-3" aria-label={l('Завантаження фотогалерей', 'Загрузка фотогалерей', 'Loading photo galleries')}>
+              {[0, 1, 2].map(item => (
+                <div key={item} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                  <div className="aspect-[4/3] animate-pulse bg-slate-200" />
+                  <div className="space-y-3 p-6">
+                    <div className="h-5 w-3/4 animate-pulse rounded bg-slate-200" />
+                    <div className="h-3 w-1/2 animate-pulse rounded bg-slate-100" />
+                    <div className="h-3 w-full animate-pulse rounded bg-slate-100" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : localizedGalleries.length === 0 ? (
             <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
@@ -121,7 +131,7 @@ export function Galleries() {
                   <article key={gallery.id} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-xl">
                     <Link to={getGalleryPath(gallery)} className="relative block aspect-[4/3] overflow-hidden bg-slate-900">
                       {cover ? (
-                        <img src={cover} alt={gallery.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+                        <ResponsiveImage src={cover} alt={gallery.title} displayWidth={900} sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                       ) : (
                         <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950 text-white/40">
                           <Images className="h-16 w-16" />
