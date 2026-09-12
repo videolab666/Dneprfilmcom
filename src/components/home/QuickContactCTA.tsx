@@ -5,7 +5,7 @@ import { db } from '../../lib/firebase';
 import { useSiteContent } from '../../context/SiteContentContext';
 
 export function QuickContactCTA() {
-  const { isUk, settings, l } = useSiteContent();
+  const { settings, l } = useSiteContent();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [direction, setDirection] = useState('LIVE');
@@ -62,16 +62,12 @@ export function QuickContactCTA() {
               </h2>
 
               <p className="text-sm sm:text-base text-slate-300 font-light leading-relaxed">
-                {isUk ? (
-                  <>
-                    Розкажіть про ваше завдання. Засновник студії <strong className="text-white font-medium">Олександр Пітель</strong> або провідний інженер зв'яжуться з вами, щоб запропонувати оптимальний склад групи та обладнання без переплат.
-                  </>
-                ) : (
-                  <>
-                    Расскажите о вашей задаче. Основатель студии <strong className="text-white font-medium">Александр Питель</strong> или ведущий инженер свяжутся с вами, чтобы предложить оптимальный состав группы и оборудования без переплат.
-                  </>
-                )}
-              </p>
+      {l(
+        "Розкажіть про ваше завдання. Засновник студії Олександр Пітель або провідний інженер зв'яжуться з вами, щоб запропонувати оптимальний склад групи та обладнання без переплат.",
+        "Расскажите о вашей задаче. Основатель студии Александр Питель или ведущий инженер свяжутся с вами, чтобы предложить оптимальный состав группы и оборудования без переплат.",
+        "Tell us about your project. Studio founder Alexander Pitel or a lead engineer will contact you to recommend the optimal crew and equipment setup without unnecessary costs."
+      )}
+    </p>
 
               <div className="space-y-4 pt-4 text-xs sm:text-sm text-slate-400">
                 <div className="flex items-center space-x-3">
