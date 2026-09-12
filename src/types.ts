@@ -7,7 +7,8 @@ export interface CaseMediaItem {
   type: CaseMediaType;
   url: string;
   thumbnailUrl?: string;
-  storagePath?: string;
+  storagePath?: string; // legacy Firebase Storage path
+  cloudinaryPublicId?: string;
   title?: string;
   title_uk?: string;
   title_en?: string;

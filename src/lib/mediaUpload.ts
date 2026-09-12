@@ -1,9 +1,14 @@
-import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { storage } from './firebase';
-
+const CLOUDINARY_CLOUD_NAME = 'n6l9imb7';
+const CLOUDINARY_UPLOAD_PRESET = '123123';
 const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
 const MAX_EDGE = 2400;
 const WEBP_QUALITY = 0.88;
+
+interface CloudinaryUploadResponse {
+  secure_url?: string;
+  public_id?: string;
+  error?: { message?: string };
+}
 
 function sanitizeName(name: string): string {
   return name
@@ -43,25 +48,23 @@ async function optimizeImage(file: File): Promise<Blob> {
   return blob;
 }
 
-export async function uploadCaseImage(file: File, caseId: string): Promise<{ url: string; storagePath: string }> {
+export async function uploadCaseImage(file: File, caseId: string): Promise<{ url: string; publicId: string }> {
   const optimized = await optimizeImage(file);
-  const storagePath = `cases/${caseId}/${Date.now()}-${sanitizeName(file.name)}.webp`;
-  const objectRef = ref(storage, storagePath);
-  await uploadBytes(objectRef, optimized, {
-    contentType: 'image/webp',
-    cacheControl: 'public,max-age=31536000,immutable',
-  });
-  return {
-    url: await getDownloadURL(objectRef),
-    storagePath,
-  };
-}
+  const formData = new FormData();
+  formData.append('file', optimized, `${sanitizeName(file.name)}.webp`);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', `dneprfilm/cases/${sanitizeName(caseId)}`);
+  formData.append('filename_override', `${sanitizeName(file.name)}.webp`);
 
-export async function deleteCaseImage(storagePath?: string): Promise<void> {
-  if (!storagePath) return;
-  try {
-    await deleteObject(ref(storage, storagePath));
-  } catch (error) {
-    console.warn('Could not delete case image from Firebase Storage:', error);
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+    { method: 'POST', body: formData },
+  );
+  const data = await response.json() as CloudinaryUploadResponse;
+
+  if (!response.ok || !data.secure_url || !data.public_id) {
+    throw new Error(data.error?.message || `Cloudinary upload failed (${response.status}).`);
   }
+
+  return { url: data.secure_url, publicId: data.public_id };
 }
