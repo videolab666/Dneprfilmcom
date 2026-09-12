@@ -27,7 +27,7 @@ import {
   normalizedCaseMedia,
   slugifyCase,
 } from '../../lib/caseMedia';
-import { deleteCaseImage, uploadCaseImage } from '../../lib/mediaUpload';
+import { uploadCaseImage } from '../../lib/mediaUpload';
 
 const LANGS: Array<{ id: Locale; label: string }> = [
   { id: 'uk', label: 'Українська' },
@@ -108,8 +108,6 @@ export function CasesManager() {
   const [error, setError] = useState('');
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [draggedMediaId, setDraggedMediaId] = useState<string | null>(null);
-  const [pendingDeletePaths, setPendingDeletePaths] = useState<string[]>([]);
-  const [newUploadPaths, setNewUploadPaths] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchCases = async () => {
@@ -142,8 +140,6 @@ export function CasesManager() {
     });
     setLanguage('uk');
     setError('');
-    setPendingDeletePaths([]);
-    setNewUploadPaths([]);
     setNewMediaUrl('');
   };
 
@@ -151,8 +147,6 @@ export function CasesManager() {
     setEditing(emptyCase());
     setLanguage('uk');
     setError('');
-    setPendingDeletePaths([]);
-    setNewUploadPaths([]);
     setNewMediaUrl('');
   };
 
@@ -191,11 +185,7 @@ export function CasesManager() {
     }
   };
 
-  const cancelEditing = async () => {
-    const orphaned = Array.from(new Set<string>(newUploadPaths));
-    if (orphaned.length) await Promise.all(orphaned.map((path: string) => deleteCaseImage(path)));
-    setNewUploadPaths([]);
-    setPendingDeletePaths([]);
+  const cancelEditing = () => {
     setEditing(null);
   };
 
@@ -243,10 +233,9 @@ export function CasesManager() {
       const added: CaseMediaItem[] = [];
       for (const file of Array.from(files).slice(0, 20)) {
         const uploaded = await uploadCaseImage(file, editing.id);
-        setNewUploadPaths(paths => [...paths, uploaded.storagePath]);
         added.push({
           ...createCaseMediaItem('image', uploaded.url),
-          storagePath: uploaded.storagePath,
+          cloudinaryPublicId: uploaded.publicId,
           alt_uk: editing.title_uk || editing.title || file.name,
           alt: editing.title || editing.title_uk || file.name,
           alt_en: editing.title_en || editing.title_uk || editing.title || file.name,
@@ -270,7 +259,6 @@ export function CasesManager() {
   const removeMedia = (item: CaseMediaItem) => {
     if (!editing) return;
     const nextMedia = media.filter(mediaItem => mediaItem.id !== item.id);
-    if (item.storagePath) setPendingDeletePaths(paths => [...paths, item.storagePath!]);
     const nextCover = editing.imageUrl === item.url
       ? nextMedia.find(mediaItem => mediaItem.type === 'image')?.url || ''
       : editing.imageUrl;
@@ -341,16 +329,6 @@ export function CasesManager() {
       };
 
       await setDoc(doc(db, 'cases', editing.id), payload);
-      const referencedPaths = new Set<string>(
-        cleanedMedia
-          .map(item => item.storagePath)
-          .filter((path): path is string => Boolean(path))
-      );
-      const orphanedUploads = newUploadPaths.filter(path => !referencedPaths.has(path));
-      const pathsToDelete = [...new Set([...pendingDeletePaths, ...orphanedUploads])];
-      await Promise.all(pathsToDelete.map(path => deleteCaseImage(path)));
-      setPendingDeletePaths([]);
-      setNewUploadPaths([]);
       setEditing(null);
       await fetchCases();
     } catch (e) {
@@ -365,8 +343,6 @@ export function CasesManager() {
     if (!window.confirm('Удалить кейс? Он исчезнет с публичной страницы.')) return;
     try {
       await deleteDoc(doc(db, 'cases', item.id));
-      const paths = (item.media || []).map(mediaItem => mediaItem.storagePath).filter(Boolean) as string[];
-      await Promise.all(paths.map(path => deleteCaseImage(path)));
       await fetchCases();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -436,7 +412,7 @@ export function CasesManager() {
                   <h3 className="text-xl font-black">Редактор кейса</h3>
                   <p className="mt-1 text-xs text-slate-400">ID: {editing.id}</p>
                 </div>
-                <button type="button" onClick={() => void cancelEditing()} className="h-fit rounded-full p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+                <button type="button" onClick={cancelEditing} className="h-fit rounded-full p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
               </div>
 
               <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -480,7 +456,7 @@ export function CasesManager() {
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                   <div>
                     <h4 className="text-sm font-black text-slate-900">Фото и видео кейса</h4>
-                    <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500">Фото загружаются в Firebase Storage и автоматически уменьшаются до WebP ≤ 2400 px. Видео лучше добавлять ссылкой YouTube/Vimeo; MP4/WebM URL тоже поддерживаются. Порядок элементов можно менять перетаскиванием.</p>
+                    <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500">Фото загружаются в Cloudinary CDN и автоматически уменьшаются до WebP ≤ 2400 px. Видео лучше добавлять ссылкой YouTube/Vimeo; MP4/WebM URL тоже поддерживаются. Порядок элементов можно менять перетаскиванием.</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => uploadImages(e.target.files)} />
@@ -580,7 +556,7 @@ export function CasesManager() {
               </section>
 
               <div className="sticky bottom-0 -mx-5 flex justify-end gap-3 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur sm:-mx-8 sm:px-8">
-                <button type="button" onClick={() => void cancelEditing()} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Отмена</button>
+                <button type="button" onClick={cancelEditing} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Отмена</button>
                 <button type="submit" disabled={saving || uploading} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   {saving ? 'Сохранение…' : 'Сохранить кейс'}
