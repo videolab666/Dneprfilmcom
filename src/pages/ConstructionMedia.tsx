@@ -34,7 +34,7 @@ import { usePageCmsContent } from '../hooks/usePageCmsContent';
 import { usePageCopyContent } from '../hooks/usePageCopyContent';
 
 export function ConstructionMedia() {
-  const { isUk, settings } = useSiteContent();
+  const { isUk, settings, l } = useSiteContent();
   const { content: pageContent, localize } = usePageCmsContent();
   const { content: copyContent, localize: localizeCopy, byId: copyById } = usePageCopyContent();
   const constructionHero = copyById(copyContent.construction.hero, 'construction-hero')?.text;
@@ -133,10 +133,10 @@ export function ConstructionMedia() {
       await addDoc(collection(db, 'leads'), {
         name: contactName,
         phone: contactPhone,
-        company: contactCompany || (isUk ? 'Не вказана' : 'Не указана'),
-        service: isUk ? 'Construction Media — Моніторинг будівництва' : 'Construction Media — Мониторинг строительства',
-        eventType: isUk ? 'Будівельний об\'єкт' : 'Строительный объект',
-        message: contactNote ? `${contactNote} | ${isUk ? 'Конфігурація' : 'Конфигурация'}: ${configurationSummary}` : configurationSummary,
+        company: contactCompany || (l("Не вказана", "Не указана")),
+        service: l("Construction Media — Моніторинг будівництва", "Construction Media — Мониторинг строительства"),
+        eventType: l("Будівельний об'єкт", "Строительный объект"),
+        message: contactNote ? `${contactNote} | ${l("Конфігурація", "Конфигурация")}: ${configurationSummary}` : configurationSummary,
         status: 'new',
         createdAt: Date.now()
       });
@@ -144,7 +144,7 @@ export function ConstructionMedia() {
       setSubmitted(true);
     } catch (error) {
       console.error('Error submitting construction inquiry:', error);
-      alert(isUk ? 'Помилка під час надсилання заявки. Будь ласка, зателефонуйте нам напряму.' : 'Ошибка при отправке заявки. Пожалуйста, позвоните нам напрямую.');
+      alert(l("Помилка під час надсилання заявки. Будь ласка, зателефонуйте нам напряму.", "Ошибка при отправке заявки. Пожалуйста, позвоните нам напрямую."));
     } finally {
       setSubmitting(false);
     }
@@ -189,19 +189,19 @@ export function ConstructionMedia() {
               <div className="flex flex-wrap gap-2.5 mb-10">
                 <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300">
                   <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{isUk ? 'Термобокси IP67 (-25°C...+50°C)' : 'Термобоксы IP67 (-25°C...+50°C)'}</span>
+                  <span>{l("Термобокси IP67 (-25°C...+50°C)", "Термобоксы IP67 (-25°C...+50°C)")}</span>
                 </div>
                 <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300">
                   <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{isUk ? 'GPS-польоти без розбіжності ракурсів' : 'GPS-полеты без расхождения ракурсов'}</span>
+                  <span>{l("GPS-польоти без розбіжності ракурсів", "GPS-полеты без расхождения ракурсов")}</span>
                 </div>
                 <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300">
                   <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{isUk ? 'Хмарний доступ для технагляду' : 'Облачный доступ для технадзора'}</span>
+                  <span>{l("Хмарний доступ для технагляду", "Облачный доступ для технадзора")}</span>
                 </div>
                 <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300">
                   <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{isUk ? 'Інструмент для відділу продажів ЖК' : 'Инструмент для отдела продаж ЖК'}</span>
+                  <span>{l("Інструмент для відділу продажів ЖК", "Инструмент для отдела продаж ЖК")}</span>
                 </div>
               </div>
 
@@ -212,7 +212,7 @@ export function ConstructionMedia() {
                   className="inline-flex items-center space-x-2 px-7 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold shadow-lg shadow-amber-500/25 transition-all transform active:scale-95"
                 >
                   <Sliders className="w-4 h-4" />
-                  <span>{isUk ? 'Розрахувати кошторис моніторингу' : 'Рассчитать смету мониторинга'}</span>
+                  <span>{l("Розрахувати кошторис моніторингу", "Рассчитать смету мониторинга")}</span>
                   <ArrowRight className="w-4 h-4" />
                 </a>
 
@@ -221,7 +221,7 @@ export function ConstructionMedia() {
                   className="inline-flex items-center space-x-2 px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 text-sm font-semibold transition-colors"
                 >
                   <Building2 className="w-4 h-4 text-amber-400" />
-                  <span>{isUk ? 'Дивитися об\'єкти' : 'Смотреть объекты'}</span>
+                  <span>{l("Дивитися об'єкти", "Смотреть объекты")}</span>
                 </a>
               </div>
             </div>
@@ -232,7 +232,7 @@ export function ConstructionMedia() {
                 <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950">
                   <img
                     src="https://images.unsplash.com/photo-1541888946425-d0fbb18615f8?auto=format&fit=crop&q=80&w=1000"
-                    alt={isUk ? 'Будівельний таймлапс 4K' : 'Строительный таймлапс 4K'}
+                    alt={l("Будівельний таймлапс 4K", "Строительный таймлапс 4K")}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-black/40" />
@@ -241,7 +241,7 @@ export function ConstructionMedia() {
                   <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
                     <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-white text-[11px] font-bold">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>{isUk ? 'CAM 01 — ЖК Riverside (Кран 2)' : 'CAM 01 — ЖК Riverside (Кран 2)'}</span>
+                      <span>{l("CAM 01 — ЖК Riverside (Кран 2)", "CAM 01 — ЖК Riverside (Кран 2)")}</span>
                     </div>
                     <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black tracking-wider">
                       4K LIVE
@@ -251,8 +251,8 @@ export function ConstructionMedia() {
                   {/* Bottom Stats Overlay */}
                   <div className="absolute bottom-4 left-4 right-4 p-3.5 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-white/10">
                     <div className="flex items-center justify-between text-xs mb-2">
-                      <span className="text-slate-400">{isUk ? 'Прогрес зведення:' : 'Прогресс возведения:'}</span>
-                      <span className="text-amber-400 font-black">{isUk ? '22 з 24 поверхів (91%)' : '22 из 24 этажей (91%)'}</span>
+                      <span className="text-slate-400">{l("Прогрес зведення:", "Прогресс возведения:")}</span>
+                      <span className="text-amber-400 font-black">{l("22 з 24 поверхів (91%)", "22 из 24 этажей (91%)")}</span>
                     </div>
                     <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mb-3">
                       <div className="h-full bg-gradient-to-r from-amber-500 to-amber-300 w-[91%]" />
@@ -260,15 +260,15 @@ export function ConstructionMedia() {
                     <div className="grid grid-cols-3 gap-2 text-[10px] text-slate-300 text-center pt-2 border-t border-slate-800">
                       <div>
                         <div className="font-bold text-white">43 200+</div>
-                        <div className="text-slate-500">{isUk ? 'Знімків у хмарі' : 'Снимков в облаке'}</div>
+                        <div className="text-slate-500">{l("Знімків у хмарі", "Снимков в облаке")}</div>
                       </div>
                       <div>
-                        <div className="font-bold text-white">{isUk ? '24 міс' : '24 мес'}</div>
-                        <div className="text-slate-500">{isUk ? 'Термін проєкту' : 'Срок проекта'}</div>
+                        <div className="font-bold text-white">{l("24 міс", "24 мес")}</div>
+                        <div className="text-slate-500">{l("Термін проєкту", "Срок проекта")}</div>
                       </div>
                       <div>
                         <div className="font-bold text-emerald-400">100%</div>
-                        <div className="text-slate-500">{isUk ? 'Аптайм системи' : 'Аптайм системы'}</div>
+                        <div className="text-slate-500">{l("Аптайм системи", "Аптайм системы")}</div>
                       </div>
                     </div>
                   </div>
@@ -290,12 +290,10 @@ export function ConstructionMedia() {
                 01
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">
-                {isUk ? 'Збільшення темпу продажів квартир' : 'Увеличение темпа продаж квартир'}
+                {l("Збільшення темпу продажів квартир", "Увеличение темпа продаж квартир")}
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                {isUk
-                  ? '3D-панорами краєвидів з вікон майбутніх квартир та динамічні щомісячні ролики будівництва знімають страх «недобудови» та залучають покупців з інших міст.'
-                  : '3D-панорамы видов из окон будущих квартир и динамичные ежемесячные ролики стройки снимают страх «недостроя» и привлекают покупателей из других городов.'}
+                {l("3D-панорами краєвидів з вікон майбутніх квартир та динамічні щомісячні ролики будівництва знімають страх «недобудови» та залучають покупців з інших міст.", "3D-панорамы видов из окон будущих квартир и динамичные ежемесячные ролики стройки снимают страх «недостроя» и привлекают покупателей из других городов.")}
               </p>
             </div>
 
@@ -304,12 +302,10 @@ export function ConstructionMedia() {
                 02
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">
-                {isUk ? 'Бездоганний аудит для банків та інвесторів' : 'Безупречный аудит для банков и инвесторов'}
+                {l("Бездоганний аудит для банків та інвесторів", "Безупречный аудит для банков и инвесторов")}
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                {isUk
-                  ? '100% документальна відеофіксація обсягів робіт, темпів заливання моноліту та прокладання мереж захищає девелопера при кредитуванні та перевірках.'
-                  : '100% документальная видеофиксация объемов работ, темпов заливки монолита и прокладки сетей защищает девелопера при кредитовании и проверках.'}
+                {l("100% документальна відеофіксація обсягів робіт, темпів заливання моноліту та прокладання мереж захищає девелопера при кредитуванні та перевірках.", "100% документальная видеофиксация объемов работ, темпов заливки монолита и прокладки сетей защищает девелопера при кредитовании и проверках.")}
               </p>
             </div>
 
@@ -318,12 +314,10 @@ export function ConstructionMedia() {
                 03
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">
-                {isUk ? 'Автономність & Надійність 24/7' : 'Автономность & Надежность 24/7'}
+                {l("Автономність & Надійність 24/7", "Автономность & Надежность 24/7")}
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                {isUk
-                  ? 'Обладнання працює без участі персоналу будівництва: захищені термобокси з підігрівом, безперебійне живлення та пряма передача даних у захищену хмару.'
-                  : 'Оборудование работает без участия персонала стройки: защищенные термобоксы с подогревом, бесперебойное питание и прямая передача данных в защищенное облако.'}
+                {l("Обладнання працює без участі персоналу будівництва: захищені термобокси з підігрівом, безперебійне живлення та пряма передача даних у захищену хмару.", "Оборудование работает без участия персонала стройки: защищенные термобоксы с подогревом, бесперебойное питание и прямая передача данных в защищенное облако.")}
               </p>
             </div>
 
@@ -338,15 +332,13 @@ export function ConstructionMedia() {
           <div className="max-w-3xl mb-16">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-bold mb-3">
               <Layers className="w-3.5 h-3.5" />
-              <span>{isUk ? 'Інструменти девелопменту' : 'Инструменты девелопмента'}</span>
+              <span>{l("Інструменти девелопменту", "Инструменты девелопмента")}</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mb-4">
-              {isUk ? 'Повний медіакомплекс для будівельного майданчика' : 'Полный медиакомплекс для строительной площадки'}
+              {l("Повний медіакомплекс для будівельного майданчика", "Полный медиакомплекс для строительной площадки")}
             </h2>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-              {isUk
-                ? 'Ми об\'єднуємо передову кінооптику, безпілотну авіацію та промислову телеметрію в єдину злагоджену систему.'
-                : 'Мы объединяем передовую кинооптику, беспилотную авиацию и промышленную телеметрию в единую слаженную систему.'}
+              {l("Ми об'єднуємо передову кінооптику, безпілотну авіацію та промислову телеметрію в єдину злагоджену систему.", "Мы объединяем передовую кинооптику, беспилотную авиацию и промышленную телеметрию в единую слаженную систему.")}
             </p>
           </div>
 
@@ -390,7 +382,7 @@ export function ConstructionMedia() {
                   href="#calculator"
                   className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-900 hover:text-amber-600 pt-4 border-t border-slate-100 transition-colors"
                 >
-                  <span>{isUk ? 'Включити до кошторису проєкту' : 'Включить в смету проекта'}</span>
+                  <span>{l("Включити до кошторису проєкту", "Включить в смету проекта")}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </a>
               </div>
@@ -408,17 +400,17 @@ export function ConstructionMedia() {
             <div>
               <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-wider mb-4">
                 <Building2 className="w-3.5 h-3.5" />
-                <span>{isUk ? 'Реалізований досвід студії' : 'Реализованный опыт студии'}</span>
+                <span>{l("Реалізований досвід студії", "Реализованный опыт студии")}</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-black tracking-tight">
-                {isUk ? 'Об\'єкти під медіанаглядом' : 'Объекты под медианаблюдением'}
+                {l("Об'єкти під медіанаглядом", "Объекты под медианаблюдением")}
               </h2>
             </div>
             <Link
               to="/cases"
               className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 text-xs font-bold transition-colors"
             >
-              <span>{isUk ? 'Всі кейси в портфоліо' : 'Все кейсы в портфолио'}</span>
+              <span>{l("Всі кейси в портфоліо", "Все кейсы в портфолио")}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -470,7 +462,7 @@ export function ConstructionMedia() {
 
                     <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200">
                       <span className="font-bold text-amber-400 block mb-0.5">
-                        {isUk ? 'Результат для девелопера:' : 'Результат для девелопера:'}
+                        {l("Результат для девелопера:", "Результат для девелопера:")}
                       </span>
                       <span>{work.results}</span>
                     </div>
@@ -482,7 +474,7 @@ export function ConstructionMedia() {
                     href="#calculator"
                     className="w-full inline-flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-white text-xs font-bold transition-all"
                   >
-                    <span>{isUk ? 'Розрахувати схожий об\'єкт' : 'Рассчитать подобный объект'}</span>
+                    <span>{l("Розрахувати схожий об'єкт", "Рассчитать подобный объект")}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </a>
                 </div>
@@ -500,15 +492,13 @@ export function ConstructionMedia() {
           <div className="max-w-3xl mb-16">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-bold mb-3">
               <Sliders className="w-3.5 h-3.5" />
-              <span>{isUk ? 'Інтерактивний конфігуратор' : 'Интерактивный конфигуратор'}</span>
+              <span>{l("Інтерактивний конфігуратор", "Интерактивный конфигуратор")}</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mb-4">
-              {isUk ? 'Розрахуйте попередній кошторис моніторингу' : 'Рассчитайте предварительную смету мониторинга'}
+              {l("Розрахуйте попередній кошторис моніторингу", "Рассчитайте предварительную смету мониторинга")}
             </h2>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-              {isUk
-                ? 'Оберіть параметри вашого споруджуваного об\'єкта, необхідну кількість точок таймлапсу та частоту польотів дрона.'
-                : 'Выберите параметры вашего строящегося объекта, необходимое количество точек таймлапса и частоту полетов дрона.'}
+              {l("Оберіть параметри вашого споруджуваного об'єкта, необхідну кількість точок таймлапсу та частоту польотів дрона.", "Выберите параметры вашего строящегося объекта, необходимое количество точек таймлапса и частоту полетов дрона.")}
             </p>
           </div>
 
@@ -520,14 +510,14 @@ export function ConstructionMedia() {
               {/* Object Type */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-                  {isUk ? '1. Тип будівельного об\'єкта' : '1. Тип строительного объекта'}
+                  {l("1. Тип будівельного об'єкта", "1. Тип строительного объекта")}
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
-                    { id: 'residential', label: isUk ? 'Житловий комплекс' : 'Жилой комплекс', sub: isUk ? 'Багатоповерховий ЖК' : 'Многоэтажный ЖК' },
-                    { id: 'cottage', label: isUk ? 'Котеджне містечко' : 'Коттеджный поселок', sub: isUk ? 'Вілли, таунхауси' : 'Виллы, таунхаусы' },
-                    { id: 'logistics', label: isUk ? 'Склад / Завод' : 'Склад / Завод', sub: isUk ? 'Індустріальний парк' : 'Индустриальный парк' },
-                    { id: 'infrastructure', label: isUk ? 'Інфраструктура' : 'Инфраструктура', sub: isUk ? 'ТРЦ, дороги, мости' : 'ТРЦ, дороги, мосты' },
+                    { id: 'residential', label: l("Житловий комплекс", "Жилой комплекс"), sub: l("Багатоповерховий ЖК", "Многоэтажный ЖК") },
+                    { id: 'cottage', label: l("Котеджне містечко", "Коттеджный поселок"), sub: l("Вілли, таунхауси", "Виллы, таунхаусы") },
+                    { id: 'logistics', label: l("Склад / Завод", "Склад / Завод"), sub: l("Індустріальний парк", "Индустриальный парк") },
+                    { id: 'infrastructure', label: l("Інфраструктура", "Инфраструктура"), sub: l("ТРЦ, дороги, мости", "ТРЦ, дороги, мосты") },
                   ].map((t) => (
                     <button
                       key={t.id}
@@ -552,10 +542,10 @@ export function ConstructionMedia() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    {isUk ? '2. Запланований термін медіасупроводу' : '2. Планируемый срок медиасопровождения'}
+                    {l("2. Запланований термін медіасупроводу", "2. Планируемый срок медиасопровождения")}
                   </label>
                   <span className="text-sm font-black text-amber-600">
-                    {durationMonths} {isUk ? 'місяців' : 'месяцев'} ({Math.round(durationMonths / 12 * 10) / 10} {isUk ? 'року' : 'года'})
+                    {durationMonths} {l("місяців", "месяцев")} ({Math.round(durationMonths / 12 * 10) / 10} {l("року", "года")})
                   </span>
                 </div>
                 <input
@@ -568,24 +558,24 @@ export function ConstructionMedia() {
                   className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
                 />
                 <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                  <span>3 {isUk ? 'міс' : 'мес'}</span>
-                  <span>12 {isUk ? 'міс (1 рік)' : 'мес (1 год)'}</span>
-                  <span>24 {isUk ? 'міс (2 роки)' : 'мес (2 года)'}</span>
-                  <span>36 {isUk ? 'міс (3 роки)' : 'мес (3 года)'}</span>
+                  <span>3 {l("міс", "мес")}</span>
+                  <span>12 {l("міс (1 рік)", "мес (1 год)", "months (1 yr)")}</span>
+                  <span>24 {l("міс (2 роки)", "мес (2 года)", "months (2 yrs)")}</span>
+                  <span>36 {l("міс (3 роки)", "мес (3 года)", "months (3 yrs)")}</span>
                 </div>
               </div>
 
               {/* Timelapse Cameras */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-                  {isUk ? '3. Кількість автономних 4K таймлапс-камер 24/7' : '3. Количество автономных 4K таймлапс-камер 24/7'}
+                  {l("3. Кількість автономних 4K таймлапс-камер 24/7", "3. Количество автономных 4K таймлапс-камер 24/7")}
                 </label>
                 <div className="grid grid-cols-4 gap-3">
                   {[
-                    { count: 0, label: isUk ? 'Без таймлапсу' : 'Без таймлапса' },
-                    { count: 1, label: isUk ? '1 камера (Загальний план)' : '1 камера (Общий план)' },
-                    { count: 2, label: isUk ? '2 камери (2 ракурси)' : '2 камеры (2 ракурса)' },
-                    { count: 3, label: isUk ? '3+ камери (Комплекс)' : '3+ камеры (Комплекс)' },
+                    { count: 0, label: l("Без таймлапсу", "Без таймлапса") },
+                    { count: 1, label: l("1 камера (Загальний план)", "1 камера (Общий план)") },
+                    { count: 2, label: l("2 камери (2 ракурси)", "2 камеры (2 ракурса)") },
+                    { count: 3, label: l("3+ камери (Комплекс)", "3+ камеры (Комплекс)") },
                   ].map((c) => (
                     <button
                       key={c.count}
@@ -597,7 +587,7 @@ export function ConstructionMedia() {
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'
                       }`}
                     >
-                      <div className="text-sm font-black">{c.count === 0 ? '—' : `${c.count} ${isUk ? 'шт' : 'шт'}`}</div>
+                      <div className="text-sm font-black">{c.count === 0 ? '—' : `${c.count} ${l("шт", "шт")}`}</div>
                       <div className="text-[10px] mt-0.5 text-slate-400">{c.label}</div>
                     </button>
                   ))}
@@ -607,14 +597,14 @@ export function ConstructionMedia() {
               {/* Drone Frequency */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-                  {isUk ? '4. Частота польотів дрона за фіксованими GPS-точками' : '4. Частота полетов дрона по фиксированным GPS-точкам'}
+                  {l("4. Частота польотів дрона за фіксованими GPS-точками", "4. Частота полетов дрона по фиксированным GPS-точкам")}
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
-                    { id: 'none', label: isUk ? 'Без дрона' : 'Без дрона', desc: isUk ? 'Тільки камери' : 'Только камеры' },
-                    { id: 'monthly', label: isUk ? '1 раз на місяць' : '1 раз в месяц', desc: isUk ? 'Базовий звіт' : 'Базовый отчет' },
-                    { id: 'biweekly', label: isUk ? '2 рази на місяць' : '2 раза в месяц', desc: isUk ? 'Оптимально' : 'Оптимально' },
-                    { id: 'weekly', label: isUk ? 'Щотижня' : 'Еженедельно', desc: isUk ? 'Макс. динаміка' : 'Макс. динамика' },
+                    { id: 'none', label: l("Без дрона", "Без дрона"), desc: l("Тільки камери", "Только камеры") },
+                    { id: 'monthly', label: l("1 раз на місяць", "1 раз в месяц"), desc: l("Базовий звіт", "Базовый отчет") },
+                    { id: 'biweekly', label: l("2 рази на місяць", "2 раза в месяц"), desc: l("Оптимально", "Оптимально") },
+                    { id: 'weekly', label: l("Щотижня", "Еженедельно"), desc: l("Макс. динаміка", "Макс. динамика") },
                   ].map((df) => (
                     <button
                       key={df.id}
@@ -638,7 +628,7 @@ export function ConstructionMedia() {
               {/* Additional Options */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-                  {isUk ? '5. Додаткові опції для відділу продажів та маркетингу' : '5. Дополнительные опции для отдела продаж и маркетинга'}
+                  {l("5. Додаткові опції для відділу продажів та маркетингу", "5. Дополнительные опции для отдела продаж и маркетинга")}
                 </label>
                 <div className="space-y-3">
                   
@@ -652,14 +642,14 @@ export function ConstructionMedia() {
                       />
                       <div>
                         <div className="text-xs font-bold text-slate-900">
-                          {isUk ? '3D-аеропанорами краєвидів з вікон майбутніх квартир (поповерхово)' : '3D-аэропанорамы видов из окон будущих квартир (поэтажно)'}
+                          {l("3D-аеропанорами краєвидів з вікон майбутніх квартир (поповерхово)", "3D-аэропанорамы видов из окон будущих квартир (поэтажно)")}
                         </div>
                         <div className="text-[11px] text-slate-500">
-                          {isUk ? 'Для демонстрації покупцям реальних краєвидів з вікон пентхаусів та середніх поверхів' : 'Для демонстрации покупателям реальных видов из окон пентхаусов и средних этажей'}
+                          {l("Для демонстрації покупцям реальних краєвидів з вікон пентхаусів та середніх поверхів", "Для демонстрации покупателям реальных видов из окон пентхаусов и средних этажей")}
                         </div>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-slate-700 shrink-0">+3 500 ₴/{isUk ? 'міс' : 'мес'}</span>
+                    <span className="text-xs font-bold text-slate-700 shrink-0">+3 500 ₴/{l("міс", "мес")}</span>
                   </label>
 
                   <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors">
@@ -672,14 +662,14 @@ export function ConstructionMedia() {
                       />
                       <div>
                         <div className="text-xs font-bold text-slate-900">
-                          {isUk ? 'Щомісячний динамічний Reels/Shorts для соцмереж девелопера' : 'Ежемесячный динамичный Reels/Shorts для соцсетей девелопера'}
+                          {l("Щомісячний динамічний Reels/Shorts для соцмереж девелопера", "Ежемесячный динамичный Reels/Shorts для соцсетей девелопера")}
                         </div>
                         <div className="text-[11px] text-slate-500">
-                          {isUk ? 'Змонтований ролик зі статусом готовності та титрами виконаних обсягів' : 'Смонтированный ролик со статусом готовности и титрами выполненных объемов'}
+                          {l("Змонтований ролик зі статусом готовності та титрами виконаних обсягів", "Смонтированный ролик со статусом готовности и титрами выполненных объемов")}
                         </div>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-slate-700 shrink-0">+4 000 ₴/{isUk ? 'міс' : 'мес'}</span>
+                    <span className="text-xs font-bold text-slate-700 shrink-0">+4 000 ₴/{l("міс", "мес")}</span>
                   </label>
 
                   <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors">
@@ -692,14 +682,14 @@ export function ConstructionMedia() {
                       />
                       <div>
                         <div className="text-xs font-bold text-slate-900">
-                          {isUk ? 'Пряма онлайн-трансляція з будівництва на сайт забудовника' : 'Прямая онлайн-трансляция со стройки на сайт застройщика'}
+                          {l("Пряма онлайн-трансляція з будівництва на сайт забудовника", "Прямая онлайн-трансляция со стройки на сайт застройщика")}
                         </div>
                         <div className="text-[11px] text-slate-500">
-                          {isUk ? 'Плеєр без реклами з адаптивним бітрейтом для вбудовування на сайт ЖК' : 'Плеер без рекламы с адаптивным битрейтом для встраивания на сайт ЖК'}
+                          {l("Плеєр без реклами з адаптивним бітрейтом для вбудовування на сайт ЖК", "Плеер без рекламы с адаптивным битрейтом для встраивания на сайт ЖК")}
                         </div>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-slate-700 shrink-0">+3 000 ₴/{isUk ? 'міс' : 'мес'}</span>
+                    <span className="text-xs font-bold text-slate-700 shrink-0">+3 000 ₴/{l("міс", "мес")}</span>
                   </label>
 
                 </div>
@@ -713,41 +703,41 @@ export function ConstructionMedia() {
                 
                 <div className="border-b border-slate-800 pb-6 mb-6">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block mb-1">
-                    {isUk ? 'Кошторис будівельного моніторингу' : 'Смета строительного мониторинга'}
+                    {l("Кошторис будівельного моніторингу", "Смета строительного мониторинга")}
                   </span>
                   <div className="text-3xl sm:text-4xl font-black text-white">
-                    {isUk ? 'від' : 'от'} {estimate.monthly.toLocaleString()} ₴ <span className="text-xs text-slate-400 font-normal">/ {isUk ? 'місяць' : 'месяц'}</span>
+                    {l("від", "от")} {estimate.monthly.toLocaleString()} ₴ <span className="text-xs text-slate-400 font-normal">/ {l("місяць", "месяц")}</span>
                   </div>
                   <div className="text-xs text-slate-400 mt-1">
-                    {isUk ? 'Орієнтовний бюджет на' : 'Ориентировочный бюджет на'} {durationMonths} {isUk ? 'міс' : 'мес'}: ~{estimate.total.toLocaleString()} ₴
+                    {l("Орієнтовний бюджет на", "Ориентировочный бюджет на")} {durationMonths} {l("міс", "мес")}: ~{estimate.total.toLocaleString()} ₴
                   </div>
                 </div>
 
                 {/* Selected summary */}
                 <div className="space-y-2 text-xs text-slate-300 mb-8">
                   <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">{isUk ? 'Об\'єкт:' : 'Объект:'}</span>
+                    <span className="text-slate-400">{l("Об'єкт:", "Объект:")}</span>
                     <span className="font-semibold text-white">
-                      {objectType === 'residential' ? (isUk ? 'Багатоповерховий ЖК' : 'Многоэтажный ЖК') :
-                       objectType === 'cottage' ? (isUk ? 'Котеджне містечко' : 'Коттеджный поселок') :
-                       objectType === 'logistics' ? (isUk ? 'Склад / Логістика' : 'Склад / Логистика') : (isUk ? 'Інфраструктура' : 'Инфраструктура')}
+                      {objectType === 'residential' ? (l("Багатоповерховий ЖК", "Многоэтажный ЖК")) :
+                       objectType === 'cottage' ? (l("Котеджне містечко", "Коттеджный поселок")) :
+                       objectType === 'logistics' ? (l("Склад / Логістика", "Склад / Логистика")) : (l("Інфраструктура", "Инфраструктура"))}
                     </span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">{isUk ? 'Таймлапс 24/7:' : 'Таймлапс 24/7:'}</span>
-                    <span className="font-semibold text-white">{timelapseCameras} {isUk ? 'точки' : 'точки'}</span>
+                    <span className="text-slate-400">{l("Таймлапс 24/7:", "Таймлапс 24/7:")}</span>
+                    <span className="font-semibold text-white">{timelapseCameras} {l("точки", "точки")}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">{isUk ? 'Польоти дрона:' : 'Полеты дрона:'}</span>
+                    <span className="text-slate-400">{l("Польоти дрона:", "Полеты дрона:")}</span>
                     <span className="font-semibold text-white">
-                      {droneFrequency === 'none' ? (isUk ? 'Без дрона' : 'Без дрона') :
-                       droneFrequency === 'monthly' ? (isUk ? '1 раз на місяць' : '1 раз в месяц') :
-                       droneFrequency === 'biweekly' ? (isUk ? '2 рази на місяць' : '2 раза в месяц') : (isUk ? 'Щотижня' : 'Еженедельно')}
+                      {droneFrequency === 'none' ? (l("Без дрона", "Без дрона")) :
+                       droneFrequency === 'monthly' ? (l("1 раз на місяць", "1 раз в месяц")) :
+                       droneFrequency === 'biweekly' ? (l("2 рази на місяць", "2 раза в месяц")) : (l("Щотижня", "Еженедельно"))}
                     </span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-800/60">
-                    <span className="text-slate-400">{isUk ? 'Термін проєкту:' : 'Срок проекта:'}</span>
-                    <span className="font-semibold text-amber-400">{durationMonths} {isUk ? 'місяців' : 'месяцев'}</span>
+                    <span className="text-slate-400">{l("Термін проєкту:", "Срок проекта:")}</span>
+                    <span className="font-semibold text-amber-400">{durationMonths} {l("місяців", "месяцев")}</span>
                   </div>
                 </div>
 
@@ -757,43 +747,43 @@ export function ConstructionMedia() {
                     <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
                       <CheckCircle2 className="w-5 h-5" />
                     </div>
-                    <h3 className="text-sm font-bold text-white">{isUk ? 'Заявку прийнято!' : 'Заявка принята!'}</h3>
+                    <h3 className="text-sm font-bold text-white">{l("Заявку прийнято!", "Заявка принята!")}</h3>
                     <p className="text-xs text-slate-300">
-                      {isUk ? 'Олександр Пітель зв\'яжеться з вами для узгодження виїзду інженера на майданчик.' : 'Александр Питель свяжется с вами для согласования выезда инженера на площадку.'}
+                      {l("Олександр Пітель зв'яжеться з вами для узгодження виїзду інженера на майданчик.", "Александр Питель свяжется с вами для согласования выезда инженера на площадку.")}
                     </p>
                   </div>
                 ) : (
                   <form onSubmit={handleSubmitInquiry} className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">
-                        {isUk ? 'Ваше ім\'я та посада *' : 'Ваше имя и должность *'}
+                        {l("Ваше ім'я та посада *", "Ваше имя и должность *")}
                       </label>
                       <input
                         type="text"
                         required
                         value={contactName}
                         onChange={(e) => setContactName(e.target.value)}
-                        placeholder={isUk ? 'Олексій, Керівник проєкту' : 'Алексей, Руководитель проекта'}
+                        placeholder={l("Олексій, Керівник проєкту", "Алексей, Руководитель проекта")}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">
-                        {isUk ? 'Девелопер / Будівельна компанія' : 'Девелопер / Строительная компания'}
+                        {l("Девелопер / Будівельна компанія", "Девелопер / Строительная компания")}
                       </label>
                       <input
                         type="text"
                         value={contactCompany}
                         onChange={(e) => setContactCompany(e.target.value)}
-                        placeholder={isUk ? 'ТОВ «Гранд Девелопмент»' : 'ООО «Гранд Девелопмент»'}
+                        placeholder={l("ТОВ «Гранд Девелопмент»", "ООО «Гранд Девелопмент»")}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">
-                        {isUk ? 'Телефон / Telegram *' : 'Телефон / Telegram *'}
+                        {l("Телефон / Telegram *", "Телефон / Telegram *")}
                       </label>
                       <input
                         type="tel"
@@ -807,13 +797,13 @@ export function ConstructionMedia() {
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">
-                        {isUk ? 'Локація об\'єкта / Додаткові побажання' : 'Локация объекта / Дополнительные пожелания'}
+                        {l("Локація об'єкта / Додаткові побажання", "Локация объекта / Дополнительные пожелания")}
                       </label>
                       <textarea
                         rows={2}
                         value={contactNote}
                         onChange={(e) => setContactNote(e.target.value)}
-                        placeholder={isUk ? 'м. Дніпро / Київ, старт моноліту наступного місяця...' : 'г. Днепр / Киев, старт монолита в следующем месяце...'}
+                        placeholder={l("м. Дніпро / Київ, старт моноліту наступного місяця...", "г. Днепр / Киев, старт монолита в следующем месяце...")}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-500 resize-none"
                       />
                     </div>
@@ -824,11 +814,11 @@ export function ConstructionMedia() {
                       className="w-full py-3.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center space-x-2"
                     >
                       <Send className="w-3.5 h-3.5" />
-                      <span>{submitting ? (isUk ? 'Надсилання...' : 'Отправка...') : (isUk ? 'Отримати комерційну пропозицію' : 'Получить коммерческое предложение')}</span>
+                      <span>{submitting ? (l("Надсилання...", "Отправка...")) : (l("Отримати комерційну пропозицію", "Получить коммерческое предложение"))}</span>
                     </button>
                     
                     <p className="text-[10px] text-slate-500 text-center">
-                      {isUk ? 'Можливий безготівковий розрахунок з ПДВ / ФОП. Повний юридичний супровід.' : 'Возможен безналичный расчет с НДС / ФОП. Полное юридическое сопровождение.'}
+                      {l("Можливий безготівковий розрахунок з ПДВ / ФОП. Повний юридичний супровід.", "Возможен безналичный расчет с НДС / ФОП. Полное юридическое сопровождение.")}
                     </p>
                   </form>
                 )}
@@ -848,15 +838,13 @@ export function ConstructionMedia() {
           <div className="text-center max-w-2xl mx-auto mb-16">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-700 text-xs font-bold mb-3">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>{isUk ? 'Регламент безпеки та точності' : 'Регламент безопасности и точности'}</span>
+              <span>{l("Регламент безпеки та точності", "Регламент безопасности и точности")}</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mb-4">
-              {isUk ? 'Як влаштований процес впровадження' : 'Как устроен процесс внедрения'}
+              {l("Як влаштований процес впровадження", "Как устроен процесс внедрения")}
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              {isUk
-                ? 'Від першого виїзду інженера до регулярного автоматичного постачання медіаконтенту відділу продажів та технагляду.'
-                : 'От первого выезда инженера до регулярной автоматической поставки медиаконтента отделу продаж и технадзору.'}
+              {l("Від першого виїзду інженера до регулярного автоматичного постачання медіаконтенту відділу продажів та технагляду.", "От первого выезда инженера до регулярной автоматической поставки медиаконтента отделу продаж и технадзору.")}
             </p>
           </div>
 
@@ -889,15 +877,13 @@ export function ConstructionMedia() {
           <div className="text-center mb-16">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold mb-3">
               <HelpCircle className="w-3.5 h-3.5 text-amber-500" />
-              <span>{isUk ? 'Питання та відповіді девелоперів' : 'Вопросы и ответы девелоперов'}</span>
+              <span>{l("Питання та відповіді девелоперів", "Вопросы и ответы девелоперов")}</span>
             </div>
             <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-4">
-              {isUk ? 'Часті технічні запитання' : 'Часто задаваемые технические вопросы'}
+              {l("Часті технічні запитання", "Часто задаваемые технические вопросы")}
             </h2>
             <p className="text-xs sm:text-sm text-slate-600">
-              {isUk
-                ? 'Все, що потрібно знати головному інженеру, маркетологу та керівнику проєкту перед початком робіт.'
-                : 'Все, что нужно знать главному инженеру, маркетологу и руководителю проекта перед началом работ.'}
+              {l("Все, що потрібно знати головному інженеру, маркетологу та керівнику проєкту перед початком робіт.", "Все, что нужно знать главному инженеру, маркетологу и руководителю проекта перед началом работ.")}
             </p>
           </div>
 
@@ -935,29 +921,27 @@ export function ConstructionMedia() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold mb-4 border border-amber-500/30">
             <Award className="w-3.5 h-3.5" />
-            <span>{isUk ? 'Пілотний виїзд на об\'єкт' : 'Пилотный выезд на объект'}</span>
+            <span>{l("Пілотний виїзд на об'єкт", "Пилотный выезд на объект")}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-4">
-            {isUk ? 'Бажаєте протестувати ракурси на вашому об\'єкті?' : 'Хотите протестировать ракурсы на вашем объекте?'}
+            {l("Бажаєте протестувати ракурси на вашому об'єкті?", "Хотите протестировать ракурсы на вашем объекте?")}
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 max-w-2xl mx-auto mb-8 leading-relaxed">
-            {isUk
-              ? 'Ми проведемо попередній тестовий обліт будівельного майданчика дроном, визначимо висотні видові точки та підготуємо презентаційну схему розстановки камер таймлапсу.'
-              : 'Мы проведем предварительный тестовый облет строительной площадки дроном, определим высотные видовые точки и подготовим презентационную схему расстановки камер таймлапса.'}
+            {l("Ми проведемо попередній тестовий обліт будівельного майданчика дроном, визначимо висотні видові точки та підготуємо презентаційну схему розстановки камер таймлапсу.", "Мы проведем предварительный тестовый облет строительной площадки дроном, определим высотные видовые точки и подготовим презентационную схему расстановки камер таймлапса.")}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
               href="#calculator"
               className="inline-flex items-center space-x-2 px-7 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20 transition-all transform active:scale-95"
             >
-              <span>{isUk ? 'Замовити виїзд інженера' : 'Заказать выезд инженера'}</span>
+              <span>{l("Замовити виїзд інженера", "Заказать выезд инженера")}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
             <a
               href={`tel:${settings.phone || '+380675661152'}`}
               className="inline-flex items-center space-x-2 px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 text-xs font-semibold transition-colors"
             >
-              <span>{isUk ? 'Зателефонувати засновнику:' : 'Позвонить основателю:'} {settings.phone || '+380 (67) 566-11-52'}</span>
+              <span>{l("Зателефонувати засновнику:", "Позвонить основателю:")} {settings.phone || '+380 (67) 566-11-52'}</span>
             </a>
           </div>
         </div>

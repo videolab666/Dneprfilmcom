@@ -29,7 +29,7 @@ import { usePageCopyContent } from '../hooks/usePageCopyContent';
 type CategoryFilter = 'all' | 'interior' | 'food' | 'kids' | 'wedding' | 'corporate';
 
 export function PhotoProduction() {
-  const { isUk } = useSiteContent();
+  const { isUk, l } = useSiteContent();
   const { content: pageContent, localize } = usePageCmsContent();
   const { content: copyContent, byId: copyById } = usePageCopyContent();
   const photoHero = copyById(copyContent.photo.hero, 'photo-hero')?.text;
@@ -99,7 +99,7 @@ export function PhotoProduction() {
   const handleSubmitLead = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.phone.trim()) {
-      setErrorMsg(isUk ? 'Будь ласка, вкажіть ім\'я та телефон для зв\'язку' : 'Пожалуйста, укажите имя и телефон для связи');
+      setErrorMsg(l("Будь ласка, вкажіть ім'я та телефон для зв'язку", "Пожалуйста, укажите имя и телефон для связи"));
       return;
     }
 
@@ -132,9 +132,7 @@ export function PhotoProduction() {
       });
     } catch (err) {
       console.error('Error saving photography lead:', err);
-      setErrorMsg(isUk 
-        ? 'Сталася помилка під час надсилання заявки. Спробуйте ще раз або зв\'яжіться телефоном.' 
-        : 'Произошла ошибка при отправке заявки. Пожалуйста, попробуйте еще раз или свяжитесь по телефону.'
+      setErrorMsg(l("Сталася помилка під час надсилання заявки. Спробуйте ще раз або зв'яжіться телефоном.", "Произошла ошибка при отправке заявки. Пожалуйста, попробуйте еще раз или свяжитесь по телефону.")
       );
     } finally {
       setIsSubmitting(false);
@@ -162,12 +160,12 @@ export function PhotoProduction() {
   };
 
   const categoriesConfig: { id: CategoryFilter; label: string; icon: React.ReactNode; count: number }[] = [
-    { id: 'all', label: isUk ? 'Усі роботи' : 'Все работы', icon: <Camera className="w-4 h-4" />, count: allPhotos.length },
-    { id: 'interior', label: isUk ? 'Інтер\'єри & Архітектура' : 'Интерьеры & Архитектура', icon: <Home className="w-4 h-4" />, count: allPhotos.filter(p => p.category === 'interior').length },
-    { id: 'food', label: isUk ? 'Фуд-зйомка & Меню' : 'Фуд-съемка & Меню', icon: <UtensilsCrossed className="w-4 h-4" />, count: allPhotos.filter(p => p.category === 'food').length },
-    { id: 'kids', label: isUk ? 'Дитячі свята' : 'Детские праздники', icon: <PartyPopper className="w-4 h-4" />, count: allPhotos.filter(p => p.category === 'kids').length },
-    { id: 'wedding', label: isUk ? 'Весілля & Love Story' : 'Свадьбы & Love Story', icon: <Heart className="w-4 h-4" />, count: allPhotos.filter(p => p.category === 'wedding').length },
-    { id: 'corporate', label: isUk ? 'Бізнес & Репортаж' : 'Бизнес & Репортаж', icon: <Briefcase className="w-4 h-4" />, count: allPhotos.filter(p => p.category === 'corporate').length },
+    { id: 'all', label: l("Усі роботи", "Все работы"), icon: <Camera className="w-4 h-4" />, count: allPhotos.length },
+    { id: 'interior', label: l("Інтер'єри & Архітектура", "Интерьеры & Архитектура"), icon: <Home className="w-4 h-4" />, count: allPhotos.filter(p => p.category === 'interior').length },
+    { id: 'food', label: l("Фуд-зйомка & Меню", "Фуд-съемка & Меню"), icon: <UtensilsCrossed className="w-4 h-4" />, count: allPhotos.filter(p => p.category === 'food').length },
+    { id: 'kids', label: l("Дитячі свята", "Детские праздники"), icon: <PartyPopper className="w-4 h-4" />, count: allPhotos.filter(p => p.category === 'kids').length },
+    { id: 'wedding', label: l("Весілля & Love Story", "Свадьбы & Love Story"), icon: <Heart className="w-4 h-4" />, count: allPhotos.filter(p => p.category === 'wedding').length },
+    { id: 'corporate', label: l("Бізнес & Репортаж", "Бизнес & Репортаж"), icon: <Briefcase className="w-4 h-4" />, count: allPhotos.filter(p => p.category === 'corporate').length },
   ];
 
   const currentPhoto = selectedPhotoIndex !== null ? filteredPhotos[selectedPhotoIndex] : null;
@@ -198,19 +196,19 @@ export function PhotoProduction() {
             <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-800">
               <div className="flex items-center space-x-2.5">
                 <Clock className="w-5 h-5 text-indigo-400 shrink-0" />
-                <span className="text-xs sm:text-sm font-medium text-slate-300">{isUk ? 'Прев\'ю за 48 годин' : 'Превью за 48 часов'}</span>
+                <span className="text-xs sm:text-sm font-medium text-slate-300">{l("Прев'ю за 48 годин", "Превью за 48 часов")}</span>
               </div>
               <div className="flex items-center space-x-2.5">
                 <Sparkles className="w-5 h-5 text-indigo-400 shrink-0" />
-                <span className="text-xs sm:text-sm font-medium text-slate-300">{isUk ? 'Sony G-Master & Світло' : 'Sony G-Master & Свет'}</span>
+                <span className="text-xs sm:text-sm font-medium text-slate-300">{l("Sony G-Master & Світло", "Sony G-Master & Свет")}</span>
               </div>
               <div className="flex items-center space-x-2.5">
                 <ShieldCheck className="w-5 h-5 text-indigo-400 shrink-0" />
-                <span className="text-xs sm:text-sm font-medium text-slate-300">{isUk ? 'Чітка геометрія стін' : 'Четкая геометрия стен'}</span>
+                <span className="text-xs sm:text-sm font-medium text-slate-300">{l("Чітка геометрія стін", "Четкая геометрия стен")}</span>
               </div>
               <div className="flex items-center space-x-2.5">
                 <Layers className="w-5 h-5 text-indigo-400 shrink-0" />
-                <span className="text-xs sm:text-sm font-medium text-slate-300">{isUk ? 'КОМБО: Відео + Фото' : 'КОМБО: Видео + Фото'}</span>
+                <span className="text-xs sm:text-sm font-medium text-slate-300">{l("КОМБО: Відео + Фото", "КОМБО: Видео + Фото")}</span>
               </div>
             </div>
 
@@ -315,7 +313,7 @@ export function PhotoProduction() {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                  <span>{photo.location || photo.client || (isUk ? 'Авторська зйомка' : 'Авторская съемка')}</span>
+                  <span>{photo.location || photo.client || (l("Авторська зйомка", "Авторская съемка"))}</span>
                   {photo.specs && (
                     <span className="font-mono text-[11px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
                       {photo.specs}
@@ -339,7 +337,7 @@ export function PhotoProduction() {
           <button
             onClick={() => setSelectedPhotoIndex(null)}
             className="absolute top-6 right-6 z-50 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-            title={isUk ? 'Закрити (ESC)' : 'Закрыть (ESC)'}
+            title={l("Закрити (ESC)", "Закрыть (ESC)")}
           >
             <X className="w-6 h-6" />
           </button>
@@ -351,7 +349,7 @@ export function PhotoProduction() {
               setSelectedPhotoIndex((prev) => (prev !== null ? (prev - 1 + filteredPhotos.length) % filteredPhotos.length : 0));
             }}
             className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-            title={isUk ? 'Попереднє фото' : 'Предыдущее фото'}
+            title={l("Попереднє фото", "Предыдущее фото")}
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -362,7 +360,7 @@ export function PhotoProduction() {
               setSelectedPhotoIndex((prev) => (prev !== null ? (prev + 1) % filteredPhotos.length : 0));
             }}
             className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-            title={isUk ? 'Наступне фото' : 'Следующее фото'}
+            title={l("Наступне фото", "Следующее фото")}
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -402,7 +400,7 @@ export function PhotoProduction() {
                   }}
                   className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
                 >
-                  {isUk ? 'Замовити таку зйомку' : 'Заказать такую съемку'}
+                  {l("Замовити таку зйомку", "Заказать такую съемку")}
                 </button>
               </div>
             </div>
@@ -416,10 +414,10 @@ export function PhotoProduction() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-wider text-indigo-600 uppercase">
-              {isUk ? 'Стандарти зйомки' : 'Стандарты съемки'}
+              {l("Стандарти зйомки", "Стандарты съемки")}
             </span>
             <h2 className="text-3xl font-extrabold text-slate-900 mt-2">
-              {isUk ? 'Чому клієнти довіряють свої проекти та події' : 'Почему клиенты доверяют свои проекты и события'}
+              {l("Чому клієнти довіряють свої проекти та події", "Почему клиенты доверяют свои проекты и события")}
             </h2>
           </div>
 
@@ -429,17 +427,15 @@ export function PhotoProduction() {
                 <Home className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-bold text-slate-900">
-                {isUk ? 'Інтер\'єр & Архітектура' : 'Интерьер & Архитектура'}
+                {l("Інтер'єр & Архітектура", "Интерьер & Архитектура")}
               </h3>
               <p className="text-slate-600 text-sm leading-relaxed">
-                {isUk 
-                  ? 'Спеціалізована ширококутна оптика без дисторсії («риб\'ячого ока»). Вирівнювання всіх вертикалей, зшивка кількох експозицій (HDR) для ідеального промальовування виду з панорамних вікон та текстур оздоблення.'
-                  : 'Специализированная широкоугольная оптика без дисторсии («рыбьего глаза»). Выравнивание всех вертикалей, сшивка нескольких экспозиций (HDR) для идеальной прорисовки вида из панорамных окон и текстур отделки.'
+                {l("Спеціалізована ширококутна оптика без дисторсії («риб'ячого ока»). Вирівнювання всіх вертикалей, зшивка кількох експозицій (HDR) для ідеального промальовування виду з панорамних вікон та текстур оздоблення.", "Специализированная широкоугольная оптика без дисторсии («рыбьего глаза»). Выравнивание всех вертикалей, сшивка нескольких экспозиций (HDR) для идеальной прорисовки вида из панорамных окон и текстур отделки.")
                 }
               </p>
               <ul className="text-xs text-slate-500 space-y-2 pt-2 border-t border-slate-200">
-                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {isUk ? 'Готово для каталогів та Booking / Airbnb' : 'Готово для каталогов и Booking / Airbnb'}</li>
-                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {isUk ? 'Точна передача кольорів дизайнерських матеріалів' : 'Точная цветопередача дизайнерских материалов'}</li>
+                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {l("Готово для каталогів та Booking / Airbnb", "Готово для каталогов и Booking / Airbnb")}</li>
+                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {l("Точна передача кольорів дизайнерських матеріалів", "Точная цветопередача дизайнерских материалов")}</li>
               </ul>
             </div>
 
@@ -448,17 +444,15 @@ export function PhotoProduction() {
                 <UtensilsCrossed className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-bold text-slate-900">
-                {isUk ? 'Фуд-зйомка & Ресторани' : 'Фуд-съемка & Рестораны'}
+                {l("Фуд-зйомка & Ресторани", "Фуд-съемка & Рестораны")}
               </h3>
               <p className="text-slate-600 text-sm leading-relaxed">
-                {isUk
-                  ? 'Привозимо виїзне імпульсне світло та модифікатори прямо на кухню ресторану. Зйомка в моменті подачі шеф-кухаря, макродеталізація, підкреслення соковитості м\'яса, хрусткої скоринки та свіжості інгредієнтів.'
-                  : 'Привозим выездной импульсный свет и модификаторы прямо на кухню ресторана. Съемка в моменте подачи шеф-повара, макродетализация, подчеркивание сочности мяса, хрустящей корочки и свежести ингредиентов.'
+                {l("Привозимо виїзне імпульсне світло та модифікатори прямо на кухню ресторану. Зйомка в моменті подачі шеф-кухаря, макродеталізація, підкреслення соковитості м'яса, хрусткої скоринки та свіжості інгредієнтів.", "Привозим выездной импульсный свет и модификаторы прямо на кухню ресторана. Съемка в моменте подачи шеф-повара, макродетализация, подчеркивание сочности мяса, хрустящей корочки и свежести ингредиентов.")
                 }
               </p>
               <ul className="text-xs text-slate-500 space-y-2 pt-2 border-t border-slate-200">
-                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {isUk ? 'Формати під друковане меню, сайт та служби доставки' : 'Форматы под печатное меню, сайт и службы доставки'}</li>
-                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {isUk ? 'Робота без зупинки роботи закладу' : 'Работа без остановки работы заведения'}</li>
+                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {l("Формати під друковане меню, сайт та служби доставки", "Форматы под печатное меню, сайт и службы доставки")}</li>
+                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {l("Робота без зупинки роботи закладу", "Работа без остановки работы заведения")}</li>
               </ul>
             </div>
 
@@ -467,17 +461,15 @@ export function PhotoProduction() {
                 <Heart className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-bold text-slate-900">
-                {isUk ? 'Події, Діти & Весілля' : 'События, Дети & Свадьбы'}
+                {l("Події, Діти & Весілля", "События, Дети & Свадьбы")}
               </h3>
               <p className="text-slate-600 text-sm leading-relaxed">
-                {isUk
-                  ? 'Жодної дерев\'яної скутості перед камерою. Репортажна легкість, вловлювання щирих непостановочних дитячих посмішок, зворушливих поглядів та святкового драйву. Авторський благородний колір без отруйних фільтрів.'
-                  : 'Никакой деревянной скованности перед камерой. Репортажная легкость, поимка искренних непостановочных детских улыбок, трогательных взглядов и праздничного драйва. Авторский благородный цвет без ядовитых фильтров.'
+                {l("Жодної дерев'яної скутості перед камерою. Репортажна легкість, вловлювання щирих непостановочних дитячих посмішок, зворушливих поглядів та святкового драйву. Авторський благородний колір без отруйних фільтрів.", "Никакой деревянной скованности перед камерой. Репортажная легкость, поимка искренних непостановочных детских улыбок, трогательных взглядов и праздничного драйва. Авторский благородный цвет без ядовитых фильтров.")
                 }
               </p>
               <ul className="text-xs text-slate-500 space-y-2 pt-2 border-t border-slate-200">
-                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {isUk ? 'Експрес-анонс серії фото за перші 24-48 годин' : 'Экспресс-анонс серии фото за первые 24-48 часов'}</li>
-                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {isUk ? 'Зручна фірмова онлайн-галерея для гостей' : 'Удобная фирменная онлайн-галерея для гостей'}</li>
+                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {l("Експрес-анонс серії фото за перші 24-48 годин", "Экспресс-анонс серии фото за первые 24-48 часов")}</li>
+                <li className="flex items-center"><CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2 shrink-0" /> {l("Зручна фірмова онлайн-галерея для гостей", "Удобная фирменная онлайн-галерея для гостей")}</li>
               </ul>
             </div>
           </div>
@@ -489,15 +481,13 @@ export function PhotoProduction() {
       <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-xs font-bold tracking-wider text-indigo-600 uppercase">
-            {isUk ? 'Тарифи та умови' : 'Тарифы и условия'}
+            {l("Тарифи та умови", "Тарифы и условия")}
           </span>
           <h2 className="text-3xl font-extrabold text-slate-900 mt-2">
-            {isUk ? 'Прозорі пакети без прихованих доплат' : 'Прозрачные пакеты без скрытых доплат'}
+            {l("Прозорі пакети без прихованих доплат", "Прозрачные пакеты без скрытых доплат")}
           </h2>
           <p className="mt-3 text-slate-600 text-base">
-            {isUk
-              ? 'У кожен пакет уже включено виїзд з усім комплектом техніки, базову кольорокорекцію всіх кадрів та передачу матеріалу через зручну онлайн-галерею.'
-              : 'В каждый пакет уже включены выезд со всем комплектом техники, базовая цветокоррекция всех кадров и отдача материала через удобную онлайн-галерею.'
+            {l("У кожен пакет уже включено виїзд з усім комплектом техніки, базову кольорокорекцію всіх кадрів та передачу матеріалу через зручну онлайн-галерею.", "В каждый пакет уже включены выезд со всем комплектом техники, базовая цветокоррекция всех кадров и отдача материала через удобную онлайн-галерею.")
             }
           </p>
         </div>
@@ -514,7 +504,7 @@ export function PhotoProduction() {
             >
               {pkg.highlight && (
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider shadow">
-                  {isUk ? 'Супер-вигода' : 'Супер-выгода'}
+                  {l("Супер-вигода", "Супер-выгода")}
                 </div>
               )}
 
@@ -567,7 +557,7 @@ export function PhotoProduction() {
                     : 'bg-slate-900 hover:bg-indigo-600 text-white'
                 }`}
               >
-                {isUk ? 'Обрати цей пакет' : 'Выбрать этот пакет'}
+                {l("Обрати цей пакет", "Выбрать этот пакет")}
               </button>
             </div>
           ))}
@@ -580,15 +570,13 @@ export function PhotoProduction() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-10">
             <span className="text-xs font-bold tracking-wider text-indigo-400 uppercase">
-              {isUk ? 'Бронювання дати & Консультація' : 'Бронирование даты & Консультация'}
+              {l("Бронювання дати & Консультація", "Бронирование даты & Консультация")}
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-2">
-              {isUk ? 'Обговорити вашу фотосесію або комбо-зйомку' : 'Обсудить вашу фотосессию или комбо-съемку'}
+              {l("Обговорити вашу фотосесію або комбо-зйомку", "Обсудить вашу фотосессию или комбо-съемку")}
             </h2>
             <p className="mt-3 text-slate-400 text-sm max-w-xl mx-auto">
-              {isUk
-                ? 'Залиште контакти та деталі зйомки. Олександр Пітель зв\'яжеться з вами протягом 15-30 хвилин для узгодження дати, таймінгу та точного кошторису.'
-                : 'Оставьте контакты и детали съемки. Александр Питель свяжется с вами в течение 15-30 минут для согласования даты, тайминга и точной сметы.'
+              {l("Залиште контакти та деталі зйомки. Олександр Пітель зв'яжеться з вами протягом 15-30 хвилин для узгодження дати, таймінгу та точного кошторису.", "Оставьте контакты и детали съемки. Александр Питель свяжется с вами в течение 15-30 минут для согласования даты, тайминга и точной сметы.")
               }
             </p>
           </div>
@@ -599,18 +587,16 @@ export function PhotoProduction() {
                 <div className="w-16 h-16 bg-emerald-500/20 border border-emerald-500/40 rounded-full text-emerald-400 flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h3 className="text-2xl font-bold text-white">{isUk ? 'Заявку успішно надіслано!' : 'Заявка успешно отправлена!'}</h3>
+                <h3 className="text-2xl font-bold text-white">{l("Заявку успішно надіслано!", "Заявка успешно отправлена!")}</h3>
                 <p className="text-slate-300 text-sm max-w-md mx-auto">
-                  {isUk
-                    ? 'Дякуємо! Ми вже отримали вашу заявку на фотозйомку та зв\'яжемося з вами найближчим часом для підтвердження деталей.'
-                    : 'Спасибо! Мы уже получили вашу заявку на фотосъемку и свяжемся с вами в ближайшее время для подтверждения деталей.'
+                  {l("Дякуємо! Ми вже отримали вашу заявку на фотозйомку та зв'яжемося з вами найближчим часом для підтвердження деталей.", "Спасибо! Мы уже получили вашу заявку на фотосъемку и свяжемся с вами в ближайшее время для подтверждения деталей.")
                   }
                 </p>
                 <button
                   onClick={() => setIsSubmitted(false)}
                   className="mt-6 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
                 >
-                  {isUk ? 'Надіслати ще одну заявку' : 'Отправить еще одну заявку'}
+                  {l("Надіслати ще одну заявку", "Отправить еще одну заявку")}
                 </button>
               </div>
             ) : (
@@ -624,12 +610,12 @@ export function PhotoProduction() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-2">
-                      {isUk ? 'Ваше ім\'я' : 'Ваше имя'} <span className="text-indigo-400">*</span>
+                      {l("Ваше ім'я", "Ваше имя")} <span className="text-indigo-400">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder={isUk ? 'Олександр або назва компанії' : 'Александр или название компании'}
+                      placeholder={l("Олександр або назва компанії", "Александр или название компании")}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
@@ -638,7 +624,7 @@ export function PhotoProduction() {
 
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-2">
-                      {isUk ? 'Телефон для зв\'язку' : 'Телефон для связи'} <span className="text-indigo-400">*</span>
+                      {l("Телефон для зв'язку", "Телефон для связи")} <span className="text-indigo-400">*</span>
                     </label>
                     <input
                       type="tel"
@@ -654,11 +640,11 @@ export function PhotoProduction() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-2">
-                      {isUk ? 'Telegram / Email (опціонально)' : 'Telegram / Email (опционально)'}
+                      {l("Telegram / Email (опціонально)", "Telegram / Email (опционально)")}
                     </label>
                     <input
                       type="text"
-                      placeholder={isUk ? '@username або пошта' : '@username или почта'}
+                      placeholder={l("@username або пошта", "@username или почта")}
                       value={formData.emailOrTelegram}
                       onChange={(e) => setFormData({ ...formData, emailOrTelegram: e.target.value })}
                       className="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
@@ -667,19 +653,19 @@ export function PhotoProduction() {
 
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-2">
-                      {isUk ? 'Напрямок зйомки' : 'Направление съемки'}
+                      {l("Напрямок зйомки", "Направление съемки")}
                     </label>
                     <select
                       value={formData.photoType}
                       onChange={(e) => setFormData({ ...formData, photoType: e.target.value })}
                       className="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
                     >
-                      <option value="interior">{isUk ? 'Інтер\'єри & Нерухомість' : 'Интерьеры & Недвижимость'}</option>
-                      <option value="food">{isUk ? 'Фуд-зйомка & Ресторанне меню' : 'Фуд-съемка & Ресторанное меню'}</option>
-                      <option value="kids">{isUk ? 'Дитяче свято / Сімейна подія' : 'Детский праздник / Семейное событие'}</option>
-                      <option value="wedding">{isUk ? 'Весільна зйомка / Love Story' : 'Свадебная съемка / Love Story'}</option>
-                      <option value="corporate">{isUk ? 'Бізнес-портрет / Репортаж форуму' : 'Бизнес-портрет / Репортаж форума'}</option>
-                      <option value="combo">{isUk ? 'КОМБО: Відео + Фотозйомка' : 'КОМБО: Видео + Фотосъемка'}</option>
+                      <option value="interior">{l("Інтер'єри & Нерухомість", "Интерьеры & Недвижимость")}</option>
+                      <option value="food">{l("Фуд-зйомка & Ресторанне меню", "Фуд-съемка & Ресторанное меню")}</option>
+                      <option value="kids">{l("Дитяче свято / Сімейна подія", "Детский праздник / Семейное событие")}</option>
+                      <option value="wedding">{l("Весільна зйомка / Love Story", "Свадебная съемка / Love Story")}</option>
+                      <option value="corporate">{l("Бізнес-портрет / Репортаж форуму", "Бизнес-портрет / Репортаж форума")}</option>
+                      <option value="combo">{l("КОМБО: Відео + Фотозйомка", "КОМБО: Видео + Фотосъемка")}</option>
                     </select>
                   </div>
                 </div>
@@ -687,7 +673,7 @@ export function PhotoProduction() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-2">
-                      {isUk ? 'Бажана дата зйомки' : 'Желаемая дата съемки'}
+                      {l("Бажана дата зйомки", "Желаемая дата съемки")}
                     </label>
                     <div className="relative">
                       <input
@@ -701,11 +687,11 @@ export function PhotoProduction() {
 
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-2">
-                      {isUk ? 'Місто / Локація об\'єкта' : 'Город / Локация объекта'}
+                      {l("Місто / Локація об'єкта", "Город / Локация объекта")}
                     </label>
                     <input
                       type="text"
-                      placeholder={isUk ? 'м. Дніпро, ресторан / ЖК / студія' : 'г. Днепр, ресторан / ЖК / студия'}
+                      placeholder={l("м. Дніпро, ресторан / ЖК / студія", "г. Днепр, ресторан / ЖК / студия")}
                       value={formData.locationDetails}
                       onChange={(e) => setFormData({ ...formData, locationDetails: e.target.value })}
                       className="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
@@ -715,11 +701,11 @@ export function PhotoProduction() {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-2">
-                    {isUk ? 'Побажання або технічне завдання (ТЗ)' : 'Пожелания или техническое задание (ТЗ)'}
+                    {l("Побажання або технічне завдання (ТЗ)", "Пожелания или техническое задание (ТЗ)")}
                   </label>
                   <textarea
                     rows={3}
-                    placeholder={isUk ? 'Наприклад: потрібно відзняти 15 страв нового меню, або 3-кімнатну квартиру на продаж...' : 'Например: нужно отснять 15 блюд нового меню, либо 3-комнатную квартиру на продажу...'}
+                    placeholder={l("Наприклад: потрібно відзняти 15 страв нового меню, або 3-кімнатну квартиру на продаж...", "Например: нужно отснять 15 блюд нового меню, либо 3-комнатную квартиру на продажу...")}
                     value={formData.comment}
                     onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
                     className="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
@@ -732,11 +718,11 @@ export function PhotoProduction() {
                   className="w-full py-4 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2"
                 >
                   {isSubmitting ? (
-                    <span>{isUk ? 'Надсилання заявки...' : 'Отправка заявки...'}</span>
+                    <span>{l("Надсилання заявки...", "Отправка заявки...")}</span>
                   ) : (
                     <>
                       <Send className="w-4 h-4" />
-                      <span>{isUk ? 'Забронювати зйомку / Отримати кошторис' : 'Забронировать съемку / Получить смету'}</span>
+                      <span>{l("Забронювати зйомку / Отримати кошторис", "Забронировать съемку / Получить смету")}</span>
                     </>
                   )}
                 </button>

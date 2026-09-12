@@ -8,7 +8,7 @@ import { DEFAULT_BACKSTAGE_ITEMS } from '../../data/cmsSeeds';
 
 export function BackstageGallery() {
   const [items, setItems] = useState<BackstageItem[]>(DEFAULT_BACKSTAGE_ITEMS);
-  const { isUk, getLocalizedBackstageItem } = useSiteContent();
+  const { isUk, getLocalizedBackstageItem, l } = useSiteContent();
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -34,15 +34,13 @@ export function BackstageGallery() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-4 border border-slate-700">
             <Radio className="w-4 h-4" />
-            <span>{isUk ? 'Інженерна виворітка ефіру' : 'Инженерная изнанка эфира'}</span>
+            <span>{l("Інженерна виворітка ефіру", "Инженерная изнанка эфира")}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
-            {isUk ? 'За лаштунками проєктів' : 'За кулисами проектов'}
+            {l("За лаштунками проєктів", "За кулисами проектов")}
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
-            {isUk
-              ? 'Реальна технічна кухня наших зйомок: ПТС, комутація, системи зв’язку та робота операторів.'
-              : 'Реальная техническая кухня наших съемок: ПТС, коммутация, системы связи и работа операторов.'}
+            {l("Реальна технічна кухня наших зйомок: ПТС, комутація, системи зв’язку та робота операторів.", "Реальная техническая кухня наших съемок: ПТС, коммутация, системы связи и работа операторов.")}
           </p>
         </div>
 

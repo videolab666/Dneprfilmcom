@@ -33,7 +33,7 @@ import { usePageCmsContent } from '../hooks/usePageCmsContent';
 import { usePageCopyContent } from '../hooks/usePageCopyContent';
 
 export function VideoProduction() {
-  const { isUk } = useSiteContent();
+  const { isUk, l, legacy } = useSiteContent();
   const { content: pageContent, localize } = usePageCmsContent();
   const { content: copyContent, localize: localizeCopy, byId: copyById } = usePageCopyContent();
   const videoHero = copyById(copyContent.video.hero, 'video-hero')?.text;
@@ -122,8 +122,8 @@ export function VideoProduction() {
         name: clientName,
         phone: clientPhone,
         email: clientEmail || '',
-        service: isUk ? 'Відеопродакшн' : 'Видеопродакшн',
-        eventType: `${isUk ? 'Відео' : 'Видео'}: ${videoType}, ${isUk ? 'хронометраж' : 'хронометраж'}: ${duration}`,
+        service: l("Відеопродакшн", "Видеопродакшн"),
+        eventType: `${l("Відео", "Видео")}: ${videoType}, ${l("хронометраж", "хронометраж")}: ${duration}`,
         calculatedCost: calculateEstimate(),
         calculatorDetails: {
           videoType,
@@ -134,20 +134,20 @@ export function VideoProduction() {
           needVoiceover,
           needGraphics3D
         },
-        message: clientNote || (isUk ? 'Заявка на розрахунок відеоролика' : 'Заявка на расчет видеоролика'),
+        message: clientNote || (l("Заявка на розрахунок відеоролика", "Заявка на расчет видеоролика")),
         status: 'new',
         createdAt: Date.now()
       });
       setSubmitted(true);
     } catch (err) {
       console.error('Error submitting brief:', err);
-      alert(isUk ? 'Помилка під час надсилання заявки. Будь ласка, зв\'яжіться з нами напряму за телефоном.' : 'Ошибка при отправке заявки. Пожалуйста, свяжитесь с нами напрямую по телефону.');
+      alert(l("Помилка під час надсилання заявки. Будь ласка, зв'яжіться з нами напряму за телефоном.", "Ошибка при отправке заявки. Пожалуйста, свяжитесь с нами напрямую по телефону."));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const faqs = isUk ? [
+  const faqs = legacy([
     {
       q: 'Скільки часу займає виробництво рекламного або іміджевого ролика?',
       a: 'Стандартний цикл виробництва рекламного ролика або промо заводу займає від 10 до 20 робочих днів. За необхідності термінового продакшну до виставки або заходу ми можемо вкластися у 5–7 днів за рахунок виділення двох паралельних монтажних станцій.'
@@ -164,7 +164,7 @@ export function VideoProduction() {
       q: 'Як ролик адаптується під Instagram Reels, TikTok та YouTube?',
       a: 'Під час монтажу ми враховуємо вимоги всіх майданчиків. Ви отримуєте основний горизонтальний майстер 16:9 у 4K для сайту, ТБ і YouTube, а також оптимізовані вертикальні версії 9:16 з великим кадруванням та анімованими субтитрами для соцмереж.'
     }
-  ] : [
+  ], [
     {
       q: 'Сколько времени занимает производство рекламного или имиджевого ролика?',
       a: 'Стандартный цикл производства рекламного ролика или промо завода занимает от 10 до 20 рабочих дней. При необходимости срочного продакшна к выставке или мероприятию мы можем уложиться в 5–7 дней за счет выделения двух параллельных монтажных станций.'
@@ -181,7 +181,7 @@ export function VideoProduction() {
       q: 'Как ролик адаптируется под Instagram Reels, TikTok и YouTube?',
       a: 'При монтаже мы учитываем требования всех площадок. Вы получаете основной горизонтальный мастер 16:9 в 4K для сайта, ТВ и YouTube, а также оптимизированные вертикальные версии 9:16 с крупным кадрированием и анимированными субтитрами для соцсетей.'
     }
-  ];
+  ]);
 
   return (
     <div className="bg-white min-h-screen text-slate-900 selection:bg-indigo-600 selection:text-white">
@@ -242,19 +242,19 @@ export function VideoProduction() {
             <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4 pt-8 border-t border-slate-800/80">
               <div>
                 <div className="text-2xl sm:text-3xl font-black text-white">400+</div>
-                <div className="text-xs text-slate-400 mt-0.5">{isUk ? 'Знятих відеопроєктів' : 'Снятых видеопроектов'}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{l("Знятих відеопроєктів", "Снятых видеопроектов")}</div>
               </div>
               <div>
                 <div className="text-2xl sm:text-3xl font-black text-amber-400">4K 10-bit</div>
                 <div className="text-xs text-slate-400 mt-0.5">Sony Cinema Line</div>
               </div>
               <div>
-                <div className="text-2xl sm:text-3xl font-black text-indigo-400">10-20 {isUk ? 'дн.' : 'дн.'}</div>
-                <div className="text-xs text-slate-400 mt-0.5">{isUk ? 'Повний цикл під ключ' : 'Полный цикл под ключ'}</div>
+                <div className="text-2xl sm:text-3xl font-black text-indigo-400">10-20 {l("дн.", "дн.")}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{l("Повний цикл під ключ", "Полный цикл под ключ")}</div>
               </div>
               <div>
                 <div className="text-2xl sm:text-3xl font-black text-emerald-400">100%</div>
-                <div className="text-xs text-slate-400 mt-0.5">{isUk ? 'Дотримання дедлайну' : 'Соблюдение дедлайна'}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{l("Дотримання дедлайну", "Соблюдение дедлайна")}</div>
               </div>
             </div>
           </div>
@@ -331,7 +331,7 @@ export function VideoProduction() {
 
                     {/* Result */}
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-700">
-                      <span className="font-bold text-slate-900">{isUk ? 'Результат: ' : 'Результат: '}</span>
+                      <span className="font-bold text-slate-900">{l("Результат: ", "Результат: ")}</span>
                       {work.results}
                     </div>
                   </div>
@@ -348,7 +348,7 @@ export function VideoProduction() {
               className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 text-sm font-bold shadow-sm transition-colors"
             >
               <Play className="w-4 h-4 text-red-600 fill-red-600" />
-              <span>{isUk ? 'Дивитися всі відеоролики та шоу на YouTube каналі' : 'Смотреть все видеоролики и шоу на YouTube канале'}</span>
+              <span>{l("Дивитися всі відеоролики та шоу на YouTube каналі", "Смотреть все видеоролики и шоу на YouTube канале")}</span>
               <ExternalLink className="w-4 h-4 text-slate-400" />
             </a>
           </div>
@@ -360,15 +360,13 @@ export function VideoProduction() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold uppercase tracking-widest text-indigo-600 mb-2 block">
-              {isUk ? 'Прозорий процес' : 'Прозрачный процесс'}
+              {l("Прозорий процес", "Прозрачный процесс")}
             </span>
             <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mb-4">
-              {isUk ? 'Як ми створюємо ваше відео' : 'Как мы создаем ваше видео'}
+              {l("Як ми створюємо ваше відео", "Как мы создаем ваше видео")}
             </h2>
             <p className="text-sm sm:text-base text-slate-600">
-              {isUk
-                ? 'Чіткий покроковий процес виключає хаос, затримки та непередбачені витрати. Ви затверджуєте кожен етап до переходу до наступного.'
-                : 'Четкий пошаговый процесс исключает хаос, задержки и непредвиденные расходы. Вы утверждаете каждый этап до перехода к следующему.'
+              {l("Чіткий покроковий процес виключає хаос, затримки та непередбачені витрати. Ви затверджуєте кожен етап до переходу до наступного.", "Четкий пошаговый процесс исключает хаос, задержки и непредвиденные расходы. Вы утверждаете каждый этап до перехода к следующему.")
               }
             </p>
           </div>
@@ -403,15 +401,13 @@ export function VideoProduction() {
           <div className="text-center max-w-2xl mx-auto mb-16">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold mb-3 border border-indigo-500/30">
               <Sliders className="w-3.5 h-3.5" />
-              <span>{isUk ? 'Інтерактивний калькулятор' : 'Интерактивный калькулятор'}</span>
+              <span>{l("Інтерактивний калькулятор", "Интерактивный калькулятор")}</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">
-              {isUk ? 'Розрахуйте орієнтовний кошторис' : 'Рассчитайте ориентировочную смету'}
+              {l("Розрахуйте орієнтовний кошторис", "Рассчитайте ориентировочную смету")}
             </h2>
             <p className="text-slate-400 text-sm">
-              {isUk
-                ? 'Сконфігуруйте параметри проєкту, щоб отримати прозорий орієнтир вартості та надіслати завдання до нашого продакшну.'
-                : 'Сконфигурируйте параметры проекта, чтобы получить прозрачный ориентир стоимости и отправить задачу в наш продакшн.'
+              {l("Сконфігуруйте параметри проєкту, щоб отримати прозорий орієнтир вартості та надіслати завдання до нашого продакшну.", "Сконфигурируйте параметры проекта, чтобы получить прозрачный ориентир стоимости и отправить задачу в наш продакшн.")
               }
             </p>
           </div>
@@ -422,14 +418,14 @@ export function VideoProduction() {
               {/* Type of Video */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                  {isUk ? '1. Формат відеоролика' : '1. Формат видеоролика'}
+                  {l("1. Формат відеоролика", "1. Формат видеоролика")}
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {[
-                    { id: 'commercial', label: isUk ? 'Рекламний ролик' : 'Рекламный ролик' },
-                    { id: 'factory', label: isUk ? 'Промо заводу / цеху' : 'Промо завода / цеха' },
-                    { id: 'corporate', label: isUk ? 'Іміджевий фільм' : 'Имиджевый фильм' },
-                    { id: 'event', label: isUk ? 'Івент / Репортаж' : 'Ивент / Репортаж' }
+                    { id: 'commercial', label: l("Рекламний ролик", "Рекламный ролик") },
+                    { id: 'factory', label: l("Промо заводу / цеху", "Промо завода / цеха") },
+                    { id: 'corporate', label: l("Іміджевий фільм", "Имиджевый фильм") },
+                    { id: 'event', label: l("Івент / Репортаж", "Ивент / Репортаж") }
                   ].map((t) => (
                     <button
                       key={t.id}
@@ -450,14 +446,14 @@ export function VideoProduction() {
               {/* Duration */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                  {isUk ? '2. Орієнтовний хронометраж' : '2. Предполагаемый хронометраж'}
+                  {l("2. Орієнтовний хронометраж", "2. Предполагаемый хронометраж")}
                 </label>
                 <div className="grid grid-cols-4 gap-2.5">
                   {[
-                    { id: '30s', label: isUk ? '30 сек' : '30 сек', sub: isUk ? 'ТБ / Reels' : 'ТВ / Reels' },
-                    { id: '60s', label: isUk ? '60 сек' : '60 сек', sub: isUk ? 'Оптимум' : 'Оптимум' },
-                    { id: '2m', label: isUk ? '2 хв' : '2 мин', sub: isUk ? 'Презентація' : 'Презентация' },
-                    { id: '5m+', label: isUk ? '5+ хв' : '5+ мин', sub: isUk ? 'Фільм' : 'Фильм' }
+                    { id: '30s', label: l("30 сек", "30 сек"), sub: l("ТБ / Reels", "ТВ / Reels") },
+                    { id: '60s', label: l("60 сек", "60 сек"), sub: l("Оптимум", "Оптимум") },
+                    { id: '2m', label: l("2 хв", "2 мин"), sub: l("Презентація", "Презентация") },
+                    { id: '5m+', label: l("5+ хв", "5+ мин"), sub: l("Фільм", "Фильм") }
                   ].map((d) => (
                     <button
                       key={d.id}
@@ -479,32 +475,32 @@ export function VideoProduction() {
               {/* Additional Services Checklist */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                  {isUk ? '3. Необхідні опції продакшну' : '3. Необходимые опции продакшна'}
+                  {l("3. Необхідні опції продакшну", "3. Необходимые опции продакшна")}
                 </label>
                 <div className="space-y-2.5">
                   {[
                     {
-                      label: isUk ? 'Розробка сценарію та розкадрування (Storyboard)' : 'Разработка сценария и раскадровки (Storyboard)',
+                      label: l("Розробка сценарію та розкадрування (Storyboard)", "Разработка сценария и раскадровки (Storyboard)"),
                       checked: needScript,
                       toggle: () => setNeedScript(!needScript)
                     },
                     {
-                      label: isUk ? 'Кастинг акторів / професійні диктори в кадрі' : 'Кастинг актеров / профессиональные дикторы в кадре',
+                      label: l("Кастинг акторів / професійні диктори в кадрі", "Кастинг актеров / профессиональные дикторы в кадре"),
                       checked: needActors,
                       toggle: () => setNeedActors(!needActors)
                     },
                     {
-                      label: isUk ? 'Аерозйомка / FPV-дрон для динамічних прольотів' : 'Аэросъемка / FPV-дрон для динамичных пролетов',
+                      label: l("Аерозйомка / FPV-дрон для динамічних прольотів", "Аэросъемка / FPV-дрон для динамичных пролетов"),
                       checked: needDrone,
                       toggle: () => setNeedDrone(!needDrone)
                     },
                     {
-                      label: isUk ? 'Професійна дикторська озвучка в студії' : 'Профессиональная дикторская озвучка в студии',
+                      label: l("Професійна дикторська озвучка в студії", "Профессиональная дикторская озвучка в студии"),
                       checked: needVoiceover,
                       toggle: () => setNeedVoiceover(!needVoiceover)
                     },
                     {
-                      label: isUk ? '3D-моделювання та моушн-дизайн (Motion Graphics)' : '3D-моделирование и Motion Graphics графика',
+                      label: l("3D-моделювання та моушн-дизайн (Motion Graphics)", "3D-моделирование и Motion Graphics графика"),
                       checked: needGraphics3D,
                       toggle: () => setNeedGraphics3D(!needGraphics3D)
                     }
@@ -535,14 +531,14 @@ export function VideoProduction() {
               <div className="flex items-center justify-between pb-6 border-b border-slate-700">
                 <div>
                   <div className="text-xs font-semibold text-indigo-400">
-                    {isUk ? 'Орієнтовний бюджет' : 'Ориентировочный бюджет'}
+                    {l("Орієнтовний бюджет", "Ориентировочный бюджет")}
                   </div>
                   <div className="text-3xl font-black text-white mt-1">
-                    {isUk ? 'від' : 'от'} {calculateEstimate().toLocaleString()} {isUk ? 'грн' : 'грн'}
+                    {l("від", "от")} {calculateEstimate().toLocaleString()} {l("грн", "грн")}
                   </div>
                 </div>
                 <div className="text-right text-[11px] text-slate-400">
-                  {isUk ? <>Фіксований кошторис<br />після брифу</> : <>Фиксированная смета<br />после брифа</>}
+                  {l("Фіксований кошторис після брифу", "Фиксированная смета после брифа", "Fixed estimate after the brief")}
                 </div>
               </div>
 
@@ -552,40 +548,38 @@ export function VideoProduction() {
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
                   <h3 className="text-base font-bold text-white">
-                    {isUk ? 'Заявку прийнято в роботу!' : 'Заявка принята в работу!'}
+                    {l("Заявку прийнято в роботу!", "Заявка принята в работу!")}
                   </h3>
                   <p className="text-xs text-slate-300 max-w-xs mx-auto">
-                    {isUk
-                      ? 'Олександр Пітель зв\'яжеться з вами протягом 15 хвилин для уточнення деталей та погодження концепції.'
-                      : 'Александр Питель свяжется с вами в течение 15 минут для уточнения деталей и согласования концепции.'
+                    {l("Олександр Пітель зв'яжеться з вами протягом 15 хвилин для уточнення деталей та погодження концепції.", "Александр Питель свяжется с вами в течение 15 минут для уточнения деталей и согласования концепции.")
                     }
                   </p>
                   <button
                     onClick={() => setSubmitted(false)}
                     className="text-xs text-indigo-400 underline pt-2"
                   >
-                    {isUk ? 'Надіслати ще одну заявку' : 'Отправить еще одну заявку'}
+                    {l("Надіслати ще одну заявку", "Отправить еще одну заявку")}
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmitBrief} className="mt-6 space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      {isUk ? 'Ваше ім\'я / Компанія *' : 'Ваше имя / Компания *'}
+                      {l("Ваше ім'я / Компанія *", "Ваше имя / Компания *")}
                     </label>
                     <input
                       type="text"
                       required
                       value={clientName}
                       onChange={(e) => setClientName(e.target.value)}
-                      placeholder={isUk ? 'Іван, Фабрика дверей' : 'Иван, Фабрика дверей'}
+                      placeholder={l("Іван, Фабрика дверей", "Иван, Фабрика дверей")}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-indigo-500"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      {isUk ? 'Телефон / Месенджер (Telegram, WhatsApp) *' : 'Телефон / Мессенджер (Telegram, WhatsApp) *'}
+                      {l("Телефон / Месенджер (Telegram, WhatsApp) *", "Телефон / Мессенджер (Telegram, WhatsApp) *")}
                     </label>
                     <input
                       type="tel"
@@ -599,7 +593,7 @@ export function VideoProduction() {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      {isUk ? 'Email для надсилання КП та кошторису' : 'Email для отправки КП и сметы'}
+                      {l("Email для надсилання КП та кошторису", "Email для отправки КП и сметы")}
                     </label>
                     <input
                       type="email"
@@ -612,13 +606,13 @@ export function VideoProduction() {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      {isUk ? 'Короткий опис завдання або посилання на референс' : 'Краткое описание задачи или ссылка на референс'}
+                      {l("Короткий опис завдання або посилання на референс", "Краткое описание задачи или ссылка на референс")}
                     </label>
                     <textarea
                       rows={2}
                       value={clientNote}
                       onChange={(e) => setClientNote(e.target.value)}
-                      placeholder={isUk ? 'Потрібен промо-ролик заводу для сайту та виставки...' : 'Нужен промо-ролик завода для сайта и выставки...'}
+                      placeholder={l("Потрібен промо-ролик заводу для сайту та виставки...", "Нужен промо-ролик завода для сайта и выставки...")}
                       className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-indigo-500 resize-none"
                     />
                   </div>
@@ -629,11 +623,11 @@ export function VideoProduction() {
                     className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-2"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>{submitting ? (isUk ? 'Надсилання...' : 'Отправка...') : (isUk ? 'Отримати точний кошторис і таймінг' : 'Получить точную смету и тайминг')}</span>
+                    <span>{submitting ? (l("Надсилання...", "Отправка...")) : (l("Отримати точний кошторис і таймінг", "Получить точную смету и тайминг"))}</span>
                   </button>
 
                   <p className="text-[10px] text-slate-400 text-center">
-                    {isUk ? 'Конфіденційність гарантовано. Кошторис не зобов\'язує до замовлення.' : 'Конфиденциальность гарантирована. Смета не обязывает к заказу.'}
+                    {l("Конфіденційність гарантовано. Кошторис не зобов'язує до замовлення.", "Конфиденциальность гарантирована. Смета не обязывает к заказу.")}
                   </p>
                 </form>
               )}

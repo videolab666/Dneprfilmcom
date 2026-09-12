@@ -22,7 +22,7 @@ import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
 
 export function Contacts() {
-  const { settings, isUk } = useSiteContent();
+  const { settings, isUk, l, legacy } = useSiteContent();
 
   // Form State
   const [name, setName] = useState('');
@@ -30,7 +30,7 @@ export function Contacts() {
   const [email, setEmail] = useState('');
   const [preferredContact, setPreferredContact] = useState<'telegram' | 'phone' | 'whatsapp' | 'email'>('telegram');
   const [service, setService] = useState('LIVE');
-  const [location, setLocation] = useState(isUk ? 'Дніпро' : 'Днепр');
+  const [location, setLocation] = useState(l("Дніпро", "Днепр"));
   const [eventDate, setEventDate] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,7 +49,7 @@ export function Contacts() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) {
-      setErrorMsg(isUk ? 'Будь ласка, вкажіть ваше ім\'я та контактний телефон.' : 'Пожалуйста, укажите ваше имя и контактный телефон.');
+      setErrorMsg(l("Будь ласка, вкажіть ваше ім'я та контактний телефон.", "Пожалуйста, укажите ваше имя и контактный телефон."));
       return;
     }
 
@@ -62,9 +62,9 @@ export function Contacts() {
         phone: phone.trim(),
         email: email.trim() || undefined,
         service,
-        eventType: `${isUk ? 'Контакти' : 'Контакты'}: ${isUk ? 'Заявка на розрахунок' : 'Заявка на просчет'} (${service})`,
+        eventType: `${l("Контакти", "Контакты")}: ${l("Заявка на розрахунок", "Заявка на просчет")} (${service})`,
         location: location.trim(),
-        cameraCount: isUk ? 'Уточнюється в ТЗ' : 'Уточняется в ТЗ',
+        cameraCount: l("Уточнюється в ТЗ", "Уточняется в ТЗ"),
         preferredContact,
         eventDate: eventDate || undefined,
         message: message.trim() || undefined,
@@ -80,9 +80,7 @@ export function Contacts() {
       setEventDate('');
     } catch (err: any) {
       console.error('Failed to submit contact lead:', err);
-      setErrorMsg(isUk 
-        ? 'Не вдалося надіслати заявку через форму. Будь ласка, напишіть нам напряму в Telegram або зателефонуйте.' 
-        : 'Не удалось отправить заявку через форму. Пожалуйста, напишите нам напрямую в Telegram или позвоните.');
+      setErrorMsg(l("Не вдалося надіслати заявку через форму. Будь ласка, напишіть нам напряму в Telegram або зателефонуйте.", "Не удалось отправить заявку через форму. Пожалуйста, напишите нам напрямую в Telegram или позвоните."));
     } finally {
       setIsSubmitting(false);
     }
@@ -252,9 +250,9 @@ export function Contacts() {
     }
   ];
 
-  const contactCards = isUk ? contactCards_UK : contactCards_RU;
-  const locations = isUk ? locations_UK : locations_RU;
-  const faqs = isUk ? faqs_UK : faqs_RU;
+  const contactCards = legacy(contactCards_UK, contactCards_RU);
+  const locations = legacy(locations_UK, locations_RU);
+  const faqs = legacy(faqs_UK, faqs_RU);
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -267,18 +265,16 @@ export function Contacts() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-4">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{isUk ? 'Прямий контакт з продакшеном' : 'Прямой контакт с продакшеном'}</span>
+              <span>{l("Прямий контакт з продакшеном", "Прямой контакт с продакшеном")}</span>
             </div>
             
             <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
-              {isUk ? 'Контакти студії ' : 'Контакты студии '}
+              {l("Контакти студії ", "Контакты студии ")}
               <span className="text-indigo-400">Dneprfilm</span>
             </h1>
             
             <p className="mt-4 text-base sm:text-lg text-slate-300 leading-relaxed font-light">
-              {isUk
-                ? 'Обговоріть ваш прямий ефір, зйомку іміджевого відео, таймлапс будівництва або фотосесію безпосередньо з Олександром Пітелем та технічною дирекцією студії.'
-                : 'Обсудите ваш прямой эфир, съемку имиджевого видео, таймлапс строительства или фотосессию напрямую с Александром Пителем и технической дирекцией студии.'}
+              {l("Обговоріть ваш прямий ефір, зйомку іміджевого відео, таймлапс будівництва або фотосесію безпосередньо з Олександром Пітелем та технічною дирекцією студії.", "Обсудите ваш прямой эфир, съемку имиджевого видео, таймлапс строительства или фотосессию напрямую с Александром Пителем и технической дирекцией студии.")}
             </p>
 
             {/* Fast direct buttons */}
@@ -288,7 +284,7 @@ export function Contacts() {
                 className="inline-flex items-center space-x-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-md transition-all"
               >
                 <Phone className="w-4 h-4" />
-                <span>{isUk ? 'Зателефонувати: ' : 'Позвонить: '}{phoneDisplay}</span>
+                <span>{l("Зателефонувати: ", "Позвонить: ")}{phoneDisplay}</span>
               </a>
 
               <a
@@ -298,7 +294,7 @@ export function Contacts() {
                 className="inline-flex items-center space-x-2 px-5 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-sm shadow-md transition-all"
               >
                 <MessageSquare className="w-4 h-4" />
-                <span>{isUk ? 'Написати в Telegram' : 'Написать в Telegram'}</span>
+                <span>{l("Написати в Telegram", "Написать в Telegram")}</span>
               </a>
 
               <a
@@ -361,34 +357,30 @@ export function Contacts() {
             <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-sm relative">
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider mb-3">
                 <FileText className="w-3.5 h-3.5" />
-                <span>{isUk ? 'Онлайн-бриф на розрахунок кошторису' : 'Онлайн-бриф на расчет сметы'}</span>
+                <span>{l("Онлайн-бриф на розрахунок кошторису", "Онлайн-бриф на расчет сметы")}</span>
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                {isUk ? 'Опишіть ваше завдання' : 'Опишите вашу задачу'}
+                {l("Опишіть ваше завдання", "Опишите вашу задачу")}
               </h2>
               <p className="text-slate-600 text-sm mt-2">
-                {isUk
-                  ? 'Заповніть форму нижче — ми зв\'яжемося з вами протягом 15 хвилин з готовими варіантами сетапу та розрахунком бюджету.'
-                  : 'Заполните форму ниже — мы свяжемся с вами в течение 15 минут с готовыми вариантами сетапа и расчетом бюджета.'}
+                {l("Заповніть форму нижче — ми зв'яжемося з вами протягом 15 хвилин з готовими варіантами сетапу та розрахунком бюджету.", "Заполните форму ниже — мы свяжемся с вами в течение 15 минут с готовыми вариантами сетапа и расчетом бюджета.")}
               </p>
 
               {isSuccess ? (
                 <div className="mt-8 p-8 rounded-2xl bg-emerald-50 border border-emerald-200 text-center animate-in fade-in zoom-in-95">
                   <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
                   <h3 className="text-xl font-black text-emerald-950">
-                    {isUk ? 'Дякуємо! Заявку успішно прийнято' : 'Спасибо! Заявка успешно принята'}
+                    {l("Дякуємо! Заявку успішно прийнято", "Спасибо! Заявка успешно принята")}
                   </h3>
                   <p className="mt-2 text-sm text-emerald-800 max-w-md mx-auto">
-                    {isUk
-                      ? 'Продюсер Олександр Пітель або технічний директор зв\'яжуться з вами в обраному месенджері протягом 15 хвилин.'
-                      : 'Продюсер Александр Питель или технический директор свяжутся с вами в выбранном мессенджере в течение 15 минут.'}
+                    {l("Продюсер Олександр Пітель або технічний директор зв'яжуться з вами в обраному месенджері протягом 15 хвилин.", "Продюсер Александр Питель или технический директор свяжутся с вами в выбранном мессенджере в течение 15 минут.")}
                   </p>
                   <button
                     onClick={() => setIsSuccess(false)}
                     className="mt-6 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors shadow-sm cursor-pointer"
                   >
-                    {isUk ? 'Надіслати ще одну задачу' : 'Отправить еще одну задачу'}
+                    {l("Надіслати ще одну задачу", "Отправить еще одну задачу")}
                   </button>
                 </div>
               ) : (
@@ -402,21 +394,21 @@ export function Contacts() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                        {isUk ? 'Ваше ім\'я / Компанія *' : 'Ваше имя / Компания *'}
+                        {l("Ваше ім'я / Компанія *", "Ваше имя / Компания *")}
                       </label>
                       <input
                         type="text"
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder={isUk ? 'Олександр / Компанія' : 'Александр / Компания'}
+                        placeholder={l("Олександр / Компанія", "Александр / Компания")}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 text-sm font-medium text-slate-900"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                        {isUk ? 'Телефон *' : 'Телефон *'}
+                        {l("Телефон *", "Телефон *")}
                       </label>
                       <input
                         type="tel"
@@ -432,7 +424,7 @@ export function Contacts() {
                   {/* Preferred contact channel */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      {isUk ? 'Де вам зручніше отримати відповідь та кошторис?' : 'Где вам удобнее получить ответ и смету?'}
+                      {l("Де вам зручніше отримати відповідь та кошторис?", "Где вам удобнее получить ответ и смету?")}
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {(['telegram', 'phone', 'whatsapp', 'email'] as const).map((ch) => (
@@ -447,7 +439,7 @@ export function Contacts() {
                           }`}
                         >
                           {ch === 'telegram' && '💬 Telegram'}
-                          {ch === 'phone' && (isUk ? '📞 Дзвінок' : '📞 Звонок')}
+                          {ch === 'phone' && (l("📞 Дзвінок", "📞 Звонок"))}
                           {ch === 'whatsapp' && '🟢 WhatsApp'}
                           {ch === 'email' && '✉️ Email'}
                         </button>
@@ -458,46 +450,34 @@ export function Contacts() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                        {isUk ? 'Напрямок завдання' : 'Направление задачи'}
+                        {l("Напрямок завдання", "Направление задачи")}
                       </label>
                       <select
                         value={service}
                         onChange={(e) => setService(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 text-sm font-medium text-slate-900"
                       >
-                        {isUk ? (
-                          <>
-                            <option value="LIVE">LIVE Пряма трансляція (спорт, форум, шоу)</option>
-                            <option value="VIDEO">Іміджевий корпоративний фільм / промо</option>
-                            <option value="CONSTRUCTION">Моніторинг будівництва / 4K таймлапс</option>
-                            <option value="DRONE">Аерозйомка & FPV-прольоти цехів</option>
-                            <option value="COMMERCIAL">Реклама продукту / фуд-відео</option>
-                            <option value="PHOTO">Репортажна або студійна фотозйомка</option>
-                            <option value="FULL_PACKAGE">Комплексний медіа-пакет під ключ</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="LIVE">LIVE Прямая трансляция (спорт, форум, шоу)</option>
-                            <option value="VIDEO">Имиджевый корпоративный фильм / промо</option>
-                            <option value="CONSTRUCTION">Мониторинг строительства / 4K таймлапс</option>
-                            <option value="DRONE">Аэросъемка & FPV-пролеты цехов</option>
-                            <option value="COMMERCIAL">Реклама продукта / фуд-видео</option>
-                            <option value="PHOTO">Репортажная или студийная фотосъемка</option>
-                            <option value="FULL_PACKAGE">Комплексный медиа-пакет под ключ</option>
-                          </>
-                        )}
+                        <>
+                  <option value="LIVE">{l("LIVE Пряма трансляція (спорт, форум, шоу)", "LIVE Прямая трансляция (спорт, форум, шоу)", "LIVE Broadcast (sports, forum, show)")}</option>
+                  <option value="VIDEO">{l("Іміджевий корпоративний фільм / промо", "Имиджевый корпоративный фильм / промо", "Corporate brand film / promo")}</option>
+                  <option value="CONSTRUCTION">{l("Моніторинг будівництва / 4K таймлапс", "Мониторинг строительства / 4K таймлапс", "Construction monitoring / 4K timelapse")}</option>
+                  <option value="DRONE">{l("Аерозйомка & FPV-прольоти цехів", "Аэросъемка & FPV-пролеты цехов", "Aerial filming & FPV factory fly-throughs")}</option>
+                  <option value="COMMERCIAL">{l("Реклама продукту / фуд-відео", "Реклама продукта / фуд-видео", "Product advertising / food video")}</option>
+                  <option value="PHOTO">{l("Репортажна або студійна фотозйомка", "Репортажная или студийная фотосъемка", "Event or studio photography")}</option>
+                  <option value="FULL_PACKAGE">{l("Комплексний медіа-пакет під ключ", "Комплексный медиа-пакет под ключ", "Turnkey full media package")}</option>
+                </>
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                        {isUk ? 'Місто / Локація' : 'Город / Локация'}
+                        {l("Місто / Локація", "Город / Локация")}
                       </label>
                       <input
                         type="text"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        placeholder={isUk ? 'Дніпро, Київ, інше місто...' : 'Днепр, Киев, другой город...'}
+                        placeholder={l("Дніпро, Київ, інше місто...", "Днепр, Киев, другой город...")}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 text-sm font-medium text-slate-900"
                       />
                     </div>
@@ -506,20 +486,20 @@ export function Contacts() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                        {isUk ? 'Орієнтовна дата / Дедлайн' : 'Примерная дата / Дедлайн'}
+                        {l("Орієнтовна дата / Дедлайн", "Примерная дата / Дедлайн")}
                       </label>
                       <input
                         type="text"
                         value={eventDate}
                         onChange={(e) => setEventDate(e.target.value)}
-                        placeholder={isUk ? 'Наприклад: 25 жовтня або терміново' : 'Например: 25 октября или срочно'}
+                        placeholder={l("Наприклад: 25 жовтня або терміново", "Например: 25 октября или срочно")}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 text-sm font-medium text-slate-900"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                        {isUk ? 'Email (необов\'язково)' : 'Email (опционально)'}
+                        {l("Email (необов'язково)", "Email (опционально)")}
                       </label>
                       <input
                         type="email"
@@ -533,15 +513,13 @@ export function Contacts() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      {isUk ? 'Опис завдання або посилання на референс' : 'Описание задачи или ссылка на референс'}
+                      {l("Опис завдання або посилання на референс", "Описание задачи или ссылка на референс")}
                     </label>
                     <textarea
                       rows={3}
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      placeholder={isUk
-                        ? 'Розкажіть про масштаб проєкту, кількість учасників або прикріпіть посилання на приклад ролика...'
-                        : 'Расскажите о масштабе проекта, количестве участников или прикрепите ссылку на пример ролика...'}
+                      placeholder={l("Розкажіть про масштаб проєкту, кількість учасників або прикріпіть посилання на приклад ролика...", "Расскажите о масштабе проекта, количестве участников или прикрепите ссылку на пример ролика...")}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 text-sm font-medium text-slate-900"
                     />
                   </div>
@@ -550,7 +528,7 @@ export function Contacts() {
                     <div className="flex items-center space-x-2 text-xs text-slate-500">
                       <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
                       <span>
-                        {isUk ? 'Конфіденційність гарантовано. Укладаємо NDA.' : 'Конфиденциальность гарантирована. Заключаем NDA.'}
+                        {l("Конфіденційність гарантовано. Укладаємо NDA.", "Конфиденциальность гарантирована. Заключаем NDA.")}
                       </span>
                     </div>
 
@@ -560,11 +538,11 @@ export function Contacts() {
                       className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-8 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-md transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {isSubmitting ? (
-                        <span>{isUk ? 'Відправка даних...' : 'Отправка данных...'}</span>
+                        <span>{l("Відправка даних...", "Отправка данных...")}</span>
                       ) : (
                         <>
                           <Send className="w-4 h-4" />
-                          <span>{isUk ? 'Отримати розрахунок кошторису' : 'Получить расчет сметы'}</span>
+                          <span>{l("Отримати розрахунок кошторису", "Получить расчет сметы")}</span>
                         </>
                       )}
                     </button>
@@ -585,26 +563,26 @@ export function Contacts() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">
-                    {isUk ? 'Режим роботи' : 'Режим работы'}
+                    {l("Режим роботи", "Режим работы")}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    {isUk ? 'Зв\'язок та виїзні зміни' : 'Связь и выездные смены'}
+                    {l("Зв'язок та виїзні зміни", "Связь и выездные смены")}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-3 text-xs sm:text-sm">
                 <div className="flex justify-between py-2 border-b border-slate-800">
-                  <span className="text-slate-400">{isUk ? 'Офіс & Консультації:' : 'Офис & Консультации:'}</span>
-                  <span className="font-semibold text-white">{isUk ? 'Пн–Сб 09:00 — 20:00' : 'Пн–Сб 09:00 — 20:00'}</span>
+                  <span className="text-slate-400">{l("Офіс & Консультації:", "Офис & Консультации:")}</span>
+                  <span className="font-semibold text-white">{l("Пн–Сб 09:00 — 20:00", "Пн–Сб 09:00 — 20:00")}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-800">
-                  <span className="text-slate-400">{isUk ? 'Ефірні зміни & ПТС:' : 'Эфирные смены & ПТС:'}</span>
-                  <span className="font-semibold text-indigo-300">{isUk ? '24/7 за графіком ефіру' : '24/7 по графику эфира'}</span>
+                  <span className="text-slate-400">{l("Ефірні зміни & ПТС:", "Эфирные смены & ПТС:")}</span>
+                  <span className="font-semibold text-indigo-300">{l("24/7 за графіком ефіру", "24/7 по графику эфира")}</span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className="text-slate-400">{isUk ? 'Нічний рендеринг & монтаж:' : 'Ночной рендеринг & монтаж:'}</span>
-                  <span className="font-semibold text-emerald-400">{isUk ? 'Цілодобово' : 'Круглосуточно'}</span>
+                  <span className="text-slate-400">{l("Нічний рендеринг & монтаж:", "Ночной рендеринг & монтаж:")}</span>
+                  <span className="font-semibold text-emerald-400">{l("Цілодобово", "Круглосуточно")}</span>
                 </div>
               </div>
             </div>
@@ -614,7 +592,7 @@ export function Contacts() {
               <div className="flex items-center space-x-2">
                 <MapPin className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-base font-bold text-slate-900">
-                  {isUk ? 'Локації та знімальні бази' : 'Локации и съемочные базы'}
+                  {l("Локації та знімальні бази", "Локации и съемочные базы")}
                 </h3>
               </div>
 
@@ -646,7 +624,7 @@ export function Contacts() {
               <div className="flex items-center space-x-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-600" />
                 <h3 className="text-base font-bold text-slate-900">
-                  {isUk ? 'Юридичні гарантії' : 'Юридические гарантии'}
+                  {l("Юридичні гарантії", "Юридические гарантии")}
                 </h3>
               </div>
 
@@ -654,29 +632,29 @@ export function Contacts() {
                 <li className="flex items-start space-x-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <span>
-                    <strong>{isUk ? 'Безготівковий розрахунок' : 'Безналичный расчет'}</strong>
-                    {isUk ? ': ФОП 3 група без ПДВ / ТОВ з ПДВ.' : ': ФОП 3 группа без НДС / ТОВ с НДС.'}
+                    <strong>{l("Безготівковий розрахунок", "Безналичный расчет")}</strong>
+                    {l(": ФОП 3 група без ПДВ / ТОВ з ПДВ.", ": ФОП 3 группа без НДС / ТОВ с НДС.")}
                   </span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <span>
-                    <strong>{isUk ? 'Типовий договір' : 'Типовой договор'}</strong>
-                    {isUk ? ' з детальною специфікацією техніки та хронометражу.' : ' с детальной спецификацией техники и хронометража.'}
+                    <strong>{l("Типовий договір", "Типовой договор")}</strong>
+                    {l(" з детальною специфікацією техніки та хронометражу.", " с детальной спецификацией техники и хронометража.")}
                   </span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <span>
-                    <strong>{isUk ? 'Угода про нерозголошення (NDA)' : 'Соглашение о неразглашении (NDA)'}</strong>
-                    {isUk ? ' для закритих виробництв.' : ' для закрытых производств.'}
+                    <strong>{l("Угода про нерозголошення (NDA)", "Соглашение о неразглашении (NDA)")}</strong>
+                    {l(" для закритих виробництв.", " для закрытых производств.")}
                   </span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <span>
-                    <strong>{isUk ? 'Фіксований кошторис' : 'Фиксированная смета'}</strong>
-                    {isUk ? ' — без прихованих доплат за паливо або перепрацювання на майданчику.' : ' — без скрытых доплат за бензин или переработку на площадке.'}
+                    <strong>{l("Фіксований кошторис", "Фиксированная смета")}</strong>
+                    {l(" — без прихованих доплат за паливо або перепрацювання на майданчику.", " — без скрытых доплат за бензин или переработку на площадке.")}
                   </span>
                 </li>
               </ul>
@@ -692,12 +670,10 @@ export function Contacts() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              {isUk ? 'Часті запитання щодо замовлення' : 'Часто задаваемые вопросы по заказу'}
+              {l("Часті запитання щодо замовлення", "Часто задаваемые вопросы по заказу")}
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              {isUk
-                ? 'Усе, що потрібно знати перед тим, як зв\'язатися з нами та затвердити кошторис'
-                : 'Все, что нужно знать перед тем, как связаться с нами и утвердить смету'}
+              {l("Усе, що потрібно знати перед тим, як зв'язатися з нами та затвердити кошторис", "Все, что нужно знать перед тем, как связаться с нами и утвердить смету")}
             </p>
           </div>
 

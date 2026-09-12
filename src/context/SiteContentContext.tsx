@@ -17,16 +17,26 @@ import {
   DEFAULT_SITE_BLOCKS_UK 
 } from '../lib/cmsDefaults';
 import { TRANSLATIONS } from '../locales/translations';
+import { legacyText, legacyValue, translateEnglishValue } from '../locales/legacyEnglish';
+import { DEFAULT_SITE_BLOCKS_EN } from '../locales/siteBlocksEn';
 import { 
   CASE_TRANSLATIONS_UK, 
   TESTIMONIALS_TRANSLATIONS_UK, 
   BACKSTAGE_TRANSLATIONS_UK 
 } from '../locales/localizedContent';
+import {
+  CASE_TRANSLATIONS_EN,
+  TESTIMONIALS_TRANSLATIONS_EN,
+  BACKSTAGE_TRANSLATIONS_EN
+} from '../locales/localizedContentEn';
+import { BACKSTAGE_SEED_EN } from '../locales/backstageSeedEn';
 
 interface SiteContentContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   t: (key: string, fallback?: string) => string;
+  l: (uk: string, ru: string, en?: string) => string;
+  legacy: <T>(uk: T, ru: T) => T;
   isUk: boolean;
   isEn: boolean;
   isRu: boolean;
@@ -50,8 +60,12 @@ const SiteContentContext = createContext<SiteContentContextType | undefined>(und
 export function SiteContentProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
     try {
+      const requested = new URLSearchParams(window.location.search).get('lang');
+      if (requested === 'ru' || requested === 'uk' || requested === 'en') {
+        return requested;
+      }
       const saved = localStorage.getItem('dneprfilm_locale');
-      if (saved === 'ru' || saved === 'uk') {
+      if (saved === 'ru' || saved === 'uk' || saved === 'en') {
         return saved;
       }
     } catch {
@@ -97,6 +111,9 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
     }
     return fallback ?? key;
   };
+
+  const l = (uk: string, ru: string, en?: string): string => legacyText(locale, uk, ru, en);
+  const legacy = <T,>(uk: T, ru: T): T => legacyValue(locale, uk, ru);
 
   const isUk = locale === 'uk';
   const isEn = locale === 'en';
@@ -213,20 +230,45 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   // Compute localized blocks dynamically
   const localizedBlocks = useMemo<SiteBlock[]>(() => {
     if (locale === 'en') {
-      return blocks.map(block => {
-        if (block.config_en) {
-          return {
-            ...block,
-            title: block.title_en || block.title,
-            config: {
-              ...block.config,
-              ...block.config_en,
-            }
-          };
-        }
-        return block;
-      });
-    }
+    const ukDefaultsMap = new Map(DEFAULT_SITE_BLOCKS_UK.map(b => [b.id, b]));
+    const enDefaultsMap = new Map(DEFAULT_SITE_BLOCKS_EN.map(b => [b.id, b]));
+
+    return blocks.map(block => {
+      const ukDefault = ukDefaultsMap.get(block.id);
+      const enDefault = enDefaultsMap.get(block.id);
+      const customUk = block.config_uk;
+      const hasCustomUk = Boolean(customUk || block.title_uk);
+
+      const ukConfig = {
+        ...block.config,
+        badge: customUk?.badge || ukDefault?.config.badge || block.config.badge,
+        heading: customUk?.heading || ukDefault?.config.heading || block.config.heading,
+        subheading: customUk?.subheading || ukDefault?.config.subheading || block.config.subheading,
+        content: customUk?.content || ukDefault?.config.content || block.config.content,
+        buttonText: customUk?.buttonText || ukDefault?.config.buttonText || block.config.buttonText,
+        secondaryButtonText: customUk?.secondaryButtonText || ukDefault?.config.secondaryButtonText || block.config.secondaryButtonText,
+        items: customUk?.items || ukDefault?.config.items || block.config.items,
+        faqItems: customUk?.faqItems || ukDefault?.config.faqItems || block.config.faqItems,
+      };
+
+      const fallbackConfig = hasCustomUk
+        ? translateEnglishValue(ukConfig)
+        : (enDefault?.config || translateEnglishValue(ukConfig));
+
+      const fallbackTitle = hasCustomUk
+        ? translateEnglishValue(block.title_uk || ukDefault?.title || block.title)
+        : (enDefault?.title || translateEnglishValue(block.title_uk || ukDefault?.title || block.title));
+
+      return {
+        ...block,
+        title: block.title_en || fallbackTitle,
+        config: {
+          ...fallbackConfig,
+          ...(block.config_en || {}),
+        },
+      };
+    });
+  }
 
     if (locale === 'uk') {
       const ukDefaultsMap = new Map(DEFAULT_SITE_BLOCKS_UK.map(b => [b.id, b]));
@@ -261,18 +303,21 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   // Localized helpers for items
   const getLocalizedCase = (c: CaseStudy): CaseStudy => {
     if (locale === 'en') {
-      return {
-        ...c,
-        title: c.title_en || c.title_uk || c.title,
-        categoryLabel: c.categoryLabel_en || c.categoryLabel_uk || c.categoryLabel,
-        description: c.description_en || c.description_uk || c.description,
-        challenge: c.challenge_en || c.challenge_uk || c.challenge,
-        problem: c.problem_en || c.problem_uk || c.problem,
-        solution: c.solution_en || c.solution_uk || c.solution,
-        result: c.result_en || c.result_uk || c.result,
-        metrics: c.metrics,
-      };
-    }
+    const uk = CASE_TRANSLATIONS_UK[c.id];
+    const en = CASE_TRANSLATIONS_EN[c.id];
+    return {
+      ...c,
+      client: en?.client || translateEnglishValue(c.client),
+      title: c.title_en || en?.title || translateEnglishValue(c.title_uk || uk?.title || c.title),
+      categoryLabel: c.categoryLabel_en || en?.categoryLabel || translateEnglishValue(c.categoryLabel_uk || uk?.categoryLabel || c.categoryLabel),
+      description: c.description_en || en?.description || translateEnglishValue(c.description_uk || uk?.description || c.description),
+      challenge: c.challenge_en || en?.challenge || translateEnglishValue(c.challenge_uk || uk?.challenge || c.challenge),
+      problem: c.problem_en || en?.problem || translateEnglishValue(c.problem_uk || uk?.problem || c.problem),
+      solution: c.solution_en || en?.solution || translateEnglishValue(c.solution_uk || uk?.solution || c.solution),
+      result: c.result_en || en?.result || translateEnglishValue(c.result_uk || uk?.result || c.result),
+      metrics: en?.metrics || translateEnglishValue(uk?.metrics || c.metrics),
+    };
+  }
     if (locale === 'uk') {
       const uk = CASE_TRANSLATIONS_UK[c.id];
       return {
@@ -292,15 +337,17 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
 
   const getLocalizedTestimonial = (item: Testimonial): Testimonial => {
     if (locale === 'en') {
-      return {
-        ...item,
-        author: item.author_en || item.author_uk || item.author,
-        role: item.role_en || item.role_uk || item.role,
-        company: item.company_en || item.company_uk || item.company,
-        project: item.project_en || item.project_uk || item.project,
-        quote: item.quote_en || item.quote_uk || item.quote,
-      };
-    }
+    const uk = TESTIMONIALS_TRANSLATIONS_UK[item.id];
+    const en = TESTIMONIALS_TRANSLATIONS_EN[item.id];
+    return {
+      ...item,
+      author: item.author_en || en?.author || translateEnglishValue(item.author_uk || uk?.author || item.author),
+      role: item.role_en || en?.role || translateEnglishValue(item.role_uk || uk?.role || item.role),
+      company: item.company_en || en?.company || translateEnglishValue(item.company_uk || uk?.company || item.company),
+      project: item.project_en || en?.project || translateEnglishValue(item.project_uk || uk?.project || item.project),
+      quote: item.quote_en || en?.quote || translateEnglishValue(item.quote_uk || uk?.quote || item.quote),
+    };
+  }
     if (locale === 'uk') {
       const uk = TESTIMONIALS_TRANSLATIONS_UK[item.id];
       return {
@@ -317,14 +364,16 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
 
   const getLocalizedBackstageItem = (item: BackstageItem): BackstageItem => {
     if (locale === 'en') {
-      return {
-        ...item,
-        title: item.title_en || item.title_uk || item.title,
-        category: item.category_en || item.category_uk || item.category,
-        tech: item.tech_en || item.tech_uk || item.tech,
-        description: item.description_en || item.description_uk || item.description,
-      };
-    }
+    const uk = BACKSTAGE_TRANSLATIONS_UK[item.id];
+    const en = BACKSTAGE_TRANSLATIONS_EN[item.id] || BACKSTAGE_SEED_EN[item.id];
+    return {
+      ...item,
+      title: item.title_en || en?.title || translateEnglishValue(item.title_uk || uk?.title || item.title),
+      category: item.category_en || en?.category || translateEnglishValue(item.category_uk || uk?.category || item.category),
+      tech: item.tech_en || en?.tech || translateEnglishValue(item.tech_uk || uk?.tech || item.tech),
+      description: item.description_en || en?.description || translateEnglishValue(item.description_uk || uk?.description || item.description),
+    };
+  }
     if (locale === 'uk') {
       const uk = BACKSTAGE_TRANSLATIONS_UK[item.id];
       return {
@@ -414,6 +463,8 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
         locale,
         setLocale,
         t,
+        l,
+        legacy,
         isUk,
         isEn,
         isRu,

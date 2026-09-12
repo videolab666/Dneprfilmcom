@@ -11,7 +11,7 @@ import { usePageCmsContent } from '../hooks/usePageCmsContent';
 import { usePageCopyContent } from '../hooks/usePageCopyContent';
 
 export function About() {
-  const { settings, isUk } = useSiteContent();
+  const { settings, isUk, l } = useSiteContent();
   const { content: pageContent, localize } = usePageCmsContent();
   const { content: copyContent, byId: copyById } = usePageCopyContent();
   const aboutPrinciplesHeading = copyById(copyContent.about.headings, 'about-heading-principles')?.text;
@@ -49,7 +49,7 @@ export function About() {
             <div className="lg:col-span-7 space-y-6">
               <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>{isUk ? 'Засновник & Генеральний продюсер' : 'Основатель & Генеральный продюсер'}</span>
+                <span>{l("Засновник & Генеральний продюсер", "Основатель & Генеральный продюсер")}</span>
               </div>
 
               <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
@@ -76,7 +76,7 @@ export function About() {
                   to="/contacts"
                   className="inline-flex items-center space-x-2 px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-md transition-all"
                 >
-                  <span>{isUk ? 'Обговорити проєкт з Олександром' : 'Обсудить проект с Александром'}</span>
+                  <span>{l("Обговорити проєкт з Олександром", "Обсудить проект с Александром")}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
 
@@ -87,7 +87,7 @@ export function About() {
                   className="inline-flex items-center space-x-2 px-5 py-3.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-sm shadow-md transition-all"
                 >
                   <MessageSquare className="w-4 h-4" />
-                  <span>{isUk ? 'Написати в Telegram' : 'Написать в Telegram'}</span>
+                  <span>{l("Написати в Telegram", "Написать в Telegram")}</span>
                 </a>
               </div>
             </div>
@@ -105,7 +105,7 @@ export function About() {
                   <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent p-6 text-white">
                     <div className="font-bold text-lg">{founderName}</div>
                     <div className="text-xs text-indigo-400">
-                      {isUk ? 'Генеральний продюсер Dneprfilm' : 'Генеральный продюсер Dneprfilm'}
+                      {l("Генеральний продюсер Dneprfilm", "Генеральный продюсер Dneprfilm")}
                     </div>
                   </div>
                 </div>
@@ -123,25 +123,25 @@ export function About() {
             <div>
               <div className="text-3xl sm:text-4xl font-black text-indigo-600">12+</div>
               <div className="text-xs sm:text-sm text-slate-600 font-semibold mt-1">
-                {isUk ? 'Років у медіа-продакшні' : 'Лет в медиа-продакшне'}
+                {l("Років у медіа-продакшні", "Лет в медиа-продакшне")}
               </div>
             </div>
             <div>
               <div className="text-3xl sm:text-4xl font-black text-indigo-600">450+</div>
               <div className="text-xs sm:text-sm text-slate-600 font-semibold mt-1">
-                {isUk ? 'Прямих телевізійних ефірів' : 'Прямых телевизионных эфиров'}
+                {l("Прямих телевізійних ефірів", "Прямых телевизионных эфиров")}
               </div>
             </div>
             <div>
               <div className="text-3xl sm:text-4xl font-black text-indigo-600">80+</div>
               <div className="text-xs sm:text-sm text-slate-600 font-semibold mt-1">
-                {isUk ? 'Корпоративних замовників' : 'Корпоративных заказчиков'}
+                {l("Корпоративних замовників", "Корпоративных заказчиков")}
               </div>
             </div>
             <div>
               <div className="text-3xl sm:text-4xl font-black text-indigo-600">100%</div>
               <div className="text-xs sm:text-sm text-slate-600 font-semibold mt-1">
-                {isUk ? 'Договір та закриваючі акти' : 'Договор и закрывающие акты'}
+                {l("Договір та закриваючі акти", "Договор и закрывающие акты")}
               </div>
             </div>
           </div>
@@ -155,9 +155,7 @@ export function About() {
             {aboutPrinciplesHeading?.title}
           </h2>
           <p className="mt-3 text-slate-600 text-sm sm:text-base">
-            {isUk
-              ? 'Ми не просто натискаємо кнопку «запис» — ми забезпечуємо телевізійний рівень надійності та естетики на кожному проєкті.'
-              : 'Мы не просто нажимаем кнопку «запись» — мы обеспечиваем телевизионный уровень надежности и эстетики на каждом проекте.'}
+            {l("Ми не просто натискаємо кнопку «запис» — ми забезпечуємо телевізійний рівень надійності та естетики на кожному проєкті.", "Мы не просто нажимаем кнопку «запись» — мы обеспечиваем телевизионный уровень надежности и эстетики на каждом проекте.")}
           </p>
         </div>
 
@@ -186,9 +184,7 @@ export function About() {
               {aboutMilestonesHeading?.title}
             </h2>
             <p className="mt-3 text-slate-400 text-sm">
-              {isUk
-                ? 'Еволюція від локального продакшну до пересувної телестудії європейського рівня'
-                : 'Эволюция от локального продакшна до передвижной телестудии европейского уровня'}
+              {l("Еволюція від локального продакшну до пересувної телестудії європейського рівня", "Эволюция от локального продакшна до передвижной телестудии европейского уровня")}
             </p>
           </div>
 
@@ -222,19 +218,17 @@ export function About() {
       <section className="py-20 bg-white border-t border-slate-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            {isUk ? 'Готові обговорити ваше завдання?' : 'Готовы обсудить вашу задачу?'}
+            {l("Готові обговорити ваше завдання?", "Готовы обсудить вашу задачу?")}
           </h2>
           <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto">
-            {isUk
-              ? 'Зв\'яжіться безпосередньо з Олександром Пітелем для консультації, узгодження дат та розрахунку кошторису.'
-              : 'Свяжитесь напрямую с Александром Пителем для консультации, согласования дат и расчета сметы.'}
+            {l("Зв'яжіться безпосередньо з Олександром Пітелем для консультації, узгодження дат та розрахунку кошторису.", "Свяжитесь напрямую с Александром Пителем для консультации, согласования дат и расчета сметы.")}
           </p>
           <div className="flex flex-wrap justify-center gap-4 pt-2">
             <Link
               to="/contacts"
               className="px-8 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition-all"
             >
-              {isUk ? 'Перейти в контакти' : 'Перейти в контакты'}
+              {l("Перейти в контакти", "Перейти в контакты")}
             </Link>
             <a
               href={`tel:+${settings.phone ? settings.phone.replace(/\D/g, '') : '380675606880'}`}

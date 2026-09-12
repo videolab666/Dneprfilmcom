@@ -19,6 +19,7 @@ import {
   Quote
 } from 'lucide-react';
 import { CLIENTS_LIST, CLIENT_STATS, ClientLogo } from '../data/clientsData';
+import { CLIENTS_EN, CLIENT_STATS_EN } from '../data/clientEnglish';
 import { Link } from 'react-router-dom';
 import { useSiteContent } from '../context/SiteContentContext';
 
@@ -35,18 +36,24 @@ export function ClientsMarquee({
   showFilterToggle = true,
   variant = 'light'
 }: ClientsMarqueeProps) {
-  const { isUk, t } = useSiteContent();
+  const { isUk, t, locale } = useSiteContent();
   const [selectedClient, setSelectedClient] = useState<ClientLogo | null>(null);
   const [viewMode, setViewMode] = useState<'marquee' | 'grid'>('marquee');
   const [selectedIndustry, setSelectedIndustry] = useState<string>('all');
 
+    const localizedClients = CLIENTS_LIST.map(client => {
+      if (locale !== 'en') return client;
+      const en = CLIENTS_EN[client.id];
+      return en ? { ...client, ...en } : client;
+    });
+
   const filteredClients = selectedIndustry === 'all'
-    ? CLIENTS_LIST
-    : CLIENTS_LIST.filter(c => c.industry === selectedIndustry);
+    ? localizedClients
+    : localizedClients.filter(c => c.industry === selectedIndustry);
 
   // Split into 2 rows for rich dual-speed marquee
-  const row1 = CLIENTS_LIST.slice(0, 6);
-  const row2 = CLIENTS_LIST.slice(6);
+  const row1 = localizedClients.slice(0, 6);
+  const row2 = localizedClients.slice(6);
 
   const getIndustryIcon = (industry: ClientLogo['industry']) => {
     switch (industry) {
@@ -128,7 +135,7 @@ export function ClientsMarquee({
                   {stat.value}
                 </div>
                 <div className="text-xs text-slate-600 mt-0.5 font-medium">
-                  {isUk ? (stat.labelUk || stat.label) : stat.label}
+                  {locale === 'en' ? CLIENT_STATS_EN[idx] : isUk ? (stat.labelUk || stat.label) : stat.label}
                 </div>
               </div>
             ))}

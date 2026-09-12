@@ -202,8 +202,8 @@ const STEPS_UK: Step[] = [
 
 export function HowWeWork() {
   const [activeStep, setActiveStep] = useState<number>(0);
-  const { isUk } = useSiteContent();
-  const steps = isUk ? STEPS_UK : STEPS_RU;
+  const { isUk, l, legacy } = useSiteContent();
+  const steps = legacy(STEPS_UK, STEPS_RU);
 
   return (
     <section className="py-24 bg-white text-slate-900 relative overflow-hidden" id="how-we-work">
@@ -212,15 +212,13 @@ export function HowWeWork() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold uppercase tracking-wider mb-4">
             <ShieldCheck className="w-4 h-4 text-indigo-600" />
-            <span>{isUk ? 'Прозорість та контроль' : 'Прозрачность и контроль'}</span>
+            <span>{l("Прозорість та контроль", "Прозрачность и контроль")}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900">
-            {isUk ? 'Регламент роботи студії' : 'Регламент работы студии'}
+            {l("Регламент роботи студії", "Регламент работы студии")}
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 font-light leading-relaxed">
-            {isUk
-              ? 'Покроковий виробничий цикл від першого дзвінка до передачі фінального архіву. Ви завжди знаєте, що відбувається на кожному етапі.'
-              : 'Пошаговый производственный цикл от первого звонка до передачи финального архива. Вы всегда знаете, что происходит на каждом этапе.'}
+            {l("Покроковий виробничий цикл від першого дзвінка до передачі фінального архіву. Ви завжди знаєте, що відбувається на кожному етапі.", "Пошаговый производственный цикл от первого звонка до передачи финального архива. Вы всегда знаете, что происходит на каждом этапе.")}
           </p>
         </div>
 
@@ -288,7 +286,7 @@ export function HowWeWork() {
                 {/* Checklist */}
                 <div className="space-y-3 pt-2">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    {isUk ? 'Що входить у цей етап:' : 'Что входит в этот этап:'}
+                    {l("Що входить у цей етап:", "Что входит в этот этап:")}
                   </h4>
                   {steps[activeStep].details.map((item, dIdx) => (
                     <div key={dIdx} className="flex items-start space-x-3 text-xs sm:text-sm text-slate-700">
@@ -304,7 +302,7 @@ export function HowWeWork() {
                 <div>
                   <div className="flex items-center text-xs font-bold uppercase tracking-wider text-indigo-600 mb-2">
                     <Clock className="w-3.5 h-3.5 mr-1.5" />
-                    {isUk ? 'Орієнтовний термін:' : 'Ориентировочный срок:'}
+                    {l("Орієнтовний термін:", "Ориентировочный срок:")}
                   </div>
                   <div className="text-lg font-extrabold text-slate-900">
                     {steps[activeStep].duration}
@@ -313,7 +311,7 @@ export function HowWeWork() {
 
                 <div className="border-t border-slate-100 pt-4">
                   <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-                    {isUk ? 'Підсумкові артефакти етапу:' : 'Итоговые артефакты этапа:'}
+                    {l("Підсумкові артефакти етапу:", "Итоговые артефакты этапа:")}
                   </div>
                   <div className="space-y-2">
                     {steps[activeStep].deliverables.map((del, delIdx) => (
@@ -333,7 +331,7 @@ export function HowWeWork() {
                     to="/contacts"
                     className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm transition-colors shadow-sm"
                   >
-                    <span>{isUk ? 'Запросити регламент під ваш проєкт' : 'Запросить регламент под ваш проект'}</span>
+                    <span>{l("Запросити регламент під ваш проєкт", "Запросить регламент под ваш проект")}</span>
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </div>
@@ -349,12 +347,10 @@ export function HowWeWork() {
               100%
             </div>
             <h4 className="text-base font-bold text-slate-900 mb-2">
-              {isUk ? 'Резервування трактів' : 'Резервирование трактов'}
+              {l("Резервування трактів", "Резервирование трактов")}
             </h4>
             <p className="text-xs text-slate-600 leading-relaxed">
-              {isUk
-                ? 'Кожен критичний вузол (інтернет, живлення, пульти, запис) має гарячий дубль. Ефір не перерветься за жодних обставин.'
-                : 'Каждый критический узел (интернет, питание, пульты, запись) имеет горячий дубль. Эфир не прервется ни при каких обстоятельствах.'}
+              {l("Кожен критичний вузол (інтернет, живлення, пульти, запис) має гарячий дубль. Ефір не перерветься за жодних обставин.", "Каждый критический узел (интернет, питание, пульты, запись) имеет горячий дубль. Эфир не прервется ни при каких обстоятельствах.")}
             </p>
           </div>
 
@@ -363,12 +359,10 @@ export function HowWeWork() {
               0₴
             </div>
             <h4 className="text-base font-bold text-slate-900 mb-2">
-              {isUk ? 'Фіксований кошторис' : 'Фиксированная смета'}
+              {l("Фіксований кошторис", "Фиксированная смета")}
             </h4>
             <p className="text-xs text-slate-600 leading-relaxed">
-              {isUk
-                ? 'Ціна узгоджується до старту робіт і закріплюється в договорі. Жодних раптових рахунків за бензин, паркування чи зайву годину монтажу.'
-                : 'Цена согласовывается до старта работ и закрепляется в договоре. Никаких внезапных счетов за бензин, парковку или лишний час монтажа.'}
+              {l("Ціна узгоджується до старту робіт і закріплюється в договорі. Жодних раптових рахунків за бензин, паркування чи зайву годину монтажу.", "Цена согласовывается до старта работ и закрепляется в договоре. Никаких внезапных счетов за бензин, парковку или лишний час монтажа.")}
             </p>
           </div>
 
@@ -377,12 +371,10 @@ export function HowWeWork() {
               24/7
             </div>
             <h4 className="text-base font-bold text-slate-900 mb-2">
-              {isUk ? 'Особистий контроль засновника' : 'Личный контроль основателя'}
+              {l("Особистий контроль засновника", "Личный контроль основателя")}
             </h4>
             <p className="text-xs text-slate-600 leading-relaxed">
-              {isUk
-                ? 'Олександр Пітель особисто курує технічний райдер та ключові процеси виробництва кожного проєкту студії.'
-                : 'Александр Питель лично курирует технический райдер и ключевые процессы производства каждого проекта студии.'}
+              {l("Олександр Пітель особисто курує технічний райдер та ключові процеси виробництва кожного проєкту студії.", "Александр Питель лично курирует технический райдер и ключевые процессы производства каждого проекта студии.")}
             </p>
           </div>
         </div>

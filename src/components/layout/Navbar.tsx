@@ -96,6 +96,19 @@ export function Navbar() {
               >
                 RU
               </button>
+              <button
+                type="button"
+                onClick={() => setLocale('en')}
+                className={cn(
+                  "px-2.5 py-1 rounded-full transition-all duration-200",
+                  locale === 'en'
+                    ? "bg-indigo-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                )}
+                title="English"
+              >
+                EN
+              </button>
             </div>
 
             <Link
@@ -129,6 +142,16 @@ export function Navbar() {
                 )}
               >
                 RU
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocale('en')}
+                className={cn(
+                  "px-2 py-0.5 rounded-full transition-all",
+                  locale === 'en' ? "bg-indigo-600 text-white" : "text-slate-600"
+                )}
+              >
+                EN
               </button>
             </div>
 
