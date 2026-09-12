@@ -29,6 +29,7 @@ import {
   TESTIMONIALS_TRANSLATIONS_EN,
   BACKSTAGE_TRANSLATIONS_EN
 } from '../locales/localizedContentEn';
+import { BACKSTAGE_SEED_EN } from '../locales/backstageSeedEn';
 
 interface SiteContentContextType {
   locale: Locale;
@@ -364,7 +365,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   const getLocalizedBackstageItem = (item: BackstageItem): BackstageItem => {
     if (locale === 'en') {
     const uk = BACKSTAGE_TRANSLATIONS_UK[item.id];
-    const en = BACKSTAGE_TRANSLATIONS_EN[item.id];
+    const en = BACKSTAGE_TRANSLATIONS_EN[item.id] || BACKSTAGE_SEED_EN[item.id];
     return {
       ...item,
       title: item.title_en || en?.title || translateEnglishValue(item.title_uk || uk?.title || item.title),
