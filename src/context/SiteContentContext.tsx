@@ -322,6 +322,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
       const uk = CASE_TRANSLATIONS_UK[c.id];
       return {
         ...c,
+        client: uk?.client || c.client,
         title: c.title_uk || uk?.title || c.title,
         categoryLabel: c.categoryLabel_uk || uk?.categoryLabel || c.categoryLabel,
         description: c.description_uk || uk?.description || c.description,
