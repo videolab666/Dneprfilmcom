@@ -29,17 +29,36 @@ export interface CaseStudy {
   imageUrl?: string;
   videoUrl?: string;
   videoBadge?: string;
+  featured?: boolean;
+  featuredOrder?: number;
   createdAt: number;
+}
+
+export type ArticleCategory = 'live' | 'video' | 'construction' | 'photo' | 'tech';
+
+export interface ArticleTranslation {
+  title: string;
+  categoryLabel: string;
+  readTime: string;
+  date: string;
+  author: string;
+  summary: string;
+  content: string[];
+  keyTakeaways: string[];
 }
 
 export interface Article {
   id: string;
-  title: string;
-  category: 'LIVE' | 'VIDEO' | 'CONSTRUCTION' | 'ALEXANDER_PITEL' | 'TECH';
-  content: string;
-  excerpt: string;
-  imageUrl?: string;
+  slug: string;
+  category: ArticleCategory;
+  coverImage: string;
+  published: boolean;
+  publishedAt: number;
   createdAt: number;
+  updatedAt?: number;
+  ru: ArticleTranslation;
+  uk: ArticleTranslation;
+  en?: ArticleTranslation;
 }
 
 export interface Lead {
@@ -83,7 +102,6 @@ export interface SiteSetting {
   workingHours: string;
   workingHours_uk?: string;
   workingHours_en?: string;
-  // Hero settings
   heroBadge: string;
   heroBadge_uk?: string;
   heroBadge_en?: string;
@@ -102,7 +120,6 @@ export interface SiteSetting {
   heroCtaSecondaryText_en?: string;
   heroCtaSecondaryLink: string;
   heroBgImage: string;
-  // Founder settings
   founderName: string;
   founderName_uk?: string;
   founderName_en?: string;
@@ -116,26 +133,24 @@ export interface SiteSetting {
   founderBio_uk?: string;
   founderBio_en?: string;
   founderPhoto: string;
-  // Notification banner
   announcementEnabled: boolean;
   announcementText: string;
   announcementText_uk?: string;
   announcementText_en?: string;
   announcementLink: string;
-  // Social links
   youtubeUrl: string;
   instagramUrl: string;
   facebookUrl: string;
   updatedAt?: number;
 }
 
-export type BlockType = 
-  | 'cta' 
-  | 'text_image' 
-  | 'features_grid' 
-  | 'stats_counter' 
-  | 'faq' 
-  | 'video_embed' 
+export type BlockType =
+  | 'cta'
+  | 'text_image'
+  | 'features_grid'
+  | 'stats_counter'
+  | 'faq'
+  | 'video_embed'
   | 'partners';
 
 export interface SiteBlock {
@@ -159,22 +174,18 @@ export interface SiteBlock {
     secondaryButtonText?: string;
     secondaryButtonLink?: string;
     style?: 'dark' | 'light' | 'indigo' | 'gradient';
-    // For features_grid & stats_counter
     items?: Array<{
       title: string;
       description?: string;
       value?: string;
       iconName?: string;
     }>;
-    // For faq
     faqItems?: Array<{
       question: string;
       answer: string;
     }>;
-    // For video_embed
     videoUrl?: string;
     videoCaption?: string;
-    // For partners
     partnerNames?: string[];
   };
   config_uk?: Partial<SiteBlock['config']>;
@@ -221,5 +232,3 @@ export interface BackstageItem {
   description_en?: string;
   createdAt?: number;
 }
-
-
