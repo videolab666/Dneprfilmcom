@@ -341,7 +341,11 @@ export function CasesManager() {
       };
 
       await setDoc(doc(db, 'cases', editing.id), payload);
-      const referencedPaths = new Set(cleanedMedia.map(item => item.storagePath).filter(Boolean));
+      const referencedPaths = new Set<string>(
+        cleanedMedia
+          .map(item => item.storagePath)
+          .filter((path): path is string => Boolean(path))
+      );
       const orphanedUploads = newUploadPaths.filter(path => !referencedPaths.has(path));
       const pathsToDelete = [...new Set([...pendingDeletePaths, ...orphanedUploads])];
       await Promise.all(pathsToDelete.map(path => deleteCaseImage(path)));
