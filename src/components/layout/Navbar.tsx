@@ -9,13 +9,14 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
-  const { settings, t, locale, setLocale } = useSiteContent();
+  const { settings, t, l, locale, setLocale } = useSiteContent();
 
   const navLinks = [
     { name: t('nav.live'), path: '/live' },
     { name: t('nav.video'), path: '/video' },
     { name: t('nav.construction'), path: '/construction' },
     { name: t('nav.photo'), path: '/photo' },
+    { name: l('Галереї', 'Галереи', 'Galleries'), path: '/galleries' },
     { name: t('nav.cases'), path: '/cases' },
     { name: t('nav.mediaCenter'), path: '/media-center' },
     { name: t('nav.about'), path: '/about' },
@@ -47,7 +48,7 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex space-x-6 xl:space-x-8">
+          <nav className="hidden lg:flex space-x-4 xl:space-x-6">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
