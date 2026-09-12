@@ -1,7 +1,27 @@
 export type Locale = 'uk' | 'ru' | 'en';
 
+export type CaseMediaType = 'image' | 'youtube' | 'vimeo' | 'video';
+
+export interface CaseMediaItem {
+  id: string;
+  type: CaseMediaType;
+  url: string;
+  thumbnailUrl?: string;
+  storagePath?: string;
+  title?: string;
+  title_uk?: string;
+  title_en?: string;
+  caption?: string;
+  caption_uk?: string;
+  caption_en?: string;
+  alt?: string;
+  alt_uk?: string;
+  alt_en?: string;
+}
+
 export interface CaseStudy {
   id: string;
+  slug?: string;
   title: string;
   title_uk?: string;
   title_en?: string;
@@ -26,9 +46,17 @@ export interface CaseStudy {
   description_uk?: string;
   description_en?: string;
   metrics?: { label: string; value: string }[];
+  metrics_uk?: { label: string; value: string }[];
+  metrics_en?: { label: string; value: string }[];
+  year?: string;
+  location?: string;
+  location_uk?: string;
+  location_en?: string;
   imageUrl?: string;
   videoUrl?: string;
   videoBadge?: string;
+  media?: CaseMediaItem[];
+  published?: boolean;
   featured?: boolean;
   featuredOrder?: number;
   createdAt: number;

@@ -315,7 +315,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
       problem: c.problem_en || en?.problem || translateEnglishValue(c.problem_uk || uk?.problem || c.problem),
       solution: c.solution_en || en?.solution || translateEnglishValue(c.solution_uk || uk?.solution || c.solution),
       result: c.result_en || en?.result || translateEnglishValue(c.result_uk || uk?.result || c.result),
-      metrics: en?.metrics || translateEnglishValue(uk?.metrics || c.metrics),
+      metrics: c.metrics_en || en?.metrics || translateEnglishValue(c.metrics_uk || uk?.metrics || c.metrics),
     };
   }
     if (locale === 'uk') {
@@ -330,7 +330,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
         problem: c.problem_uk || uk?.problem || c.problem,
         solution: c.solution_uk || uk?.solution || c.solution,
         result: c.result_uk || uk?.result || c.result,
-        metrics: uk?.metrics || c.metrics,
+        metrics: c.metrics_uk || uk?.metrics || c.metrics,
       };
     }
     return c;

@@ -86,33 +86,40 @@ export function SeoManager() {
   useEffect(() => {
     const path = location.pathname === '' ? '/' : location.pathname.replace(/\/$/, '') || '/';
     const isAdmin = path === '/admin' || path.startsWith('/admin/');
-    const isKnownPublicRoute = Boolean(SEO[path]);
+    const isCaseDetail = path.startsWith('/cases/');
+    const isKnownPublicRoute = Boolean(SEO[path]) || isCaseDetail;
     const isNotFound = !isAdmin && !isKnownPublicRoute;
-    const entry = isNotFound ? NOT_FOUND[locale] : (SEO[path]?.[locale] ?? SEO['/'][locale]);
-    const title = isAdmin ? 'Admin — Dneprfilm' : entry.title;
-    const description = isAdmin ? 'Dneprfilm administration panel.' : entry.description;
+    const baseEntry = isCaseDetail ? SEO['/cases'] : SEO[path];
+    const entry = isNotFound ? NOT_FOUND[locale] : (baseEntry?.[locale] ?? SEO['/'][locale]);
     const canonicalUrl = `${window.location.origin}${window.location.pathname}`.replace(/\/$/, '') || `${window.location.origin}/`;
     const shouldIndex = !isAdmin && !isNotFound;
 
-    document.title = title;
-
-    upsertMeta('meta[name="description"]', { name: 'description' }, description);
     upsertMeta('meta[name="robots"]', { name: 'robots' }, shouldIndex ? 'index, follow, max-image-preview:large' : 'noindex, nofollow, noarchive');
-    upsertMeta('meta[property="og:title"]', { property: 'og:title' }, title);
-    upsertMeta('meta[property="og:description"]', { property: 'og:description' }, description);
-    upsertMeta('meta[property="og:type"]', { property: 'og:type' }, 'website');
     upsertMeta('meta[property="og:url"]', { property: 'og:url' }, canonicalUrl);
     upsertMeta('meta[property="og:site_name"]', { property: 'og:site_name' }, 'Dneprfilm');
     upsertMeta('meta[property="og:locale"]', { property: 'og:locale' }, locale === 'uk' ? 'uk_UA' : locale === 'ru' ? 'ru_UA' : 'en_US');
     upsertMeta('meta[name="twitter:card"]', { name: 'twitter:card' }, 'summary_large_image');
-    upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title' }, title);
-    upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description' }, description);
 
     if (shouldIndex) {
       upsertCanonical(canonicalUrl);
     } else {
       document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.remove();
     }
+
+    // Standalone case pages load their title, description and hero image from Firestore.
+    // Keep the route-level manager from overwriting that project-specific metadata.
+    if (isCaseDetail) return;
+
+    const title = isAdmin ? 'Admin — Dneprfilm' : entry.title;
+    const description = isAdmin ? 'Dneprfilm administration panel.' : entry.description;
+    document.title = title;
+
+    upsertMeta('meta[name="description"]', { name: 'description' }, description);
+    upsertMeta('meta[property="og:title"]', { property: 'og:title' }, title);
+    upsertMeta('meta[property="og:description"]', { property: 'og:description' }, description);
+    upsertMeta('meta[property="og:type"]', { property: 'og:type' }, 'website');
+    upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title' }, title);
+    upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description' }, description);
   }, [location.pathname, locale]);
 
   return null;

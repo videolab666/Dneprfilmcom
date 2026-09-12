@@ -1,4 +1,4 @@
-name: Deploy Firestore Rules
+name: Deploy Firebase Rules
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - firestore.rules
+      - storage.rules
       - firebase.json
       - .firebaserc
       - scripts/test-firestore-rules.mjs
@@ -17,7 +18,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: firestore-rules-production
+  group: firebase-rules-production
   cancel-in-progress: false
 
 env:
@@ -59,9 +60,9 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_FIREBASE_RULES_SERVICE_ACCOUNT }}
 
-      - name: Deploy rules to the named Firestore database
+      - name: Deploy Firestore and Storage rules
         run: >-
           bunx firebase-tools deploy
-          --only "firestore:${FIRESTORE_DATABASE_ID}"
+          --only "firestore:${FIRESTORE_DATABASE_ID},storage"
           --project "$FIREBASE_PROJECT_ID"
           --non-interactive

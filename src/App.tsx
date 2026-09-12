@@ -14,6 +14,7 @@ const Home = lazy(() => import('./pages/Home').then((module) => ({ default: modu
 const LiveProduction = lazy(() => import('./pages/LiveProduction').then((module) => ({ default: module.LiveProduction })));
 const VideoProduction = lazy(() => import('./pages/VideoProduction').then((module) => ({ default: module.VideoProduction })));
 const Cases = lazy(() => import('./pages/Cases').then((module) => ({ default: module.Cases })));
+const CaseDetail = lazy(() => import('./pages/CaseDetail').then((module) => ({ default: module.CaseDetail })));
 const ConstructionMedia = lazy(() => import('./pages/ConstructionMedia').then((module) => ({ default: module.ConstructionMedia })));
 const PhotoProduction = lazy(() => import('./pages/PhotoProduction').then((module) => ({ default: module.PhotoProduction })));
 const MediaCenter = lazy(() => import('./pages/MediaCenter').then((module) => ({ default: module.MediaCenter })));
@@ -48,6 +49,7 @@ export default function App() {
                 <Route path="construction" element={<ConstructionMedia />} />
                 <Route path="photo" element={<PhotoProduction />} />
                 <Route path="cases" element={<Cases />} />
+                <Route path="cases/:slug" element={<CaseDetail />} />
                 <Route path="media-center" element={<MediaCenter />} />
                 <Route path="about" element={<About />} />
                 <Route path="contacts" element={<Contacts />} />

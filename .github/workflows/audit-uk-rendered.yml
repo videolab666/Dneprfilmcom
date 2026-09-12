@@ -60,6 +60,7 @@ jobs:
             'construction'
             'photo'
             'cases'
+            'cases/case-ulka'
             'media-center'
             'about'
             'contacts'
