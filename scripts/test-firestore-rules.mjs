@@ -127,6 +127,15 @@ await expectAllowed('live production lead', {
   message: '',
 });
 
+await expectAllowed('media center consultation lead', {
+  name: 'Media Center Client',
+  phone: '+380931112233',
+  source: 'media_center_consultation',
+  question: 'Потрібна консультація щодо трансляції.',
+  status: 'new',
+  createdAt: serverTimestamp(),
+});
+
 await expectDenied('unknown field injection', {
   ...base,
   admin: true,
@@ -149,6 +158,12 @@ await expectDenied('invalid calculator details', {
     duration: '60s',
     needScript: 'yes',
   },
+});
+
+await expectDenied('oversized media center question', {
+  ...base,
+  source: 'media_center_consultation',
+  question: 'x'.repeat(5001),
 });
 
 await expectDenied('missing phone', {

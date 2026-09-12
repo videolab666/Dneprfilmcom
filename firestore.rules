@@ -53,6 +53,7 @@ service cloud.firestore {
           'calculatedCost',
           'calculatorDetails',
           'message',
+          'question',
           'status',
           'createdAt',
           'company',
@@ -80,6 +81,7 @@ service cloud.firestore {
         && optionalString(data, 'service', 200)
         && optionalString(data, 'eventType', 500)
         && optionalString(data, 'message', 5000)
+        && optionalString(data, 'question', 5000)
         && optionalString(data, 'company', 200)
         && optionalString(data, 'source', 100)
         && optionalString(data, 'contactDetail', 500)
