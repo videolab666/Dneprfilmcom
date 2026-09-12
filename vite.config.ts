@@ -64,44 +64,6 @@ function aistudioMediaPlugin(): Plugin {
 }
 // LINT.ThenChange(//depot/google3/java/com/google/alkali/boq/makersuite/applet_dev_service/templates/initializers/react_theme/vite.config.ts:aistudio_media_plugin)
 
-function vendorChunk(id: string): string | undefined {
-  if (!id.includes('node_modules')) return undefined;
-
-  // Firebase dominates the shared entry bundle. Split its major SDK layers so
-  // browsers can cache them independently and app code stays small.
-  if (id.includes('/@firebase/firestore/') || id.includes('/firebase/firestore')) {
-    return 'firebase-firestore';
-  }
-  if (id.includes('/@firebase/auth/') || id.includes('/firebase/auth')) {
-    return 'firebase-auth';
-  }
-  if (
-    id.includes('/@firebase/app/') ||
-    id.includes('/@firebase/component/') ||
-    id.includes('/@firebase/logger/') ||
-    id.includes('/@firebase/util/') ||
-    id.includes('/@firebase/webchannel-wrapper/') ||
-    id.includes('/firebase/app')
-  ) {
-    return 'firebase-core';
-  }
-
-  if (
-    id.includes('/react/') ||
-    id.includes('/react-dom/') ||
-    id.includes('/react-router/') ||
-    id.includes('/react-router-dom/')
-  ) {
-    return 'react';
-  }
-
-  if (id.includes('/motion/') || id.includes('/framer-motion/')) {
-    return 'motion';
-  }
-
-  return undefined;
-}
-
 export default defineConfig(() => {
   return {
     // GitHub Pages project sites are served from /<repository>/.
@@ -111,13 +73,6 @@ export default defineConfig(() => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
-      },
-    },
-    build: {
-      rollupOptions: {
-        output: {
-          manualChunks: vendorChunk,
-        },
       },
     },
     server: {
