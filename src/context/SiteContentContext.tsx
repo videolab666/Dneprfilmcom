@@ -51,7 +51,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   const [locale, setLocaleState] = useState<Locale>(() => {
     try {
       const saved = localStorage.getItem('dneprfilm_locale');
-      if (saved === 'ru' || saved === 'uk' || saved === 'en') {
+      if (saved === 'ru' || saved === 'uk') {
         return saved;
       }
     } catch {
