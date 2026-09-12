@@ -7,9 +7,11 @@ import {
 import { Link } from 'react-router-dom';
 import { useSiteContent } from '../context/SiteContentContext';
 import { ClientsMarquee } from '../components/ClientsMarquee';
+import { usePageCmsContent } from '../hooks/usePageCmsContent';
 
 export function About() {
   const { settings, isUk } = useSiteContent();
+  const { content: pageContent, localize } = usePageCmsContent();
 
   const phoneDisplay = settings.phone || '+380 (67) 560-68-80';
   const telegramHandle = (settings.telegram || '@dneprfilm').replace('@', '');
@@ -98,8 +100,15 @@ export function About() {
     }
   ];
 
-  const milestones = isUk ? milestones_UK : milestones_RU;
-  const principles = isUk ? principles_UK : principles_RU;
+  const milestones = localize(pageContent.about.milestones).map(item => ({
+    year: item.text.badge || '',
+    title: item.text.title || '',
+    desc: item.text.description || '',
+  }));
+  const principles = localize(pageContent.about.principles).map(item => ({
+    title: item.text.title || '',
+    desc: item.text.description || '',
+  }));
 
   const founderName = isUk ? (settings.founderName_uk || 'Олександр Пітель') : (settings.founderName || 'Александр Питель');
   const founderRole = isUk ? (settings.founderRole_uk || 'Засновник продакшен-студії Dneprfilm') : (settings.founderRole || 'Основатель продакшен-студии Dneprfilm');

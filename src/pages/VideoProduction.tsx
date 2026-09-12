@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
+import { usePageCmsContent } from '../hooks/usePageCmsContent';
 
 // Real showcased works inspired directly by @dneprfilm152 channel
 const FEATURED_VIDEO_WORKS_RU = [
@@ -225,9 +226,36 @@ const PRODUCTION_STEPS_UK = [
 
 export function VideoProduction() {
   const { isUk } = useSiteContent();
+  const { content: pageContent, localize } = usePageCmsContent();
 
-  const featuredWorks = isUk ? FEATURED_VIDEO_WORKS_UK : FEATURED_VIDEO_WORKS_RU;
-  const productionSteps = isUk ? PRODUCTION_STEPS_UK : PRODUCTION_STEPS_RU;
+  const videoIconMap: Record<string, React.ReactNode> = {
+    flame: <Flame className="w-5 h-5 text-amber-500" />,
+    factory: <Factory className="w-5 h-5 text-blue-500" />,
+    globe: <Globe2 className="w-5 h-5 text-indigo-500" />,
+    medical: <Stethoscope className="w-5 h-5 text-emerald-500" />,
+    award: <Award className="w-5 h-5 text-purple-500" />,
+    fitness: <Dumbbell className="w-5 h-5 text-rose-500" />,
+    video: <Video className="w-5 h-5 text-indigo-500" />,
+  };
+
+  const featuredWorks = localize(pageContent.video.works).map(item => ({
+    id: item.id,
+    title: item.text.title || '',
+    client: item.text.meta1 || '',
+    category: item.text.meta2 || '',
+    description: item.text.description || '',
+    icon: videoIconMap[item.iconKey || 'video'] || videoIconMap.video,
+    image: item.imageUrl || '',
+    tags: item.text.items || [],
+    results: item.text.result || '',
+  }));
+
+  const productionSteps = localize(pageContent.video.steps).map(item => ({
+    step: item.text.badge || '',
+    title: item.text.title || '',
+    subtitle: item.text.subtitle || '',
+    desc: item.text.description || '',
+  }));
 
   // Configurator state
   const [videoType, setVideoType] = useState<'commercial' | 'factory' | 'corporate' | 'event'>('commercial');

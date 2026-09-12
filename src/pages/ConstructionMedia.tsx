@@ -30,6 +30,7 @@ import {
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
+import { usePageCmsContent } from '../hooks/usePageCmsContent';
 
 // Featured construction showcase items
 const SHOWCASED_CONSTRUCTION_WORKS_RU = [
@@ -375,8 +376,19 @@ const FAQS_UK = [
 
 export function ConstructionMedia() {
   const { isUk, settings } = useSiteContent();
+  const { content: pageContent, localize } = usePageCmsContent();
 
-  const showcaseWorks = isUk ? SHOWCASED_CONSTRUCTION_WORKS_UK : SHOWCASED_CONSTRUCTION_WORKS_RU;
+  const showcaseWorks = localize(pageContent.construction.works).map(item => ({
+    id: item.id,
+    title: item.text.title || '',
+    objectType: item.text.meta1 || '',
+    client: item.text.meta2 || '',
+    duration: item.text.meta3 || '',
+    image: item.imageUrl || '',
+    description: item.text.description || '',
+    features: item.text.items || [],
+    results: item.text.result || '',
+  }));
   const solutions = isUk ? SOLUTIONS_UK : SOLUTIONS_RU;
   const workflowSteps = isUk ? WORKFLOW_STEPS_UK : WORKFLOW_STEPS_RU;
   const faqs = isUk ? FAQS_UK : FAQS_RU;
