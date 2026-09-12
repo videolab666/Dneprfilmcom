@@ -31,6 +31,7 @@ import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
 import { usePageCmsContent } from '../hooks/usePageCmsContent';
+import { usePageCopyContent } from '../hooks/usePageCopyContent';
 
 // Featured construction showcase items
 const SHOWCASED_CONSTRUCTION_WORKS_RU = [
@@ -377,6 +378,16 @@ const FAQS_UK = [
 export function ConstructionMedia() {
   const { isUk, settings } = useSiteContent();
   const { content: pageContent, localize } = usePageCmsContent();
+  const { content: copyContent, localize: localizeCopy, byId: copyById } = usePageCopyContent();
+  const constructionHero = copyById(copyContent.construction.hero, 'construction-hero')?.text;
+  const solutionIconMap: Record<string, React.ReactNode> = {
+    camera: <Camera className="w-6 h-6 text-amber-500" />,
+    compass: <Compass className="w-6 h-6 text-indigo-500" />,
+    eye: <Eye className="w-6 h-6 text-emerald-500" />,
+    file: <FileCheck className="w-6 h-6 text-blue-500" />,
+    video: <Video className="w-6 h-6 text-rose-500" />,
+    radio: <Radio className="w-6 h-6 text-purple-500" />,
+  };
 
   const showcaseWorks = localize(pageContent.construction.works).map(item => ({
     id: item.id,
@@ -389,9 +400,13 @@ export function ConstructionMedia() {
     features: item.text.items || [],
     results: item.text.result || '',
   }));
-  const solutions = isUk ? SOLUTIONS_UK : SOLUTIONS_RU;
-  const workflowSteps = isUk ? WORKFLOW_STEPS_UK : WORKFLOW_STEPS_RU;
-  const faqs = isUk ? FAQS_UK : FAQS_RU;
+  const solutions = localizeCopy(copyContent.construction.solutions).map(item => ({
+    id: item.id, title: item.text.title || '', subtitle: item.text.subtitle || '',
+    icon: solutionIconMap[item.iconKey || 'camera'] || solutionIconMap.camera,
+    badge: item.text.badge || '', description: item.text.description || '', bullets: item.text.items || [],
+  }));
+  const workflowSteps = localizeCopy(copyContent.construction.workflow).map(item => ({ step: item.text.badge || '', title: item.text.title || '', desc: item.text.description || '' }));
+  const faqs = localizeCopy(copyContent.construction.faqs).map(item => ({ q: item.text.title || '', a: item.text.description || '' }));
 
   // Configurator state
   const [objectType, setObjectType] = useState<'residential' | 'cottage' | 'logistics' | 'infrastructure'>('residential');
@@ -498,20 +513,18 @@ export function ConstructionMedia() {
             <div className="lg:col-span-7">
               <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider mb-6">
                 <HardHat className="w-3.5 h-3.5" />
-                <span>{isUk ? 'Інженерний медіамоніторинг для девелоперів' : 'Инженерный медиамониторинг для девелоперов'}</span>
+                <span>{constructionHero?.badge}</span>
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] mb-6">
-                {isUk ? 'Медіаконтроль' : 'Медиаконтроль'} <br />
+                {constructionHero?.title} <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-indigo-400">
-                  {isUk ? 'будівництва & 4K Аеромоніторинг' : 'строительства & 4K Аэромониторинг'}
+                  {constructionHero?.meta1}
                 </span>
               </h1>
 
               <p className="text-base sm:text-lg text-slate-300 font-normal leading-relaxed mb-8 max-w-2xl">
-                {isUk
-                  ? 'Автономний 4K таймлапс 24/7 у термобоксах IP67, регулярні обльоти дронами за фіксованими GPS-точками, 3D-аеропанорами краєвидів з вікон майбутніх квартир та відеозвіти для інвесторів і банків.'
-                  : 'Автономный 4K таймлапс 24/7 в термобоксах IP67, регулярные облеты дронами по фиксированным GPS-точкам, 3D-аэропанорамы видов из окон будущих квартир и видеоотчеты для инвесторов и банков.'}
+                {constructionHero?.description}
               </p>
 
               {/* Badges / Differentiators */}

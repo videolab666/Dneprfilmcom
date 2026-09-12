@@ -24,12 +24,16 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
 import { usePageCmsContent } from '../hooks/usePageCmsContent';
+import { usePageCopyContent } from '../hooks/usePageCopyContent';
 
 type CategoryFilter = 'all' | 'interior' | 'food' | 'kids' | 'wedding' | 'corporate';
 
 export function PhotoProduction() {
   const { isUk } = useSiteContent();
   const { content: pageContent, localize } = usePageCmsContent();
+  const { content: copyContent, byId: copyById } = usePageCopyContent();
+  const photoHero = copyById(copyContent.photo.hero, 'photo-hero')?.text;
+  const photoGalleryHeading = copyById(copyContent.photo.headings, 'photo-heading-gallery')?.text;
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
 
@@ -179,18 +183,15 @@ export function PhotoProduction() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-6">
               <Camera className="w-3.5 h-3.5" />
-              <span>{isUk ? 'Професійна фотозйомка • Олександр Пітель' : 'Профессиональная фотосъемка • Александр Питель'}</span>
+              <span>{photoHero?.badge}</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-              {isUk ? 'Бездоганні кадри для бізнесу, інтер\'єрів та життя' : 'Безупречные кадры для бизнеса, интерьеров и жизни'}
+              {photoHero?.title}
             </h1>
 
             <p className="mt-6 text-lg sm:text-xl text-slate-300 font-normal leading-relaxed">
-              {isUk 
-                ? 'Від вивіреної геометрії розкішних апартаментів та апетитної фуд-зйомки ресторанів до щирого дитячого сміху і кінематографічних весіль. Повнокадрова оптика, мобільне світло та глибока кольорокорекція.'
-                : 'От выверенной геометрии роскошных апартаментов и аппетитной фуд-съемки ресторанов до искреннего детского смеха и кинематографичных свадеб. Полнокадровая оптика, мобильный свет и глубокая цветокоррекция.'
-              }
+              {photoHero?.description}
             </p>
 
             {/* Value Badges */}
@@ -218,14 +219,14 @@ export function PhotoProduction() {
                 href="#portfolio"
                 className="inline-flex items-center justify-center px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-600/25"
               >
-                {isUk ? 'Дивитися галерею робіт' : 'Смотреть галерею работ'}
+                {photoHero?.meta1}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </a>
               <a
                 href="#booking-form"
                 className="inline-flex items-center justify-center px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-sm transition-all"
               >
-                {isUk ? 'Розрахувати вартість зйомки' : 'Рассчитать стоимость съемки'}
+                {photoHero?.meta2}
               </a>
             </div>
           </div>
@@ -237,13 +238,10 @@ export function PhotoProduction() {
       <section id="portfolio" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-            {isUk ? 'Вибрані фотороботи' : 'Избранные фотоработы'}
+            {photoGalleryHeading?.title}
           </h2>
           <p className="mt-3 text-slate-600 text-base">
-            {isUk 
-              ? 'Оберіть потрібний напрямок, щоб оцінити стиль кольорокорекції, роботу з композицією та деталізацію.'
-              : 'Выберите интересующее направление, чтобы оценить стиль цветокоррекции, работу с композицией и детализацию.'
-            }
+            {photoGalleryHeading?.description}
           </p>
         </div>
 
