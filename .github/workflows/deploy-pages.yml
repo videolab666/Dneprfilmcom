@@ -45,6 +45,8 @@ jobs:
           touch dist/.nojekyll
 
       - name: Browser smoke test
+        env:
+          VITE_BASE_PATH: /Dneprfilmcom/
         run: |
           set -euo pipefail
 
@@ -113,11 +115,13 @@ jobs:
 
             if grep -q 'id="boot-fallback"' <<< "$html"; then
               echo "Static boot fallback was still present for ${url}"
+              cat /tmp/dneprfilm-chrome.log || true
               exit 1
             fi
 
             if grep -q 'animate-spin' <<< "$html"; then
               echo "React route fallback was still present for ${url}"
+              cat /tmp/dneprfilm-chrome.log || true
               exit 1
             fi
 
