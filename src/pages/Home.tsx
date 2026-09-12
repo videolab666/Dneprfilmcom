@@ -12,7 +12,7 @@ import { QuickContactCTA } from '../components/home/QuickContactCTA';
 import { ClientsMarquee } from '../components/ClientsMarquee';
 
 export function Home() {
-  const { settings, blocks, t } = useSiteContent();
+  const { settings, blocks, t, l } = useSiteContent();
   const activeBlocks = blocks.filter(b => b.isActive);
 
   return (
@@ -200,15 +200,15 @@ export function Home() {
             <div className="relative rounded-3xl overflow-hidden aspect-[4/5] lg:aspect-square">
               <img 
                 src={settings.founderPhoto || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?auto=format&fit=crop&q=80"} 
-                alt={settings.founderName || "Александр Питель"} 
+                alt={settings.founderName || l("Олександр Пітель", "Александр Питель")} 
                 className="w-full h-full object-cover"
               />
             </div>
             <div>
               <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-4">
-                <span>{settings.founderRole || "Основатель студии"}</span>
+                <span>{settings.founderRole || l("Засновник студії", "Основатель студии", "Studio founder")}</span>
               </div>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-6">{settings.founderName || "Александр Питель"}</h2>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-6">{settings.founderName || l("Олександр Пітель", "Александр Питель")}</h2>
               <p className="text-xl text-slate-300 mb-8 font-light leading-relaxed">
                 "{settings.founderQuote}"
               </p>

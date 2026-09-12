@@ -23,7 +23,7 @@ export interface DynamicBlockRendererProps {
 }
 
 export const DynamicBlockRenderer: React.FC<DynamicBlockRendererProps> = ({ block }) => {
-  const { isUk } = useSiteContent();
+  const { isUk, l } = useSiteContent();
   const rawConfig = block.config;
   const config = (isUk && block.config_uk) ? { ...rawConfig, ...block.config_uk } : rawConfig;
   const { type } = block;
@@ -341,7 +341,7 @@ export const DynamicBlockRenderer: React.FC<DynamicBlockRendererProps> = ({ bloc
 }
 
 function FaqAccordion({ block }: { block: SiteBlock }) {
-  const { isUk } = useSiteContent();
+  const { isUk, l } = useSiteContent();
   const rawConfig = block.config;
   const config = (isUk && block.config_uk) ? { ...rawConfig, ...block.config_uk } : rawConfig;
   const [openIdx, setOpenIdx] = useState<number | null>(0);
@@ -352,7 +352,7 @@ function FaqAccordion({ block }: { block: SiteBlock }) {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mb-4">
-            {config.heading || (isUk ? 'Часті запитання' : 'Часто задаваемые вопросы')}
+            {config.heading || (l("Часті запитання", "Часто задаваемые вопросы"))}
           </h2>
           {config.subheading && (
             <p className="text-base sm:text-lg text-slate-600">

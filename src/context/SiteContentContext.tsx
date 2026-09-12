@@ -17,6 +17,7 @@ import {
   DEFAULT_SITE_BLOCKS_UK 
 } from '../lib/cmsDefaults';
 import { TRANSLATIONS } from '../locales/translations';
+import { legacyText, legacyValue } from '../locales/legacyEnglish';
 import { 
   CASE_TRANSLATIONS_UK, 
   TESTIMONIALS_TRANSLATIONS_UK, 
@@ -27,6 +28,8 @@ interface SiteContentContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   t: (key: string, fallback?: string) => string;
+  l: (uk: string, ru: string, en?: string) => string;
+  legacy: <T>(uk: T, ru: T) => T;
   isUk: boolean;
   isEn: boolean;
   isRu: boolean;
@@ -50,8 +53,12 @@ const SiteContentContext = createContext<SiteContentContextType | undefined>(und
 export function SiteContentProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
     try {
+      const requested = new URLSearchParams(window.location.search).get('lang');
+      if (requested === 'ru' || requested === 'uk' || requested === 'en') {
+        return requested;
+      }
       const saved = localStorage.getItem('dneprfilm_locale');
-      if (saved === 'ru' || saved === 'uk') {
+      if (saved === 'ru' || saved === 'uk' || saved === 'en') {
         return saved;
       }
     } catch {
@@ -97,6 +104,9 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
     }
     return fallback ?? key;
   };
+
+  const l = (uk: string, ru: string, en?: string): string => legacyText(locale, uk, ru, en);
+  const legacy = <T,>(uk: T, ru: T): T => legacyValue(locale, uk, ru);
 
   const isUk = locale === 'uk';
   const isEn = locale === 'en';
@@ -414,6 +424,8 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
         locale,
         setLocale,
         t,
+        l,
+        legacy,
         isUk,
         isEn,
         isRu,

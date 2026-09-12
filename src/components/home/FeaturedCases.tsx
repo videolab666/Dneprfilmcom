@@ -16,7 +16,7 @@ function categoryIcon(category: CaseStudy['category']) {
 }
 
 export function FeaturedCases() {
-  const { isUk, getLocalizedCase } = useSiteContent();
+  const { isUk, getLocalizedCase, l } = useSiteContent();
   const [cases, setCases] = useState<CaseStudy[]>(INITIAL_CASES);
   const [selectedFilter, setSelectedFilter] = useState<Filter>('ALL');
   const [activeCase, setActiveCase] = useState<CaseStudy | null>(null);
@@ -63,21 +63,21 @@ export function FeaturedCases() {
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
           <div>
             <div className="inline-flex px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-4">
-              {isUk ? 'Портфоліо проєктів' : 'Портфолио проектов'}
+              {l("Портфоліо проєктів", "Портфолио проектов")}
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
-              {isUk ? 'Обрані кейси студії' : 'Избранные кейсы студии'}
+              {l("Обрані кейси студії", "Избранные кейсы студии")}
             </h2>
             <p className="mt-3 text-slate-400 max-w-2xl">
-              {isUk ? 'Ті самі кейси, якими ви керуєте в адмін-панелі.' : 'Те же кейсы, которыми вы управляете в админ-панели.'}
+              {l("Ті самі кейси, якими ви керуєте в адмін-панелі.", "Те же кейсы, которыми вы управляете в админ-панели.")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2 p-1.5 bg-slate-800 rounded-2xl border border-slate-700">
             {([
-              ['ALL', isUk ? 'Усі' : 'Все'],
+              ['ALL', l("Усі", "Все")],
               ['LIVE', 'LIVE'],
               ['VIDEO', 'VIDEO'],
-              ['CONSTRUCTION', isUk ? 'Будівництво' : 'Стройка'],
+              ['CONSTRUCTION', l("Будівництво", "Стройка")],
             ] as Array<[Filter, string]>).map(([id, label]) => (
               <button key={id} onClick={() => setSelectedFilter(id)} className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors ${selectedFilter === id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}>
                 {label}
@@ -102,11 +102,11 @@ export function FeaturedCases() {
                   {item.videoBadge && <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-indigo-600 text-[11px] font-bold">{item.videoBadge}</div>}
                 </div>
                 <div className="p-6 flex flex-col flex-1">
-                  <div className="text-xs text-slate-400 mb-2">{isUk ? 'Клієнт' : 'Клиент'}: <span className="text-slate-200 font-semibold">{item.client}</span></div>
+                  <div className="text-xs text-slate-400 mb-2">{l("Клієнт", "Клиент")}: <span className="text-slate-200 font-semibold">{item.client}</span></div>
                   <h3 className="text-lg font-bold leading-snug">{item.title}</h3>
                   <div className="mt-4 rounded-2xl bg-slate-950/40 p-4 text-xs text-slate-300 space-y-3 flex-1">
-                    <div><div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">{isUk ? 'Завдання' : 'Задача'}</div><p className="line-clamp-3">{problem}</p></div>
-                    <div className="pt-3 border-t border-slate-800"><div className="text-[10px] uppercase tracking-wider text-indigo-400 font-bold mb-1">{isUk ? 'Результат' : 'Результат'}</div><p className="line-clamp-3">{result}</p></div>
+                    <div><div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">{l("Завдання", "Задача")}</div><p className="line-clamp-3">{problem}</p></div>
+                    <div className="pt-3 border-t border-slate-800"><div className="text-[10px] uppercase tracking-wider text-indigo-400 font-bold mb-1">{l("Результат", "Результат")}</div><p className="line-clamp-3">{result}</p></div>
                   </div>
                   {item.metrics?.length ? (
                     <div className="grid grid-cols-3 gap-2 mt-4">
@@ -114,7 +114,7 @@ export function FeaturedCases() {
                     </div>
                   ) : null}
                   <button onClick={() => setActiveCase(item)} className="mt-5 w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-700 hover:bg-indigo-600 text-sm font-semibold transition-colors">
-                    {isUk ? 'Детальніше' : 'Подробнее'} <ArrowRight className="w-4 h-4" />
+                    {l("Детальніше", "Подробнее")} <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </article>
@@ -124,7 +124,7 @@ export function FeaturedCases() {
 
         <div className="text-center mt-14">
           <Link to="/cases" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-slate-900 font-bold hover:bg-indigo-50">
-            {isUk ? 'Відкрити всі кейси' : 'Открыть все кейсы'} <ArrowRight className="w-4 h-4" />
+            {l("Відкрити всі кейси", "Открыть все кейсы")} <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </div>
@@ -139,12 +139,12 @@ export function FeaturedCases() {
               <h3 className="text-2xl sm:text-3xl font-black mt-2 pr-12">{activeCase.title}</h3>
               <p className="text-sm text-slate-400 mt-2">{activeCase.client}</p>
               <div className="mt-7 space-y-5 text-sm text-slate-300 leading-relaxed">
-                <div><h4 className="font-bold text-white mb-1">{isUk ? 'Опис' : 'Описание'}</h4><p>{activeCase.description}</p></div>
-                {(activeCase.challenge || activeCase.problem) && <div><h4 className="font-bold text-white mb-1">{isUk ? 'Завдання' : 'Задача'}</h4><p>{activeCase.challenge || activeCase.problem}</p></div>}
-                {activeCase.solution && <div><h4 className="font-bold text-white mb-1">{isUk ? 'Рішення' : 'Решение'}</h4><p>{activeCase.solution}</p></div>}
-                {activeCase.result && <div><h4 className="font-bold text-white mb-1">{isUk ? 'Результат' : 'Результат'}</h4><p>{activeCase.result}</p></div>}
+                <div><h4 className="font-bold text-white mb-1">{l("Опис", "Описание")}</h4><p>{activeCase.description}</p></div>
+                {(activeCase.challenge || activeCase.problem) && <div><h4 className="font-bold text-white mb-1">{l("Завдання", "Задача")}</h4><p>{activeCase.challenge || activeCase.problem}</p></div>}
+                {activeCase.solution && <div><h4 className="font-bold text-white mb-1">{l("Рішення", "Решение")}</h4><p>{activeCase.solution}</p></div>}
+                {activeCase.result && <div><h4 className="font-bold text-white mb-1">{l("Результат", "Результат")}</h4><p>{activeCase.result}</p></div>}
               </div>
-              {activeCase.videoUrl && <a href={activeCase.videoUrl} target="_blank" rel="noopener noreferrer" className="mt-7 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold"><Play className="w-4 h-4" />{isUk ? 'Дивитися відео' : 'Смотреть видео'}</a>}
+              {activeCase.videoUrl && <a href={activeCase.videoUrl} target="_blank" rel="noopener noreferrer" className="mt-7 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold"><Play className="w-4 h-4" />{l("Дивитися відео", "Смотреть видео")}</a>}
             </div>
           </div>
         </div>

@@ -30,7 +30,7 @@ type TabType = 'articles' | 'rider' | 'docs';
 type CategoryFilter = 'all' | ArticleCategory;
 
 export function MediaCenter() {
-  const { locale, isUk } = useSiteContent();
+  const { locale, isUk, l, legacy } = useSiteContent();
   const [activeTab, setActiveTab] = useState<TabType>('articles');
   const [articles, setArticles] = useState<Article[]>(DEFAULT_ARTICLES);
   const [articlesLoading, setArticlesLoading] = useState(true);
@@ -67,8 +67,8 @@ export function MediaCenter() {
     return () => unsubscribe();
   }, []);
 
-  const riderItems = isUk ? TECH_RIDER_ITEMS_UK : TECH_RIDER_ITEMS;
-  const downloadableDocs = isUk ? DOWNLOADABLE_DOCS_UK : DOWNLOADABLE_DOCS;
+  const riderItems = legacy(TECH_RIDER_ITEMS_UK, TECH_RIDER_ITEMS);
+  const downloadableDocs = legacy(DOWNLOADABLE_DOCS_UK, DOWNLOADABLE_DOCS);
 
   const localizedArticles = useMemo(
     () => articles.map(article => ({ article, text: localizeArticle(article, locale) })),
@@ -106,7 +106,7 @@ export function MediaCenter() {
   const handleConsultationSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!contactName.trim() || !contactPhone.trim()) {
-      setFormError(isUk ? 'Вкажіть ім’я та номер телефону.' : 'Укажите имя и номер телефона.');
+      setFormError(l("Вкажіть ім’я та номер телефону.", "Укажите имя и номер телефона."));
       return;
     }
 
@@ -127,7 +127,7 @@ export function MediaCenter() {
       setQuestionText('');
     } catch (error) {
       console.error('Error submitting Media Center lead:', error);
-      setFormError(isUk ? 'Не вдалося надіслати заявку. Спробуйте ще раз.' : 'Не удалось отправить заявку. Попробуйте ещё раз.');
+      setFormError(l("Не вдалося надіслати заявку. Спробуйте ще раз.", "Не удалось отправить заявку. Попробуйте ещё раз."));
     } finally {
       setIsSubmitting(false);
     }
@@ -150,25 +150,23 @@ export function MediaCenter() {
           <div className="max-w-4xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-6">
               <BookOpen className="w-3.5 h-3.5" />
-              <span>{isUk ? 'База знань & Технічний хаб Dneprfilm' : 'База знаний & Технический хаб Dneprfilm'}</span>
+              <span>{l("База знань & Технічний хаб Dneprfilm", "База знаний & Технический хаб Dneprfilm")}</span>
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
-              {isUk ? 'Media Center: практика, райдери & експертиза' : 'Media Center: практика, райдеры & экспертиза'}
+              {l("Media Center: практика, райдери & експертиза", "Media Center: практика, райдеры & экспертиза")}
             </h1>
             <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-3xl">
-              {isUk
-                ? 'Практичні матеріали про прямі ефіри, відеовиробництво, будівельний моніторинг, техніку та підготовку проєктів.'
-                : 'Практические материалы о прямых эфирах, видеопроизводстве, строительном мониторинге, технике и подготовке проектов.'}
+              {l("Практичні матеріали про прямі ефіри, відеовиробництво, будівельний моніторинг, техніку та підготовку проєктів.", "Практические материалы о прямых эфирах, видеопроизводстве, строительном мониторинге, технике и подготовке проектов.")}
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
               <TabButton active={activeTab === 'articles'} onClick={() => setActiveTab('articles')} icon={<FileText className="w-4 h-4" />}>
-                {isUk ? 'Статті & Гайди' : 'Статьи & Гайды'} ({articles.length})
+                {l("Статті & Гайди", "Статьи & Гайды")} ({articles.length})
               </TabButton>
               <TabButton active={activeTab === 'rider'} onClick={() => setActiveTab('rider')} icon={<Cpu className="w-4 h-4" />}>
-                {isUk ? 'Технічний парк & Райдер' : 'Технический парк & Райдер'} ({riderItems.length})
+                {l("Технічний парк & Райдер", "Технический парк & Райдер")} ({riderItems.length})
               </TabButton>
               <TabButton active={activeTab === 'docs'} onClick={() => setActiveTab('docs')} icon={<Download className="w-4 h-4" />}>
-                {isUk ? 'Документи & Брифи' : 'Документы & Брифы'} ({downloadableDocs.length})
+                {l("Документи & Брифи", "Документы & Брифы")} ({downloadableDocs.length})
               </TabButton>
             </div>
           </div>
@@ -180,7 +178,7 @@ export function MediaCenter() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 mb-10 pb-8 border-b border-slate-200">
             <div className="relative w-full max-w-md">
               <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={isUk ? 'Пошук за статтями…' : 'Поиск по статьям…'} className="w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 shadow-sm" />
+              <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={l("Пошук за статтями…", "Поиск по статьям…")} className="w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 shadow-sm" />
               {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><X className="w-4 h-4" /></button>}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -193,9 +191,9 @@ export function MediaCenter() {
           </div>
 
           {articlesLoading ? (
-            <div className="py-20 text-center text-slate-500">{isUk ? 'Завантаження статей…' : 'Загрузка статей…'}</div>
+            <div className="py-20 text-center text-slate-500">{l("Завантаження статей…", "Загрузка статей…")}</div>
           ) : filteredArticles.length === 0 ? (
-            <div className="py-20 text-center bg-white border border-slate-200 rounded-3xl text-slate-500">{isUk ? 'Нічого не знайдено.' : 'Ничего не найдено.'}</div>
+            <div className="py-20 text-center bg-white border border-slate-200 rounded-3xl text-slate-500">{l("Нічого не знайдено.", "Ничего не найдено.")}</div>
           ) : (
             <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-7">
               {filteredArticles.map(({ article, text }) => (
@@ -212,7 +210,7 @@ export function MediaCenter() {
                       {text.readTime && <span className="inline-flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{text.readTime}</span>}
                     </div>
                     <button onClick={() => setReadingArticle(article)} className="mt-5 py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white text-sm font-bold transition-colors">
-                      {isUk ? 'Читати статтю' : 'Читать статью'}
+                      {l("Читати статтю", "Читать статью")}
                     </button>
                   </div>
                 </article>
@@ -251,7 +249,7 @@ export function MediaCenter() {
                 </div>
                 <button onClick={() => handleDownloadDoc(docItem)} className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700">
                   {downloadSuccessDocId === docItem.id ? <CheckCircle2 className="w-4 h-4" /> : <Download className="w-4 h-4" />}
-                  {downloadSuccessDocId === docItem.id ? (isUk ? 'Готово' : 'Готово') : (isUk ? 'Завантажити' : 'Скачать')}
+                  {downloadSuccessDocId === docItem.id ? (l("Готово", "Готово")) : (l("Завантажити", "Скачать"))}
                 </button>
               </div>
             ))}
@@ -262,18 +260,18 @@ export function MediaCenter() {
       <section className="py-16 bg-white border-t border-slate-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-slate-950 text-white rounded-3xl p-7 sm:p-10">
-            <h2 className="text-2xl sm:text-3xl font-black">{isUk ? 'Потрібна консультація по вашому проєкту?' : 'Нужна консультация по вашему проекту?'}</h2>
-            <p className="text-slate-400 mt-2">{isUk ? 'Опишіть задачу — підкажемо технічну схему та формат виробництва.' : 'Опишите задачу — подскажем техническую схему и формат производства.'}</p>
+            <h2 className="text-2xl sm:text-3xl font-black">{l("Потрібна консультація по вашому проєкту?", "Нужна консультация по вашему проекту?")}</h2>
+            <p className="text-slate-400 mt-2">{l("Опишіть задачу — підкажемо технічну схему та формат виробництва.", "Опишите задачу — подскажем техническую схему и формат производства.")}</p>
             {isSubmitted ? (
-              <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-200 flex gap-2"><CheckCircle2 className="w-5 h-5" />{isUk ? 'Заявку надіслано.' : 'Заявка отправлена.'}</div>
+              <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-200 flex gap-2"><CheckCircle2 className="w-5 h-5" />{l("Заявку надіслано.", "Заявка отправлена.")}</div>
             ) : (
               <form onSubmit={handleConsultationSubmit} className="mt-7 grid sm:grid-cols-2 gap-4">
-                <input value={contactName} onChange={e => setContactName(e.target.value)} placeholder={isUk ? 'Ваше ім’я' : 'Ваше имя'} className="px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none focus:border-indigo-500" />
+                <input value={contactName} onChange={e => setContactName(e.target.value)} placeholder={l("Ваше ім’я", "Ваше имя")} className="px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none focus:border-indigo-500" />
                 <input value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="Телефон / Telegram" className="px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none focus:border-indigo-500" />
-                <textarea value={questionText} onChange={e => setQuestionText(e.target.value)} rows={3} placeholder={isUk ? 'Коротко про задачу' : 'Коротко о задаче'} className="sm:col-span-2 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none focus:border-indigo-500" />
+                <textarea value={questionText} onChange={e => setQuestionText(e.target.value)} rows={3} placeholder={l("Коротко про задачу", "Коротко о задаче")} className="sm:col-span-2 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none focus:border-indigo-500" />
                 {formError && <div className="sm:col-span-2 text-sm text-red-300">{formError}</div>}
                 <button disabled={isSubmitting} className="sm:col-span-2 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold disabled:opacity-50">
-                  <Send className="w-4 h-4" />{isSubmitting ? (isUk ? 'Надсилання…' : 'Отправка…') : (isUk ? 'Надіслати запит' : 'Отправить запрос')}
+                  <Send className="w-4 h-4" />{isSubmitting ? (l("Надсилання…", "Отправка…")) : (l("Надіслати запит", "Отправить запрос"))}
                 </button>
               </form>
             )}
@@ -303,7 +301,7 @@ export function MediaCenter() {
                 <p className="mt-6 text-lg text-slate-600 font-medium leading-relaxed">{text.summary}</p>
                 {text.keyTakeaways.length > 0 && (
                   <div className="my-8 rounded-2xl bg-indigo-50 border border-indigo-100 p-5">
-                    <h2 className="font-black text-indigo-950 mb-3">{isUk ? 'Ключові висновки' : 'Ключевые выводы'}</h2>
+                    <h2 className="font-black text-indigo-950 mb-3">{l("Ключові висновки", "Ключевые выводы")}</h2>
                     <ul className="space-y-2">{text.keyTakeaways.map(item => <li key={item} className="text-sm text-slate-700 flex gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />{item}</li>)}</ul>
                   </div>
                 )}

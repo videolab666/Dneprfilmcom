@@ -1,3 +1,4 @@
+import { translateEnglishValue } from '../locales/legacyEnglish';
 import { INITIAL_PHOTOS, INITIAL_PHOTOS_UK, PHOTO_PACKAGES, PHOTO_PACKAGES_UK } from './initialPhotos';
 
 export type PageContentLocale = 'ru' | 'uk' | 'en';
@@ -152,7 +153,7 @@ export const DEFAULT_PAGE_CONTENT: PageContent = {
 };
 
 export function getPageItemText(item: PageContentItem, locale: PageContentLocale): PageItemText {
-  if (locale === 'en') return item.en || item.uk || item.ru;
+  if (locale === 'en') return item.en || translateEnglishValue(item.uk || item.ru);
   if (locale === 'uk') return item.uk || item.ru;
   return item.ru || item.uk;
 }

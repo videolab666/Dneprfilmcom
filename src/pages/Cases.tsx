@@ -28,7 +28,7 @@ import { useSiteContent } from '../context/SiteContentContext';
 import { ClientsMarquee } from '../components/ClientsMarquee';
 
 export function Cases() {
-  const { settings, isUk, getLocalizedCase } = useSiteContent();
+  const { settings, isUk, getLocalizedCase, l } = useSiteContent();
   const [cases, setCases] = useState<CaseStudy[]>(INITIAL_CASES);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<'ALL' | 'LIVE' | 'VIDEO' | 'CONSTRUCTION'>('ALL');
@@ -93,26 +93,26 @@ export function Cases() {
       await addDoc(collection(db, 'leads'), {
         name: clientName,
         phone: clientPhone,
-        service: inquiryCase ? `${isUk ? 'Кейс' : 'Кейс'}: ${inquiryCase.title}` : (isUk ? 'Запит щодо портфоліо' : 'Запрос по портфолио'),
+        service: inquiryCase ? `${l("Кейс", "Кейс")}: ${inquiryCase.title}` : (l("Запит щодо портфоліо", "Запрос по портфолио")),
         eventType: inquiryCase?.category || 'Портфолио',
-        message: clientNote || (inquiryCase ? `${isUk ? 'Цікавить реалізація проєкту за аналогією з кейсом' : 'Интересует реализация проекта по аналогии с кейсом'} "${inquiryCase.title}"` : (isUk ? 'Заявка зі сторінки кейсів' : 'Заявка со страницы кейсов')),
+        message: clientNote || (inquiryCase ? `${l("Цікавить реалізація проєкту за аналогією з кейсом", "Интересует реализация проекта по аналогии с кейсом")} "${inquiryCase.title}"` : (l("Заявка зі сторінки кейсів", "Заявка со страницы кейсов"))),
         status: 'new',
         createdAt: Date.now()
       });
       setSubmitted(true);
     } catch (error) {
       console.error('Error submitting inquiry:', error);
-      alert(isUk ? 'Помилка під час надсилання заявки. Будь ласка, зателефонуйте нам напряму.' : 'Ошибка при отправке заявки. Пожалуйста, позвоните нам напрямую.');
+      alert(l("Помилка під час надсилання заявки. Будь ласка, зателефонуйте нам напряму.", "Ошибка при отправке заявки. Пожалуйста, позвоните нам напрямую."));
     } finally {
       setSubmitting(false);
     }
   };
 
   const categories = [
-    { id: 'ALL', label: isUk ? 'Всі проекти' : 'Все проекты', count: localizedCases.length, icon: <Layers className="w-4 h-4" /> },
-    { id: 'LIVE', label: isUk ? 'Прямі трансляції' : 'Прямые трансляции', count: localizedCases.filter(c => c.category === 'LIVE').length, icon: <Radio className="w-4 h-4" /> },
-    { id: 'VIDEO', label: isUk ? 'Реклама & Продакшн' : 'Реклама & Продакшн', count: localizedCases.filter(c => c.category === 'VIDEO').length, icon: <Video className="w-4 h-4" /> },
-    { id: 'CONSTRUCTION', label: isUk ? 'Будівельний моніторинг' : 'Строительный мониторинг', count: localizedCases.filter(c => c.category === 'CONSTRUCTION').length, icon: <Building2 className="w-4 h-4" /> },
+    { id: 'ALL', label: l("Всі проекти", "Все проекты"), count: localizedCases.length, icon: <Layers className="w-4 h-4" /> },
+    { id: 'LIVE', label: l("Прямі трансляції", "Прямые трансляции"), count: localizedCases.filter(c => c.category === 'LIVE').length, icon: <Radio className="w-4 h-4" /> },
+    { id: 'VIDEO', label: l("Реклама & Продакшн", "Реклама & Продакшн"), count: localizedCases.filter(c => c.category === 'VIDEO').length, icon: <Video className="w-4 h-4" /> },
+    { id: 'CONSTRUCTION', label: l("Будівельний моніторинг", "Строительный мониторинг"), count: localizedCases.filter(c => c.category === 'CONSTRUCTION').length, icon: <Building2 className="w-4 h-4" /> },
   ] as const;
 
   return (
@@ -130,41 +130,39 @@ export function Cases() {
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-6">
               <Sparkles className="w-3.5 h-3.5" />
               <span>
-                {isUk ? 'Реалізовані проекти студії ' : 'Реализованные проекты студии '}
+                {l("Реалізовані проекти студії ", "Реализованные проекты студии ")}
                 {settings.studioName || 'LIVE & VIDEO'}
               </span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] mb-6">
-              {isUk ? 'Портфоліо & ' : 'Портфолио & '}
+              {l("Портфоліо & ", "Портфолио & ")}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-indigo-300 to-indigo-500">
-                {isUk ? 'перевірені рішення' : 'проверенные решения'}
+                {l("перевірені рішення", "проверенные решения")}
               </span>
             </h1>
 
             <p className="text-base sm:text-xl text-slate-300 font-normal leading-relaxed mb-8">
-              {isUk
-                ? 'Кожен проєкт — це закінчене інженерне та творче завдання. Ми не просто знімаємо гарну картинку, а створюємо стабільний телеефір, залучаємо дилерів на міжнародних виставках або організовуємо цілодобовий відеоконтроль будівництва.'
-                : 'Каждый проект — это законченная инженерная и творческая задача. Мы не просто снимаем красивую картинку, а создаем стабильный телеэфир, привлекаем дилеров на международных выставках или организуем круглосуточный видеоконтроль строительства.'}
+              {l("Кожен проєкт — це закінчене інженерне та творче завдання. Ми не просто знімаємо гарну картинку, а створюємо стабільний телеефір, залучаємо дилерів на міжнародних виставках або організовуємо цілодобовий відеоконтроль будівництва.", "Каждый проект — это законченная инженерная и творческая задача. Мы не просто снимаем красивую картинку, а создаем стабильный телеэфир, привлекаем дилеров на международных выставках или организуем круглосуточный видеоконтроль строительства.")}
             </p>
 
             {/* Quick Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-800">
               <div>
                 <div className="text-2xl sm:text-3xl font-black text-white">400+</div>
-                <div className="text-xs text-slate-400 mt-0.5">{isUk ? 'Виконаних робіт' : 'Выполненных работ'}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{l("Виконаних робіт", "Выполненных работ")}</div>
               </div>
               <div>
                 <div className="text-2xl sm:text-3xl font-black text-amber-400">100%</div>
-                <div className="text-xs text-slate-400 mt-0.5">{isUk ? 'Ефірів без збоїв' : 'Эфиров без сбоев'}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{l("Ефірів без збоїв", "Эфиров без сбоев")}</div>
               </div>
               <div>
                 <div className="text-2xl sm:text-3xl font-black text-indigo-400">4K HDR</div>
-                <div className="text-xs text-slate-400 mt-0.5">{isUk ? 'Кінооптика Sony' : 'Кинооптика Sony'}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{l("Кінооптика Sony", "Кинооптика Sony")}</div>
               </div>
               <div>
                 <div className="text-2xl sm:text-3xl font-black text-emerald-400">Starlink</div>
-                <div className="text-xs text-slate-400 mt-0.5">{isUk ? 'Резервні канали' : 'Резервные каналы'}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{l("Резервні канали", "Резервные каналы")}</div>
               </div>
             </div>
           </div>
@@ -203,7 +201,7 @@ export function Cases() {
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder={isUk ? 'Пошук за клієнтом або завданням...' : 'Поиск по клиенту или задаче...'}
+                placeholder={l("Пошук за клієнтом або завданням...", "Поиск по клиенту или задаче...")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
@@ -228,7 +226,7 @@ export function Cases() {
             <div className="text-center py-24 bg-white rounded-3xl border border-slate-200 p-8 max-w-md mx-auto">
               <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-4" />
               <h3 className="text-lg font-bold text-slate-900 mb-2">
-                {isUk ? 'Проєкти не знайдено' : 'Проекты не найдены'}
+                {l("Проєкти не знайдено", "Проекты не найдены")}
               </h3>
               <p className="text-xs text-slate-500 mb-6">
                 {isUk
@@ -239,7 +237,7 @@ export function Cases() {
                 onClick={() => { setSearchQuery(''); setActiveCategory('ALL'); }}
                 className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-500 transition-colors cursor-pointer"
               >
-                {isUk ? 'Скинути фільтри' : 'Сбросить фильтры'}
+                {l("Скинути фільтри", "Сбросить фильтры")}
               </button>
             </div>
           ) : (
@@ -278,7 +276,7 @@ export function Cases() {
 
                       {/* Client bottom overlay */}
                       <div className="absolute bottom-3 left-3.5 right-3.5 text-xs text-slate-200 font-semibold truncate">
-                        {isUk ? 'Клієнт' : 'Клиент'}: {cs.client}
+                        {l("Клієнт", "Клиент")}: {cs.client}
                       </div>
                     </div>
 
@@ -309,7 +307,7 @@ export function Cases() {
                         {cs.challenge && (
                           <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-slate-700">
                             <span className="font-bold text-amber-900 block mb-0.5">
-                              {isUk ? 'Виклик завдання:' : 'Вызов задачи:'}
+                              {l("Виклик завдання:", "Вызов задачи:")}
                             </span>
                             <span className="text-slate-600 line-clamp-2">{cs.challenge}</span>
                           </div>
@@ -318,7 +316,7 @@ export function Cases() {
                         {cs.solution && (
                           <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20 text-slate-700">
                             <span className="font-bold text-indigo-950 block mb-0.5">
-                              {isUk ? 'Інженерне рішення:' : 'Инженерное решение:'}
+                              {l("Інженерне рішення:", "Инженерное решение:")}
                             </span>
                             <span className="text-slate-600 line-clamp-2">{cs.solution}</span>
                           </div>
@@ -333,7 +331,7 @@ export function Cases() {
                       onClick={() => setSelectedCase(cs)}
                       className="flex-1 inline-flex items-center justify-center space-x-1.5 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white text-xs font-bold transition-colors cursor-pointer"
                     >
-                      <span>{isUk ? 'Аналіз кейсу' : 'Разбор кейса'}</span>
+                      <span>{l("Аналіз кейсу", "Разбор кейса")}</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
 
@@ -344,7 +342,7 @@ export function Cases() {
                       }}
                       className="inline-flex items-center justify-center py-2.5 px-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors border border-indigo-200 cursor-pointer"
                     >
-                      <span>{isUk ? 'Хочу так само' : 'Хочу так же'}</span>
+                      <span>{l("Хочу так само", "Хочу так же")}</span>
                     </button>
                   </div>
                 </div>
@@ -362,15 +360,13 @@ export function Cases() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold mb-4 border border-indigo-500/30">
             <Award className="w-3.5 h-3.5" />
-            <span>{isUk ? 'Індивідуальний інженерний розрахунок' : 'Индивидуальный инженерный расчет'}</span>
+            <span>{l("Індивідуальний інженерний розрахунок", "Индивидуальный инженерный расчет")}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-4">
-            {isUk ? 'Готові обговорити ваш ефір чи зйомку?' : 'Готовы обсудить ваш эфир или съемку?'}
+            {l("Готові обговорити ваш ефір чи зйомку?", "Готовы обсудить ваш эфир или съемку?")}
           </h2>
           <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto mb-8">
-            {isUk
-              ? 'Засновник студії Олександр Пітель особисто вивчить технічне завдання, запропонує оптимальну конфігурацію знімального тракту та надасть прозорий кошторис без прихованих переплат.'
-              : 'Основатель студии Александр Питель лично изучит техническое задание, предложит оптимальную конфигурацию съемочного тракта и предоставит прозрачную смету без скрытых переплат.'}
+            {l("Засновник студії Олександр Пітель особисто вивчить технічне завдання, запропонує оптимальну конфігурацію знімального тракту та надасть прозорий кошторис без прихованих переплат.", "Основатель студии Александр Питель лично изучит техническое задание, предложит оптимальную конфигурацию съемочного тракта и предоставит прозрачную смету без скрытых переплат.")}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <button
@@ -380,7 +376,7 @@ export function Cases() {
               }}
               className="inline-flex items-center space-x-2 px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-600/30 transition-all transform active:scale-95 cursor-pointer"
             >
-              <span>{isUk ? 'Залишити заявку на розрахунок' : 'Оставить заявку на расчет'}</span>
+              <span>{l("Залишити заявку на розрахунок", "Оставить заявку на расчет")}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
             <a
@@ -390,7 +386,7 @@ export function Cases() {
               className="inline-flex items-center space-x-2 px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-semibold transition-colors"
             >
               <Play className="w-4 h-4 text-red-500 fill-red-500" />
-              <span>{isUk ? 'Дивитися плейлисти на YouTube' : 'Смотреть плейлисты на YouTube'}</span>
+              <span>{l("Дивитися плейлисти на YouTube", "Смотреть плейлисты на YouTube")}</span>
               <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
             </a>
           </div>
@@ -425,7 +421,7 @@ export function Cases() {
                   {selectedCase.title}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-300 mt-1 font-medium">
-                  {isUk ? 'Замовник' : 'Заказчик'}: {selectedCase.client}
+                  {l("Замовник", "Заказчик")}: {selectedCase.client}
                 </p>
               </div>
             </div>
@@ -447,7 +443,7 @@ export function Cases() {
               {/* Description */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  {isUk ? 'Огляд проєкту' : 'Обзор проекта'}
+                  {l("Огляд проєкту", "Обзор проекта")}
                 </h4>
                 <p className="text-sm text-slate-700 leading-relaxed">
                   {selectedCase.description}
@@ -458,7 +454,7 @@ export function Cases() {
               {selectedCase.challenge && (
                 <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900 mb-1 flex items-center">
-                    <span>{isUk ? 'Складність та виклик завдання' : 'Сложность и вызов задачи'}</span>
+                    <span>{l("Складність та виклик завдання", "Сложность и вызов задачи")}</span>
                   </h4>
                   <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
                     {selectedCase.challenge}
@@ -470,7 +466,7 @@ export function Cases() {
               {selectedCase.solution && (
                 <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 mb-1 flex items-center">
-                    <span>{isUk ? 'Інженерне рішення та знімальний сетап' : 'Инженерное решение и съемочный сетап'}</span>
+                    <span>{l("Інженерне рішення та знімальний сетап", "Инженерное решение и съемочный сетап")}</span>
                   </h4>
                   <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
                     {selectedCase.solution}
@@ -482,7 +478,7 @@ export function Cases() {
               {selectedCase.result && (
                 <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-1 flex items-center">
-                    <span>{isUk ? 'Підсумковий результат та показники' : 'Итоговый результат и показатели'}</span>
+                    <span>{l("Підсумковий результат та показники", "Итоговый результат и показатели")}</span>
                   </h4>
                   <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
                     {selectedCase.result}
@@ -499,7 +495,7 @@ export function Cases() {
                   className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors"
                 >
                   <Play className="w-3.5 h-3.5 text-red-400 fill-red-400" />
-                  <span>{isUk ? 'Відкрити на YouTube каналі' : 'Открыть на YouTube каналу'}</span>
+                  <span>{l("Відкрити на YouTube каналі", "Открыть на YouTube каналу")}</span>
                   <ExternalLink className="w-3 h-3 text-slate-400" />
                 </a>
 
@@ -512,7 +508,7 @@ export function Cases() {
                   }}
                   className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
                 >
-                  <span>{isUk ? 'Замовити подібний проєкт' : 'Заказать подобный проект'}</span>
+                  <span>{l("Замовити подібний проєкт", "Заказать подобный проект")}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -538,54 +534,50 @@ export function Cases() {
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">
-                  {isUk ? 'Заявку успішно надіслано!' : 'Заявка успешно отправлена!'}
+                  {l("Заявку успішно надіслано!", "Заявка успешно отправлена!")}
                 </h3>
                 <p className="text-xs text-slate-600 max-w-xs mx-auto">
-                  {isUk
-                    ? 'Олександр Пітель зв\'яжеться з вами протягом 15 хвилин для обговорення завдання та складання кошторису.'
-                    : 'Александр Питель свяжется с вами в течение 15 минут для обсуждения задачи и составления сметы.'}
+                  {l("Олександр Пітель зв'яжеться з вами протягом 15 хвилин для обговорення завдання та складання кошторису.", "Александр Питель свяжется с вами в течение 15 минут для обсуждения задачи и составления сметы.")}
                 </p>
                 <button
                   onClick={() => setInquiryCase(null)}
                   className="mt-4 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-500 transition-colors cursor-pointer"
                 >
-                  {isUk ? 'Закрити' : 'Закрыть'}
+                  {l("Закрити", "Закрыть")}
                 </button>
               </div>
             ) : (
               <div>
                 <div className="mb-6">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 block mb-1">
-                    {isUk ? 'Швидкий розрахунок проєкту' : 'Быстрый расчет проекта'}
+                    {l("Швидкий розрахунок проєкту", "Быстрый расчет проекта")}
                   </span>
                   <h3 className="text-xl font-black text-slate-900">
-                    {isUk ? 'Хочу проєкт як' : 'Хочу проект как'}: {inquiryCase.title}
+                    {l("Хочу проєкт як", "Хочу проект как")}: {inquiryCase.title}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    {isUk
-                      ? 'Вкажіть ваші контактні дані, і ми підготуємо кошторис за аналогічною схемою виробництва.'
-                      : 'Укажите ваши контактные данные, и мы подготовим смету по аналогичной схеме производства.'}
+                    {l("Вкажіть ваші контактні дані, і ми підготуємо кошторис за аналогічною схемою виробництва.", "Укажите ваши контактные данные, и мы подготовим смету по аналогичной схеме производства.")}
                   </p>
                 </div>
 
                 <form onSubmit={handleSendInquiry} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {isUk ? 'Ваше ім\'я / Компанія *' : 'Ваше имя / Компания *'}
+                      {l("Ваше ім'я / Компанія *", "Ваше имя / Компания *")}
                     </label>
                     <input
                       type="text"
                       required
                       value={clientName}
                       onChange={(e) => setClientName(e.target.value)}
-                      placeholder={isUk ? 'Іван, Торгова марка' : 'Иван, Торговая марка'}
+                      placeholder={l("Іван, Торгова марка", "Иван, Торговая марка")}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {isUk ? 'Телефон / Telegram / WhatsApp *' : 'Телефон / Telegram / WhatsApp *'}
+                      {l("Телефон / Telegram / WhatsApp *", "Телефон / Telegram / WhatsApp *")}
                     </label>
                     <input
                       type="tel"
@@ -599,15 +591,13 @@ export function Cases() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {isUk ? 'Коментар або побажання щодо дати / локації' : 'Комментарий или пожелания по дате / локации'}
+                      {l("Коментар або побажання щодо дати / локації", "Комментарий или пожелания по дате / локации")}
                     </label>
                     <textarea
                       rows={3}
                       value={clientNote}
                       onChange={(e) => setClientNote(e.target.value)}
-                      placeholder={isUk
-                        ? 'Потрібен аналогічний ефір / ролик наступного місяця...'
-                        : 'Нужен аналогичный эфир / ролик в следующем месяце...'}
+                      placeholder={l("Потрібен аналогічний ефір / ролик наступного місяця...", "Нужен аналогичный эфир / ролик в следующем месяце...")}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white resize-none"
                     />
                   </div>
@@ -620,8 +610,8 @@ export function Cases() {
                     <Send className="w-3.5 h-3.5" />
                     <span>
                       {submitting
-                        ? (isUk ? 'Відправка заявки...' : 'Отправка заявки...')
-                        : (isUk ? 'Отримати кошторис проєкту' : 'Получить смету проекта')}
+                        ? (l("Відправка заявки...", "Отправка заявки..."))
+                        : (l("Отримати кошторис проєкту", "Получить смету проекта"))}
                     </span>
                   </button>
                 </form>

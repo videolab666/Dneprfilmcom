@@ -567,7 +567,7 @@ export const LEGACY_EN_TRANSLATIONS: Record<string, string> = {
   "Ключові висновки": "Key takeaways",
 };
 
-function translateEnglishValue<T>(value: T): T {
+export function translateEnglishValue<T>(value: T): T {
   if (typeof value === 'string') {
     return (LEGACY_EN_TRANSLATIONS[value] ?? value) as T;
   }
