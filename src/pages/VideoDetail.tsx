@@ -156,7 +156,9 @@ export function VideoDetail() {
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-8">
             {project.videos.length > 0 ? project.videos.map(media => (
-              <VideoProjectPlayer key={media.id} media={media} projectTitle={project.title} />
+              <div key={media.id}>
+                <VideoProjectPlayer media={media} projectTitle={project.title} />
+              </div>
             )) : (
               <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">{l('Відео ще не додано.', 'Видео ещё не добавлено.', 'No videos have been added yet.')}</div>
             )}
