@@ -30,6 +30,7 @@ import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
 import { usePageCmsContent } from '../hooks/usePageCmsContent';
+import { usePageCopyContent } from '../hooks/usePageCopyContent';
 
 // Real showcased works inspired directly by @dneprfilm152 channel
 const FEATURED_VIDEO_WORKS_RU = [
@@ -227,6 +228,11 @@ const PRODUCTION_STEPS_UK = [
 export function VideoProduction() {
   const { isUk } = useSiteContent();
   const { content: pageContent, localize } = usePageCmsContent();
+  const { content: copyContent, localize: localizeCopy, byId: copyById } = usePageCopyContent();
+  const videoHero = copyById(copyContent.video.hero, 'video-hero')?.text;
+  const videoWorksHeading = copyById(copyContent.video.headings, 'video-heading-works')?.text;
+  const videoFaqHeading = copyById(copyContent.video.headings, 'video-heading-faq')?.text;
+  const cmsFaqs = localizeCopy(copyContent.video.faqs).map(item => ({ q: item.text.title || '', a: item.text.description || '' }));
 
   const videoIconMap: Record<string, React.ReactNode> = {
     flame: <Flame className="w-5 h-5 text-amber-500" />,
@@ -393,22 +399,15 @@ export function VideoProduction() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-6">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{isUk ? 'Комерційний та корпоративний продакшн' : 'Коммерческий и корпоративный продакшн'}</span>
+              <span>{videoHero?.badge}</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] mb-6">
-              {isUk ? (
-                <>Відео, яке <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-indigo-300 to-indigo-500">продає цінність</span> вашого бізнесу</>
-              ) : (
-                <>Видео, которое <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-indigo-300 to-indigo-500">продает ценность</span> вашего бизнеса</>
-              )}
+              {videoHero?.title} <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-indigo-300 to-indigo-500">{videoHero?.meta1}</span> {videoHero?.meta2}
             </h1>
 
             <p className="text-lg sm:text-xl text-slate-300 font-normal leading-relaxed mb-8">
-              {isUk
-                ? 'Створюємо висококласні рекламні ролики, презентаційні фільми для заводів та підприємств, контент для міжнародних виставок (Dubai Expo) та динамічні промо. Від сценарію і розкадрування до кольорокорекції DaVinci та 3D-графіки.'
-                : 'Создаем высококлассные рекламные ролики, презентационные фильмы для заводов и предприятий, контент для международных выставок (Dubai Expo) и динамичные промо. От сценария и раскадровки до цветокоррекции DaVinci и 3D-графики.'
-              }
+              {videoHero?.description}
             </p>
 
             <div className="flex flex-wrap gap-4 items-center">
@@ -416,7 +415,7 @@ export function VideoProduction() {
                 href="#calculator"
                 className="inline-flex items-center justify-center space-x-2 px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-600/30 transition-all transform active:scale-95"
               >
-                <span>{isUk ? 'Розрахувати кошторис ролика' : 'Рассчитать смету ролика'}</span>
+                <span>{videoHero?.meta3}</span>
                 <ArrowRight className="w-4 h-4" />
               </a>
 
@@ -461,17 +460,14 @@ export function VideoProduction() {
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
             <div>
               <span className="text-xs font-bold uppercase tracking-widest text-indigo-600 mb-2 block">
-                {isUk ? 'Реальні роботи з портфоліо студії' : 'Реальные работы из портфолио студии'}
+                {videoWorksHeading?.badge}
               </span>
               <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-                {isUk ? 'Обрані комерційні та промо-проєкти' : 'Избранные коммерческие и промо-проекты'}
+                {videoWorksHeading?.title}
               </h2>
             </div>
             <p className="mt-4 md:mt-0 text-sm text-slate-600 max-w-md">
-              {isUk
-                ? 'Кожен ролик вирішує конкретне бізнес-завдання: вихід на експорт, залучення дилерів, зростання конверсії на сайті або створення яскравого іміджу бренду.'
-                : 'Каждый ролик решает конкретную бизнес-задачу: выход на экспорт, привлечение дилеров, рост конверсии на сайте или создание яркого имиджа бренда.'
-              }
+              {videoWorksHeading?.description}
             </p>
           </div>
 
@@ -844,15 +840,15 @@ export function VideoProduction() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <span className="text-xs font-bold uppercase tracking-widest text-indigo-600 mb-2 block">
-              {isUk ? 'Питання та відповіді' : 'Вопросы и ответы'}
+              {videoFaqHeading?.badge}
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              {isUk ? 'Часті запитання про відеопродакшн' : 'Часто задаваемые вопросы о видеопродакшне'}
+              {videoFaqHeading?.title}
             </h2>
           </div>
 
           <div className="space-y-3">
-            {faqs.map((faq, i) => (
+            {cmsFaqs.map((faq, i) => (
               <div 
                 key={i} 
                 className="bg-white rounded-xl border border-slate-200 overflow-hidden transition-all shadow-sm"

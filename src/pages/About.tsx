@@ -8,10 +8,14 @@ import { Link } from 'react-router-dom';
 import { useSiteContent } from '../context/SiteContentContext';
 import { ClientsMarquee } from '../components/ClientsMarquee';
 import { usePageCmsContent } from '../hooks/usePageCmsContent';
+import { usePageCopyContent } from '../hooks/usePageCopyContent';
 
 export function About() {
   const { settings, isUk } = useSiteContent();
   const { content: pageContent, localize } = usePageCmsContent();
+  const { content: copyContent, byId: copyById } = usePageCopyContent();
+  const aboutPrinciplesHeading = copyById(copyContent.about.headings, 'about-heading-principles')?.text;
+  const aboutMilestonesHeading = copyById(copyContent.about.headings, 'about-heading-milestones')?.text;
 
   const phoneDisplay = settings.phone || '+380 (67) 560-68-80';
   const telegramHandle = (settings.telegram || '@dneprfilm').replace('@', '');
@@ -232,7 +236,7 @@ export function About() {
       <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            {isUk ? 'Принципи роботи студії Dneprfilm' : 'Принципы работы студии Dneprfilm'}
+            {aboutPrinciplesHeading?.title}
           </h2>
           <p className="mt-3 text-slate-600 text-sm sm:text-base">
             {isUk
@@ -263,7 +267,7 @@ export function About() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-              {isUk ? 'Історія розвитку' : 'История развития'}
+              {aboutMilestonesHeading?.title}
             </h2>
             <p className="mt-3 text-slate-400 text-sm">
               {isUk
