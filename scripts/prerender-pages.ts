@@ -17,33 +17,62 @@ if (!existsSync(routeFile)) throw new Error(`${routeFile} is missing. Run genera
 const routes = JSON.parse(readFileSync(routeFile, 'utf8')) as RouteEntry[];
 const ordered = [...routes].sort((a, b) => Number(a.path === '/') - Number(b.path === '/'));
 
-for (const route of ordered) {
+function seoState(html: string): string {
+  return html.match(/data-portfolio-seo-state="([^"]+)"/)?.[1] || 'n/a';
+}
+
+function renderRoute(route: RouteEntry): string {
   const url = route.path === '/' ? `${previewBase}/` : `${previewBase}${route.path}`;
-  const result = spawnSync(chrome, [
-    '--headless=new',
-    '--no-sandbox',
-    '--disable-gpu',
-    '--disable-dev-shm-usage',
-    '--disable-background-networking',
-    '--virtual-time-budget=12000',
-    '--dump-dom',
-    url,
-  ], {
-    encoding: 'utf8',
-    maxBuffer: 32 * 1024 * 1024,
-  });
+  const dynamic = route.source !== 'static';
+  const budgets = dynamic ? [12000, 22000, 35000] : [12000];
+  let lastHtml = '';
+  let lastError = '';
 
-  const html = result.stdout || '';
-  if (!html.includes('id="root"')) {
-    throw new Error(`Prerender returned no React root for ${route.path}: ${(result.stderr || '').slice(0, 1000)}`);
+  for (let attempt = 0; attempt < budgets.length; attempt += 1) {
+    const result = spawnSync(chrome, [
+      '--headless=new',
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      `--virtual-time-budget=${budgets[attempt]}`,
+      '--dump-dom',
+      url,
+    ], {
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+    });
+
+    const html = result.stdout || '';
+    const state = seoState(html);
+    lastHtml = html;
+
+    if (!html.includes('id="root"')) {
+      lastError = `no React root; stderr=${(result.stderr || '').slice(0, 700)}`;
+    } else if (html.includes('id="boot-fallback"')) {
+      lastError = 'static boot fallback remained';
+    } else if (html.includes('animate-spin')) {
+      lastError = 'React loading fallback remained';
+    } else if (dynamic && state !== 'resolved') {
+      lastError = `portfolio SEO resolver state=${state}`;
+    } else if (dynamic && html.includes('name="robots" content="noindex')) {
+      lastError = `resolver state=${state}, but robots remained noindex`;
+    } else {
+      if (attempt > 0) {
+        console.log(`Prerender recovered ${route.path} on attempt ${attempt + 1} (SEO state: ${state}).`);
+      }
+      return html;
+    }
+
+    if (attempt < budgets.length - 1) {
+      console.warn(`Prerender retry ${attempt + 2}/${budgets.length} for ${route.path}: ${lastError}`);
+    }
   }
-  if (html.includes('id="boot-fallback"')) throw new Error(`Static boot fallback remained for ${route.path}`);
-  if (html.includes('animate-spin')) throw new Error(`React loading fallback remained for ${route.path}`);
 
-  if (route.source !== 'static' && html.includes('name="robots" content="noindex')) {
-    throw new Error(`Dynamic route resolved from Firestore but remained noindex: ${route.path}`);
-  }
+  throw new Error(`Prerender failed for ${route.path} after ${budgets.length} attempt(s): ${lastError}; final SEO state=${seoState(lastHtml)}`);
+}
 
+for (const route of ordered) {
+  const html = renderRoute(route);
   const output = route.path === '/'
     ? 'dist/index.html'
     : join('dist', route.path.replace(/^\/+|\/+$/g, ''), 'index.html');
