@@ -3,7 +3,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { useParams } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { INITIAL_CASES } from '../../data/initialCases';
-import type { CaseStudy } from '../../types';
+import type { CaseStudy, Locale } from '../../types';
 import {
   getCaseSlug,
   getMediaPreview,
@@ -55,11 +55,21 @@ type SeoPayload = {
   jsonLd: Record<string, unknown>;
 };
 
+type LocalizedCaseSeo = {
+  title: string;
+  description: string;
+  challenge: string;
+  result: string;
+  location: string;
+  categoryLabel: string;
+  client: string;
+};
+
 function organizationId(): string {
   return `${canonicalUrlForPath('/').replace(/\/$/, '')}/#organization`;
 }
 
-function localizedParentLabel(type: RelatedEntityType, locale: 'uk' | 'ru' | 'en'): string {
+function localizedParentLabel(type: RelatedEntityType, locale: Locale): string {
   if (type === 'case') return locale === 'uk' ? 'Кейси' : locale === 'ru' ? 'Кейсы' : 'Case studies';
   if (type === 'gallery') return locale === 'uk' ? 'Фотогалереї' : locale === 'ru' ? 'Фотогалереи' : 'Photo galleries';
   return locale === 'uk' ? 'Відеопортфоліо' : locale === 'ru' ? 'Видеопортфолио' : 'Video portfolio';
@@ -71,13 +81,55 @@ function parentPath(type: RelatedEntityType): string {
   return '/videos';
 }
 
-function homeLabel(locale: 'uk' | 'ru' | 'en'): string {
+function homeLabel(locale: Locale): string {
   return locale === 'uk' ? 'Головна' : locale === 'ru' ? 'Главная' : 'Home';
+}
+
+function localizeCaseForSeo(raw: CaseStudy, locale: Locale): LocalizedCaseSeo {
+  if (locale === 'uk') {
+    return {
+      title: raw.title_uk || raw.title || raw.title_en || raw.id,
+      description: raw.description_uk || raw.description || raw.description_en || '',
+      challenge: raw.challenge_uk || raw.challenge || raw.challenge_en || raw.problem_uk || raw.problem || raw.problem_en || '',
+      result: raw.result_uk || raw.result || raw.result_en || '',
+      location: raw.location_uk || raw.location || raw.location_en || '',
+      categoryLabel: raw.categoryLabel_uk || raw.categoryLabel || raw.categoryLabel_en || raw.category,
+      client: raw.client || '',
+    };
+  }
+
+  if (locale === 'en') {
+    return {
+      title: raw.title_en || raw.title_uk || raw.title || raw.id,
+      description: raw.description_en || raw.description_uk || raw.description || '',
+      challenge: raw.challenge_en || raw.challenge_uk || raw.challenge || raw.problem_en || raw.problem_uk || raw.problem || '',
+      result: raw.result_en || raw.result_uk || raw.result || '',
+      location: raw.location_en || raw.location_uk || raw.location || '',
+      categoryLabel: raw.categoryLabel_en || raw.categoryLabel_uk || raw.categoryLabel || raw.category,
+      client: raw.client || '',
+    };
+  }
+
+  return {
+    title: raw.title || raw.title_uk || raw.title_en || raw.id,
+    description: raw.description || raw.description_uk || raw.description_en || '',
+    challenge: raw.challenge || raw.challenge_uk || raw.challenge_en || raw.problem || raw.problem_uk || raw.problem_en || '',
+    result: raw.result || raw.result_uk || raw.result_en || '',
+    location: raw.location || raw.location_uk || raw.location_en || '',
+    categoryLabel: raw.categoryLabel || raw.categoryLabel_uk || raw.categoryLabel_en || raw.category,
+    client: raw.client || '',
+  };
+}
+
+function galleryFallbackDescription(title: string, locale: Locale): string {
+  if (locale === 'uk') return `Фотогалерея «${title}»`;
+  if (locale === 'en') return `Photo gallery “${title}”`;
+  return `Фотогалерея «${title}»`;
 }
 
 export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhancerProps) {
   const { slug = '' } = useParams();
-  const { locale, getLocalizedCase, l } = useSiteContent();
+  const { locale } = useSiteContent();
   const [payload, setPayload] = useState<SeoPayload | null>(null);
   const [resolved, setResolved] = useState(false);
 
@@ -96,7 +148,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
             : snapshot.docs.map(item => ({ id: item.id, ...item.data() } as CaseStudy));
           const raw = loaded.find(item => item.published !== false && (getCaseSlug(item) === decoded || item.id === decoded)) || null;
           if (!raw || cancelled) return;
-          const localized = getLocalizedCase(raw);
+          const localized = localizeCaseForSeo(raw, locale);
           const media = normalizedCaseMedia(raw).map(item => localizeMediaItem(item, locale));
           const image = raw.imageUrl || media.map(getMediaPreview).find(Boolean) || '';
           const canonicalPath = `/cases/${encodeURIComponent(getCaseSlug(raw))}`;
@@ -142,6 +194,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
             ]),
             ...videos,
           ];
+          if (cancelled) return;
           setPayload({
             id: raw.id,
             title: localized.title,
@@ -168,7 +221,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           const localized = localizeGallery(raw, locale);
           const canonicalPath = `/galleries/${encodeURIComponent(getGallerySlug(raw))}`;
           const canonical = canonicalUrlForPath(canonicalPath);
-          const description = localized.description || l(`Фотогалерея «${localized.title}»`, `Фотогалерея «${localized.title}»`, `Photo gallery “${localized.title}”`);
+          const description = localized.description || galleryFallbackDescription(localized.title, locale);
           const imageObjects = localized.images.slice(0, 100).map((image, index) => ({
             '@type': 'ImageObject',
             '@id': `${canonical}#image-${index + 1}`,
@@ -197,6 +250,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
             ]),
             ...imageObjects,
           ];
+          if (cancelled) return;
           setPayload({
             id: raw.id,
             title: localized.title,
@@ -256,6 +310,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           ]),
           ...videoObjects,
         ];
+        if (cancelled) return;
         setPayload({
           id: raw.id,
           title: localized.title,
@@ -279,7 +334,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
 
     void load();
     return () => { cancelled = true; };
-  }, [type, slug, locale, getLocalizedCase, l]);
+  }, [type, slug, locale]);
 
   useEffect(() => {
     if (!resolved) return;
