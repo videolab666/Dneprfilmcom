@@ -1,28 +1,28 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  onSnapshot 
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { SiteSetting, SiteBlock, CaseStudy, Testimonial, BackstageItem, Locale } from '../types';
-import { 
-  DEFAULT_SITE_SETTINGS, 
-  DEFAULT_SITE_SETTINGS_UK, 
+import {
+  DEFAULT_SITE_SETTINGS,
+  DEFAULT_SITE_SETTINGS_UK,
   DEFAULT_SITE_SETTINGS_EN,
-  DEFAULT_SITE_BLOCKS, 
-  DEFAULT_SITE_BLOCKS_UK 
+  DEFAULT_SITE_BLOCKS,
+  DEFAULT_SITE_BLOCKS_UK
 } from '../lib/cmsDefaults';
 import { TRANSLATIONS } from '../locales/translations';
 import { legacyText, legacyValue, translateEnglishValue } from '../locales/legacyEnglish';
 import { DEFAULT_SITE_BLOCKS_EN } from '../locales/siteBlocksEn';
-import { 
-  CASE_TRANSLATIONS_UK, 
-  TESTIMONIALS_TRANSLATIONS_UK, 
-  BACKSTAGE_TRANSLATIONS_UK 
+import {
+  CASE_TRANSLATIONS_UK,
+  TESTIMONIALS_TRANSLATIONS_UK,
+  BACKSTAGE_TRANSLATIONS_UK
 } from '../locales/localizedContent';
 import {
   CASE_TRANSLATIONS_EN,
@@ -30,6 +30,7 @@ import {
   BACKSTAGE_TRANSLATIONS_EN
 } from '../locales/localizedContentEn';
 import { BACKSTAGE_SEED_EN } from '../locales/backstageSeedEn';
+import { localizeMigratedConstructionCase } from '../lib/legacyMigratedCaseEnglish';
 
 interface SiteContentContextType {
   locale: Locale;
@@ -71,7 +72,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
     } catch {
       // ignore
     }
-    return 'uk'; // Default to Ukrainian as requested
+    return 'uk';
   });
 
   const [rawSettings, setRawSettings] = useState<SiteSetting>(DEFAULT_SITE_SETTINGS);
@@ -96,13 +97,11 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
     }
   }, [locale]);
 
-  // Translation function
   const t = (key: string, fallback?: string): string => {
     const activeDict = TRANSLATIONS[locale] || TRANSLATIONS.uk;
     if (activeDict && activeDict[key]) {
       return activeDict[key];
     }
-    // Fallback to UK, then RU dictionary
     if (TRANSLATIONS.uk && TRANSLATIONS.uk[key]) {
       return TRANSLATIONS.uk[key];
     }
@@ -120,7 +119,6 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   const isRu = locale === 'ru';
 
   useEffect(() => {
-    // 1. Subscribe to site_settings/global
     const settingsDocRef = doc(db, 'site_settings', 'global');
     const unsubscribeSettings = onSnapshot(settingsDocRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -133,7 +131,6 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
       setRawSettings(DEFAULT_SITE_SETTINGS);
     });
 
-    // 2. Subscribe to site_blocks
     const blocksColRef = collection(db, 'site_blocks');
     const unsubscribeBlocks = onSnapshot(blocksColRef, (querySnap) => {
       if (!querySnap.empty) {
@@ -159,67 +156,65 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
     };
   }, []);
 
-  // Compute localized settings dynamically
   const settings = useMemo<SiteSetting>(() => {
     if (locale === 'en') {
       return {
         ...rawSettings,
         studioName: rawSettings.studioName_en || rawSettings.studioName,
-        address: rawSettings.address_en || 
+        address: rawSettings.address_en ||
           (rawSettings.address === DEFAULT_SITE_SETTINGS.address ? DEFAULT_SITE_SETTINGS_EN.address : rawSettings.address),
-        workingHours: rawSettings.workingHours_en || 
+        workingHours: rawSettings.workingHours_en ||
           (rawSettings.workingHours === DEFAULT_SITE_SETTINGS.workingHours ? DEFAULT_SITE_SETTINGS_EN.workingHours : rawSettings.workingHours),
-        heroBadge: rawSettings.heroBadge_en || 
+        heroBadge: rawSettings.heroBadge_en ||
           (rawSettings.heroBadge === DEFAULT_SITE_SETTINGS.heroBadge ? DEFAULT_SITE_SETTINGS_EN.heroBadge : rawSettings.heroBadge),
-        heroTitle: rawSettings.heroTitle_en || 
+        heroTitle: rawSettings.heroTitle_en ||
           (rawSettings.heroTitle === DEFAULT_SITE_SETTINGS.heroTitle ? DEFAULT_SITE_SETTINGS_EN.heroTitle : rawSettings.heroTitle),
-        heroSubtitle: rawSettings.heroSubtitle_en || 
+        heroSubtitle: rawSettings.heroSubtitle_en ||
           (rawSettings.heroSubtitle === DEFAULT_SITE_SETTINGS.heroSubtitle ? DEFAULT_SITE_SETTINGS_EN.heroSubtitle : rawSettings.heroSubtitle),
-        heroCtaPrimaryText: rawSettings.heroCtaPrimaryText_en || 
+        heroCtaPrimaryText: rawSettings.heroCtaPrimaryText_en ||
           (rawSettings.heroCtaPrimaryText === DEFAULT_SITE_SETTINGS.heroCtaPrimaryText ? DEFAULT_SITE_SETTINGS_EN.heroCtaPrimaryText : rawSettings.heroCtaPrimaryText),
-        heroCtaSecondaryText: rawSettings.heroCtaSecondaryText_en || 
+        heroCtaSecondaryText: rawSettings.heroCtaSecondaryText_en ||
           (rawSettings.heroCtaSecondaryText === DEFAULT_SITE_SETTINGS.heroCtaSecondaryText ? DEFAULT_SITE_SETTINGS_EN.heroCtaSecondaryText : rawSettings.heroCtaSecondaryText),
-        founderName: rawSettings.founderName_en || 
+        founderName: rawSettings.founderName_en ||
           (rawSettings.founderName === DEFAULT_SITE_SETTINGS.founderName ? DEFAULT_SITE_SETTINGS_EN.founderName : rawSettings.founderName),
-        founderRole: rawSettings.founderRole_en || 
+        founderRole: rawSettings.founderRole_en ||
           (rawSettings.founderRole === DEFAULT_SITE_SETTINGS.founderRole ? DEFAULT_SITE_SETTINGS_EN.founderRole : rawSettings.founderRole),
-        founderQuote: rawSettings.founderQuote_en || 
+        founderQuote: rawSettings.founderQuote_en ||
           (rawSettings.founderQuote === DEFAULT_SITE_SETTINGS.founderQuote ? DEFAULT_SITE_SETTINGS_EN.founderQuote : rawSettings.founderQuote),
-        founderBio: rawSettings.founderBio_en || 
+        founderBio: rawSettings.founderBio_en ||
           (rawSettings.founderBio === DEFAULT_SITE_SETTINGS.founderBio ? DEFAULT_SITE_SETTINGS_EN.founderBio : rawSettings.founderBio),
-        announcementText: rawSettings.announcementText_en || 
+        announcementText: rawSettings.announcementText_en ||
           (rawSettings.announcementText === DEFAULT_SITE_SETTINGS.announcementText ? DEFAULT_SITE_SETTINGS_EN.announcementText : rawSettings.announcementText),
       };
     }
 
     if (locale === 'uk') {
-      // For Ukrainian: use custom _uk fields if provided, or default uk settings when matches default RU
       return {
         ...rawSettings,
         studioName: rawSettings.studioName_uk || rawSettings.studioName,
-        address: rawSettings.address_uk || 
+        address: rawSettings.address_uk ||
           (rawSettings.address === DEFAULT_SITE_SETTINGS.address ? DEFAULT_SITE_SETTINGS_UK.address : rawSettings.address),
-        workingHours: rawSettings.workingHours_uk || 
+        workingHours: rawSettings.workingHours_uk ||
           (rawSettings.workingHours === DEFAULT_SITE_SETTINGS.workingHours ? DEFAULT_SITE_SETTINGS_UK.workingHours : rawSettings.workingHours),
-        heroBadge: rawSettings.heroBadge_uk || 
+        heroBadge: rawSettings.heroBadge_uk ||
           (rawSettings.heroBadge === DEFAULT_SITE_SETTINGS.heroBadge ? DEFAULT_SITE_SETTINGS_UK.heroBadge : rawSettings.heroBadge),
-        heroTitle: rawSettings.heroTitle_uk || 
+        heroTitle: rawSettings.heroTitle_uk ||
           (rawSettings.heroTitle === DEFAULT_SITE_SETTINGS.heroTitle ? DEFAULT_SITE_SETTINGS_UK.heroTitle : rawSettings.heroTitle),
-        heroSubtitle: rawSettings.heroSubtitle_uk || 
+        heroSubtitle: rawSettings.heroSubtitle_uk ||
           (rawSettings.heroSubtitle === DEFAULT_SITE_SETTINGS.heroSubtitle ? DEFAULT_SITE_SETTINGS_UK.heroSubtitle : rawSettings.heroSubtitle),
-        heroCtaPrimaryText: rawSettings.heroCtaPrimaryText_uk || 
+        heroCtaPrimaryText: rawSettings.heroCtaPrimaryText_uk ||
           (rawSettings.heroCtaPrimaryText === DEFAULT_SITE_SETTINGS.heroCtaPrimaryText ? DEFAULT_SITE_SETTINGS_UK.heroCtaPrimaryText : rawSettings.heroCtaPrimaryText),
-        heroCtaSecondaryText: rawSettings.heroCtaSecondaryText_uk || 
+        heroCtaSecondaryText: rawSettings.heroCtaSecondaryText_uk ||
           (rawSettings.heroCtaSecondaryText === DEFAULT_SITE_SETTINGS.heroCtaSecondaryText ? DEFAULT_SITE_SETTINGS_UK.heroCtaSecondaryText : rawSettings.heroCtaSecondaryText),
-        founderName: rawSettings.founderName_uk || 
+        founderName: rawSettings.founderName_uk ||
           (rawSettings.founderName === DEFAULT_SITE_SETTINGS.founderName ? DEFAULT_SITE_SETTINGS_UK.founderName : rawSettings.founderName),
-        founderRole: rawSettings.founderRole_uk || 
+        founderRole: rawSettings.founderRole_uk ||
           (rawSettings.founderRole === DEFAULT_SITE_SETTINGS.founderRole ? DEFAULT_SITE_SETTINGS_UK.founderRole : rawSettings.founderRole),
-        founderQuote: rawSettings.founderQuote_uk || 
+        founderQuote: rawSettings.founderQuote_uk ||
           (rawSettings.founderQuote === DEFAULT_SITE_SETTINGS.founderQuote ? DEFAULT_SITE_SETTINGS_UK.founderQuote : rawSettings.founderQuote),
-        founderBio: rawSettings.founderBio_uk || 
+        founderBio: rawSettings.founderBio_uk ||
           (rawSettings.founderBio === DEFAULT_SITE_SETTINGS.founderBio ? DEFAULT_SITE_SETTINGS_UK.founderBio : rawSettings.founderBio),
-        announcementText: rawSettings.announcementText_uk || 
+        announcementText: rawSettings.announcementText_uk ||
           (rawSettings.announcementText === DEFAULT_SITE_SETTINGS.announcementText ? DEFAULT_SITE_SETTINGS_UK.announcementText : rawSettings.announcementText),
       };
     }
@@ -227,48 +222,47 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
     return rawSettings;
   }, [rawSettings, locale]);
 
-  // Compute localized blocks dynamically
   const localizedBlocks = useMemo<SiteBlock[]>(() => {
     if (locale === 'en') {
-    const ukDefaultsMap = new Map(DEFAULT_SITE_BLOCKS_UK.map(b => [b.id, b]));
-    const enDefaultsMap = new Map(DEFAULT_SITE_BLOCKS_EN.map(b => [b.id, b]));
+      const ukDefaultsMap = new Map(DEFAULT_SITE_BLOCKS_UK.map(b => [b.id, b]));
+      const enDefaultsMap = new Map(DEFAULT_SITE_BLOCKS_EN.map(b => [b.id, b]));
 
-    return blocks.map(block => {
-      const ukDefault = ukDefaultsMap.get(block.id);
-      const enDefault = enDefaultsMap.get(block.id);
-      const customUk = block.config_uk;
-      const hasCustomUk = Boolean(customUk || block.title_uk);
+      return blocks.map(block => {
+        const ukDefault = ukDefaultsMap.get(block.id);
+        const enDefault = enDefaultsMap.get(block.id);
+        const customUk = block.config_uk;
+        const hasCustomUk = Boolean(customUk || block.title_uk);
 
-      const ukConfig = {
-        ...block.config,
-        badge: customUk?.badge || ukDefault?.config.badge || block.config.badge,
-        heading: customUk?.heading || ukDefault?.config.heading || block.config.heading,
-        subheading: customUk?.subheading || ukDefault?.config.subheading || block.config.subheading,
-        content: customUk?.content || ukDefault?.config.content || block.config.content,
-        buttonText: customUk?.buttonText || ukDefault?.config.buttonText || block.config.buttonText,
-        secondaryButtonText: customUk?.secondaryButtonText || ukDefault?.config.secondaryButtonText || block.config.secondaryButtonText,
-        items: customUk?.items || ukDefault?.config.items || block.config.items,
-        faqItems: customUk?.faqItems || ukDefault?.config.faqItems || block.config.faqItems,
-      };
+        const ukConfig = {
+          ...block.config,
+          badge: customUk?.badge || ukDefault?.config.badge || block.config.badge,
+          heading: customUk?.heading || ukDefault?.config.heading || block.config.heading,
+          subheading: customUk?.subheading || ukDefault?.config.subheading || block.config.subheading,
+          content: customUk?.content || ukDefault?.config.content || block.config.content,
+          buttonText: customUk?.buttonText || ukDefault?.config.buttonText || block.config.buttonText,
+          secondaryButtonText: customUk?.secondaryButtonText || ukDefault?.config.secondaryButtonText || block.config.secondaryButtonText,
+          items: customUk?.items || ukDefault?.config.items || block.config.items,
+          faqItems: customUk?.faqItems || ukDefault?.config.faqItems || block.config.faqItems,
+        };
 
-      const fallbackConfig = hasCustomUk
-        ? translateEnglishValue(ukConfig)
-        : (enDefault?.config || translateEnglishValue(ukConfig));
+        const fallbackConfig = hasCustomUk
+          ? translateEnglishValue(ukConfig)
+          : (enDefault?.config || translateEnglishValue(ukConfig));
 
-      const fallbackTitle = hasCustomUk
-        ? translateEnglishValue(block.title_uk || ukDefault?.title || block.title)
-        : (enDefault?.title || translateEnglishValue(block.title_uk || ukDefault?.title || block.title));
+        const fallbackTitle = hasCustomUk
+          ? translateEnglishValue(block.title_uk || ukDefault?.title || block.title)
+          : (enDefault?.title || translateEnglishValue(block.title_uk || ukDefault?.title || block.title));
 
-      return {
-        ...block,
-        title: block.title_en || fallbackTitle,
-        config: {
-          ...fallbackConfig,
-          ...(block.config_en || {}),
-        },
-      };
-    });
-  }
+        return {
+          ...block,
+          title: block.title_en || fallbackTitle,
+          config: {
+            ...fallbackConfig,
+            ...(block.config_en || {}),
+          },
+        };
+      });
+    }
 
     if (locale === 'uk') {
       const ukDefaultsMap = new Map(DEFAULT_SITE_BLOCKS_UK.map(b => [b.id, b]));
@@ -300,24 +294,25 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
     return blocks;
   }, [blocks, locale]);
 
-  // Localized helpers for items
   const getLocalizedCase = (c: CaseStudy): CaseStudy => {
     if (locale === 'en') {
-    const uk = CASE_TRANSLATIONS_UK[c.id];
-    const en = CASE_TRANSLATIONS_EN[c.id];
-    return {
-      ...c,
-      client: en?.client || translateEnglishValue(c.client),
-      title: c.title_en || en?.title || translateEnglishValue(c.title_uk || uk?.title || c.title),
-      categoryLabel: c.categoryLabel_en || en?.categoryLabel || translateEnglishValue(c.categoryLabel_uk || uk?.categoryLabel || c.categoryLabel),
-      description: c.description_en || en?.description || translateEnglishValue(c.description_uk || uk?.description || c.description),
-      challenge: c.challenge_en || en?.challenge || translateEnglishValue(c.challenge_uk || uk?.challenge || c.challenge),
-      problem: c.problem_en || en?.problem || translateEnglishValue(c.problem_uk || uk?.problem || c.problem),
-      solution: c.solution_en || en?.solution || translateEnglishValue(c.solution_uk || uk?.solution || c.solution),
-      result: c.result_en || en?.result || translateEnglishValue(c.result_uk || uk?.result || c.result),
-      metrics: c.metrics_en || en?.metrics || translateEnglishValue(c.metrics_uk || uk?.metrics || c.metrics),
-    };
-  }
+      const uk = CASE_TRANSLATIONS_UK[c.id];
+      const en = CASE_TRANSLATIONS_EN[c.id];
+      const localized = {
+        ...c,
+        client: en?.client || translateEnglishValue(c.client),
+        title: c.title_en || en?.title || translateEnglishValue(c.title_uk || uk?.title || c.title),
+        categoryLabel: c.categoryLabel_en || en?.categoryLabel || translateEnglishValue(c.categoryLabel_uk || uk?.categoryLabel || c.categoryLabel),
+        description: c.description_en || en?.description || translateEnglishValue(c.description_uk || uk?.description || c.description),
+        challenge: c.challenge_en || en?.challenge || translateEnglishValue(c.challenge_uk || uk?.challenge || c.challenge),
+        problem: c.problem_en || en?.problem || translateEnglishValue(c.problem_uk || uk?.problem || c.problem),
+        solution: c.solution_en || en?.solution || translateEnglishValue(c.solution_uk || uk?.solution || c.solution),
+        result: c.result_en || en?.result || translateEnglishValue(c.result_uk || uk?.result || c.result),
+        metrics: c.metrics_en || en?.metrics || translateEnglishValue(c.metrics_uk || uk?.metrics || c.metrics),
+      } as CaseStudy;
+      return localizeMigratedConstructionCase(localized, locale);
+    }
+
     if (locale === 'uk') {
       const uk = CASE_TRANSLATIONS_UK[c.id];
       return {
@@ -338,17 +333,18 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
 
   const getLocalizedTestimonial = (item: Testimonial): Testimonial => {
     if (locale === 'en') {
-    const uk = TESTIMONIALS_TRANSLATIONS_UK[item.id];
-    const en = TESTIMONIALS_TRANSLATIONS_EN[item.id];
-    return {
-      ...item,
-      author: item.author_en || en?.author || translateEnglishValue(item.author_uk || uk?.author || item.author),
-      role: item.role_en || en?.role || translateEnglishValue(item.role_uk || uk?.role || item.role),
-      company: item.company_en || en?.company || translateEnglishValue(item.company_uk || uk?.company || item.company),
-      project: item.project_en || en?.project || translateEnglishValue(item.project_uk || uk?.project || item.project),
-      quote: item.quote_en || en?.quote || translateEnglishValue(item.quote_uk || uk?.quote || item.quote),
-    };
-  }
+      const uk = TESTIMONIALS_TRANSLATIONS_UK[item.id];
+      const en = TESTIMONIALS_TRANSLATIONS_EN[item.id];
+      return {
+        ...item,
+        author: item.author_en || en?.author || translateEnglishValue(item.author_uk || uk?.author || item.author),
+        role: item.role_en || en?.role || translateEnglishValue(item.role_uk || uk?.role || item.role),
+        company: item.company_en || en?.company || translateEnglishValue(item.company_uk || uk?.company || item.company),
+        project: item.project_en || en?.project || translateEnglishValue(item.project_uk || uk?.project || item.project),
+        quote: item.quote_en || en?.quote || translateEnglishValue(item.quote_uk || uk?.quote || item.quote),
+      };
+    }
+
     if (locale === 'uk') {
       const uk = TESTIMONIALS_TRANSLATIONS_UK[item.id];
       return {
@@ -365,16 +361,17 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
 
   const getLocalizedBackstageItem = (item: BackstageItem): BackstageItem => {
     if (locale === 'en') {
-    const uk = BACKSTAGE_TRANSLATIONS_UK[item.id];
-    const en = BACKSTAGE_TRANSLATIONS_EN[item.id] || BACKSTAGE_SEED_EN[item.id];
-    return {
-      ...item,
-      title: item.title_en || en?.title || translateEnglishValue(item.title_uk || uk?.title || item.title),
-      category: item.category_en || en?.category || translateEnglishValue(item.category_uk || uk?.category || item.category),
-      tech: item.tech_en || en?.tech || translateEnglishValue(item.tech_uk || uk?.tech || item.tech),
-      description: item.description_en || en?.description || translateEnglishValue(item.description_uk || uk?.description || item.description),
-    };
-  }
+      const uk = BACKSTAGE_TRANSLATIONS_UK[item.id];
+      const en = BACKSTAGE_TRANSLATIONS_EN[item.id] || BACKSTAGE_SEED_EN[item.id];
+      return {
+        ...item,
+        title: item.title_en || en?.title || translateEnglishValue(item.title_uk || uk?.title || item.title),
+        category: item.category_en || en?.category || translateEnglishValue(item.category_uk || uk?.category || item.category),
+        tech: item.tech_en || en?.tech || translateEnglishValue(item.tech_uk || uk?.tech || item.tech),
+        description: item.description_en || en?.description || translateEnglishValue(item.description_uk || uk?.description || item.description),
+      };
+    }
+
     if (locale === 'uk') {
       const uk = BACKSTAGE_TRANSLATIONS_UK[item.id];
       return {
