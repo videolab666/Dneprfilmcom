@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { onSnapshot } from 'firebase/firestore';
 import { ArrowLeft, ArrowRight, CalendarDays, Film, MapPin, Tag } from 'lucide-react';
-import { db } from '../lib/firebase';
+import { publishedVideoProjectsQuery } from '../lib/publicPortfolioQueries';
 import { ResponsiveImage } from '../components/ResponsiveImage';
 import { VideoProjectPlayer } from '../components/videos/VideoProjectPlayer';
 import {
-  VIDEO_PROJECT_COLLECTION,
   getVideoProjectSlug,
   isVideoProject,
   localizeVideoProject,
@@ -33,7 +32,7 @@ export function VideoDetail() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    const unsubscribe = onSnapshot(collection(db, VIDEO_PROJECT_COLLECTION), snapshot => {
+    const unsubscribe = onSnapshot(publishedVideoProjectsQuery(), snapshot => {
       const loaded = snapshot.docs
         .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
         .filter(isVideoProject);

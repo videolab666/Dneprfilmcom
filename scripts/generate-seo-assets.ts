@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { deleteApp, initializeApp, type FirebaseOptions } from 'firebase/app';
-import { collection, getDocs, getFirestore } from 'firebase/firestore';
+import { collection, getDocs, getFirestore, query, where } from 'firebase/firestore';
 
 interface FirebaseConfig extends FirebaseOptions {
   firestoreDatabaseId?: string;
@@ -219,10 +219,12 @@ async function loadDynamicRoutes(
 
   try {
     const db = getFirestore(app, config.firestoreDatabaseId || '(default)');
-    const [caseSnapshot, settingsSnapshot] = await Promise.all([
-      getDocs(collection(db, 'cases')),
-      getDocs(collection(db, 'site_settings')),
+    const [caseSnapshot, gallerySnapshot, videoSnapshot] = await Promise.all([
+      getDocs(query(collection(db, 'cases'), where('published', '==', true))),
+      getDocs(query(collection(db, 'site_settings'), where('kind', '==', 'gallery'), where('published', '==', true))),
+      getDocs(query(collection(db, 'site_settings'), where('kind', '==', 'video_project'), where('published', '==', true))),
     ]);
+    const portfolioSettingsDocs = [...gallerySnapshot.docs, ...videoSnapshot.docs];
 
     caseSnapshot.docs.forEach(document => {
       const data = document.data() as Record<string, unknown>;
@@ -242,7 +244,7 @@ async function loadDynamicRoutes(
       };
     });
 
-    settingsSnapshot.docs.forEach(document => {
+    portfolioSettingsDocs.forEach(document => {
       const data = document.data() as Record<string, unknown>;
       if (data.published === false) return;
 
@@ -279,7 +281,7 @@ async function loadDynamicRoutes(
 
     return {
       cases: caseSnapshot.size,
-      settings: settingsSnapshot.size,
+      settings: portfolioSettingsDocs.length,
       dynamic: Array.from(routes.values()).filter(item => item.source !== 'static').length,
     };
   } finally {

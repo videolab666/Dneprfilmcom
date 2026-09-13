@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { onSnapshot } from 'firebase/firestore';
 import { ArrowRight, CalendarDays, Film, MapPin, Play, Search, Sparkles, X } from 'lucide-react';
-import { db } from '../lib/firebase';
+import { publishedVideoProjectsQuery } from '../lib/publicPortfolioQueries';
 import { ResponsiveImage } from '../components/ResponsiveImage';
 import {
-  VIDEO_PROJECT_COLLECTION,
   getVideoProjectPath,
   isVideoProject,
   localizeVideoProject,
@@ -31,7 +30,7 @@ export function Videos() {
   const [query, setQuery] = useState('');
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, VIDEO_PROJECT_COLLECTION), snapshot => {
+    const unsubscribe = onSnapshot(publishedVideoProjectsQuery(), snapshot => {
       const loaded = snapshot.docs
         .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
         .filter(isVideoProject)

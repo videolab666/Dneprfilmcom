@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { getDocs } from 'firebase/firestore';
 import { useParams } from 'react-router-dom';
-import { db } from '../../lib/firebase';
+import { publishedCasesQuery, publishedGalleriesQuery, publishedVideoProjectsQuery } from '../../lib/publicPortfolioQueries';
 import { INITIAL_CASES } from '../../data/initialCases';
 import type { CaseStudy, Locale } from '../../types';
 import {
@@ -158,7 +158,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           if (prerenderEntry?.source === 'case') {
             loaded = [{ id: prerenderEntry.id, ...prerenderEntry.data } as CaseStudy];
           } else {
-            const snapshot = await getDocs(collection(db, 'cases'));
+            const snapshot = await getDocs(publishedCasesQuery());
             loaded = snapshot.empty
               ? INITIAL_CASES
               : snapshot.docs.map(item => ({ id: item.id, ...item.data() } as CaseStudy));
@@ -236,7 +236,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
         if (prerenderEntry && prerenderEntry.source === type) {
           docs = [{ id: prerenderEntry.id, ...prerenderEntry.data }];
         } else {
-          const snapshot = await getDocs(collection(db, 'site_settings'));
+          const snapshot = await getDocs(type === 'gallery' ? publishedGalleriesQuery() : publishedVideoProjectsQuery());
           docs = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
         }
 

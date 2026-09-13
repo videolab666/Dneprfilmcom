@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { onSnapshot } from 'firebase/firestore';
 import { ArrowLeft, CalendarDays, Images, MapPin } from 'lucide-react';
-import { db } from '../lib/firebase';
+import { publishedGalleriesQuery } from '../lib/publicPortfolioQueries';
 import {
-  GALLERY_COLLECTION,
   galleryCover,
   getGallerySlug,
   isPhotoGallery,
@@ -31,7 +30,7 @@ export function GalleryDetail() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    const unsubscribe = onSnapshot(collection(db, GALLERY_COLLECTION), snapshot => {
+    const unsubscribe = onSnapshot(publishedGalleriesQuery(), snapshot => {
       const loaded = snapshot.docs
         .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
         .filter(isPhotoGallery);

@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { onSnapshot } from 'firebase/firestore';
 import { ArrowRight, CalendarDays, Images, MapPin, Sparkles } from 'lucide-react';
-import { db } from '../lib/firebase';
+import { publishedGalleriesQuery } from '../lib/publicPortfolioQueries';
 import { ResponsiveImage } from '../components/ResponsiveImage';
 import {
-  GALLERY_COLLECTION,
   galleryCover,
   getGalleryPath,
   isPhotoGallery,
@@ -29,7 +28,7 @@ export function Galleries() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, GALLERY_COLLECTION), snapshot => {
+    const unsubscribe = onSnapshot(publishedGalleriesQuery(), snapshot => {
       const loaded = snapshot.docs
         .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
         .filter(isPhotoGallery)
