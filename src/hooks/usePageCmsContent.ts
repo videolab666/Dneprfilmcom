@@ -14,13 +14,53 @@ export interface LocalizedPageContentItem extends PageContentItem {
 }
 
 const CYRILLIC_RE = /[А-Яа-яЁёІіЇїЄєҐґ]/;
+const DEFAULT_ITEMS: PageContentItem[] = [
+  ...DEFAULT_PAGE_CONTENT.video.works,
+  ...DEFAULT_PAGE_CONTENT.video.steps,
+  ...DEFAULT_PAGE_CONTENT.construction.works,
+  ...DEFAULT_PAGE_CONTENT.photo.gallery,
+  ...DEFAULT_PAGE_CONTENT.photo.packages,
+  ...DEFAULT_PAGE_CONTENT.about.milestones,
+  ...DEFAULT_PAGE_CONTENT.about.principles,
+];
 
 function chooseItems(stored: PageContentItem[] | undefined, fallback: PageContentItem[]): PageContentItem[] {
   return Array.isArray(stored) ? stored : fallback;
 }
 
+function normalizeMatch(value: string | undefined): string {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-zа-яёіїєґ0-9]+/giu, ' ')
+    .trim();
+}
+
+function defaultItemFor(item: PageContentItem): PageContentItem | undefined {
+  const byId = DEFAULT_ITEMS.find(candidate => candidate.id === item.id);
+  if (byId) return byId;
+
+  if (item.imageUrl) {
+    const byImage = DEFAULT_ITEMS.find(candidate => candidate.imageUrl === item.imageUrl);
+    if (byImage) return byImage;
+  }
+
+  const titles = [item.uk?.title, item.ru?.title]
+    .map(normalizeMatch)
+    .filter(Boolean);
+  if (!titles.length) return undefined;
+
+  return DEFAULT_ITEMS.find(candidate => {
+    const candidateTitles = [candidate.uk?.title, candidate.ru?.title]
+      .map(normalizeMatch)
+      .filter(Boolean);
+    return candidateTitles.some(title => titles.includes(title));
+  });
+}
+
 function englishText(item: PageContentItem): PageItemText {
-  const fallback = getPageItemText({ ...item, en: undefined }, 'en');
+  const matchedDefault = defaultItemFor(item);
+  const fallbackSource = matchedDefault || item;
+  const fallback = getPageItemText({ ...fallbackSource, en: undefined }, 'en');
   const explicit = item.en;
   if (!explicit) return fallback;
 
