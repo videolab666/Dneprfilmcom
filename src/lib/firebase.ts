@@ -1,17 +1,15 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
-import { getFunctions } from 'firebase/functions';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-export const firebaseApp = initializeApp(firebaseConfig);
-export const auth = getAuth(firebaseApp);
-export const functions = getFunctions(firebaseApp, 'europe-west1');
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
 
 // Long polling improves reliability in proxied/sandboxed environments.
 // Optional form fields may be undefined, so omit them rather than failing the write.
 export const db = initializeFirestore(
-  firebaseApp,
+  app,
   {
     experimentalForceLongPolling: true,
     ignoreUndefinedProperties: true,
