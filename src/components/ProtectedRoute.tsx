@@ -20,11 +20,9 @@ export function ProtectedRoute() {
     if (!isAdmin || migrationState !== 'idle') return;
 
     setMigrationState('running');
-    Promise.all([
-      ensureCmsSeedData(),
-      ensureLegacyConstructionEnglishBackfill(),
-    ])
-      .then(([seedResult, englishResult]) => {
+    ensureCmsSeedData()
+      .then(async seedResult => {
+        const englishResult = await ensureLegacyConstructionEnglishBackfill();
         const changed = Object.values(seedResult).reduce((sum, count) => sum + count, 0)
           + englishResult.casesBackfilled;
         if (changed > 0) {
