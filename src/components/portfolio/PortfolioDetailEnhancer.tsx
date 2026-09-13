@@ -36,6 +36,7 @@ import {
   toIsoDate,
   upsertMeta,
 } from '../../lib/seo';
+import { loadPrerenderPortfolioEntry } from '../../lib/prerenderContent';
 import { useSiteContent } from '../../context/SiteContentContext';
 import { RelatedProjectContent, type RelatedEntityType } from './RelatedProjectContent';
 
@@ -150,11 +151,19 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
     const load = async () => {
       const decoded = decodeURIComponent(slug);
       try {
+        const prerenderEntry = await loadPrerenderPortfolioEntry(type, decoded);
+
         if (type === 'case') {
-          const snapshot = await getDocs(collection(db, 'cases'));
-          const loaded = snapshot.empty
-            ? INITIAL_CASES
-            : snapshot.docs.map(item => ({ id: item.id, ...item.data() } as CaseStudy));
+          let loaded: CaseStudy[];
+          if (prerenderEntry?.source === 'case') {
+            loaded = [{ id: prerenderEntry.id, ...prerenderEntry.data } as CaseStudy];
+          } else {
+            const snapshot = await getDocs(collection(db, 'cases'));
+            loaded = snapshot.empty
+              ? INITIAL_CASES
+              : snapshot.docs.map(item => ({ id: item.id, ...item.data() } as CaseStudy));
+          }
+
           const raw = loaded.find(item => item.published !== false && (getCaseSlug(item) === decoded || item.id === decoded)) || null;
           if (!raw || cancelled) return;
           const localized = localizeCaseForSeo(raw, locale);
@@ -223,8 +232,13 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           return;
         }
 
-        const snapshot = await getDocs(collection(db, 'site_settings'));
-        const docs = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+        let docs: Array<Record<string, unknown> & { id: string }>;
+        if (prerenderEntry && prerenderEntry.source === type) {
+          docs = [{ id: prerenderEntry.id, ...prerenderEntry.data }];
+        } else {
+          const snapshot = await getDocs(collection(db, 'site_settings'));
+          docs = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+        }
 
         if (type === 'gallery') {
           const raw = docs.filter(isPhotoGallery).find(item => item.published !== false && (getGallerySlug(item) === decoded || item.id === decoded)) as PhotoGallery | undefined;
