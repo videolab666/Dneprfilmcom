@@ -17,6 +17,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Link2,
+  Activity,
 } from 'lucide-react';
 import { BlocksManager } from '../components/admin/BlocksManager';
 import { SiteSettingsEditor } from '../components/admin/SiteSettingsEditor';
@@ -31,9 +32,10 @@ import { ArticlesManager } from '../components/admin/ArticlesManager';
 import { PageContentManager } from '../components/admin/PageContentManager';
 import { PageCopyManager } from '../components/admin/PageCopyManager';
 import { RelationsManager } from '../components/admin/RelationsManager';
+import { CmsDiagnostics } from '../components/admin/CmsDiagnostics';
 import { useSiteContent } from '../context/SiteContentContext';
 
-type AdminTab = 'blocks' | 'settings' | 'pages' | 'page-copy' | 'cases' | 'galleries' | 'videos' | 'relations' | 'media' | 'testimonials' | 'backstage' | 'leads' | 'articles';
+type AdminTab = 'blocks' | 'settings' | 'pages' | 'page-copy' | 'cases' | 'galleries' | 'videos' | 'relations' | 'media' | 'diagnostics' | 'testimonials' | 'backstage' | 'leads' | 'articles';
 
 interface NavItem {
   id: AdminTab;
@@ -62,6 +64,7 @@ export function AdminDashboard() {
     { id: 'videos', label: isUk ? 'Відеопортфоліо' : 'Видеопортфолио', icon: <Film className="w-4 h-4" /> },
     { id: 'relations', label: isUk ? 'Зв’язки портфоліо' : 'Связи портфолио', icon: <Link2 className="w-4 h-4" />, badge: 'NEW' },
     { id: 'media', label: isUk ? 'Медіатека' : 'Медиатека', icon: <FolderOpen className="w-4 h-4" /> },
+    { id: 'diagnostics', label: isUk ? 'Діагностика CMS' : 'Диагностика CMS', icon: <Activity className="w-4 h-4" />, badge: 'NEW' },
     { id: 'testimonials', label: isUk ? 'Відгуки клієнтів' : 'Отзывы клиентов', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'backstage', label: isUk ? 'ПТС та Бекстейдж' : 'ПТС и Бэкстейдж', icon: <Radio className="w-4 h-4" /> },
     { id: 'leads', label: 'Заявки / CRM', icon: <Inbox className="w-4 h-4" /> },
@@ -115,6 +118,7 @@ export function AdminDashboard() {
         {activeTab === 'videos' && <VideosManager />}
         {activeTab === 'relations' && <RelationsManager />}
         {activeTab === 'media' && <MediaLibraryManager />}
+        {activeTab === 'diagnostics' && <CmsDiagnostics />}
         {activeTab === 'testimonials' && <TestimonialsManager />}
         {activeTab === 'backstage' && <BackstageManager />}
         {activeTab === 'leads' && <LeadsCRM />}

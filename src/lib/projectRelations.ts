@@ -15,7 +15,7 @@ export function relationDocumentId(caseId: string): string {
   return `project-relation-${safe || 'case'}`;
 }
 
-export function isProjectRelation(value: unknown): value is ProjectRelation {
+export function isProjectRelation(value: unknown): value is ProjectRelation & Record<string, unknown> {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<ProjectRelation>;
   return candidate.kind === PROJECT_RELATION_KIND

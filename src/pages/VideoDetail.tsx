@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { onSnapshot } from 'firebase/firestore';
 import { ArrowLeft, ArrowRight, CalendarDays, Film, MapPin, Tag } from 'lucide-react';
 import { publishedVideoProjectsQuery } from '../lib/publicPortfolioQueries';
+import { loadPrerenderPortfolioEntry } from '../lib/prerenderContent';
 import { ResponsiveImage } from '../components/ResponsiveImage';
 import { VideoProjectPlayer } from '../components/videos/VideoProjectPlayer';
 import {
@@ -32,18 +33,50 @@ export function VideoDetail() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    const unsubscribe = onSnapshot(publishedVideoProjectsQuery(), snapshot => {
-      const loaded = snapshot.docs
-        .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
-        .filter(isVideoProject);
-      setProjects(loaded);
-      setLoading(false);
-    }, error => {
-      console.warn('Could not load video project:', error);
-      setProjects([]);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    const subscribeToFirestore = () => {
+      if (!active) return;
+      unsubscribe = onSnapshot(publishedVideoProjectsQuery(), snapshot => {
+        if (!active) return;
+        const loaded = snapshot.docs
+          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+          .filter(isVideoProject);
+        setProjects(loaded);
+        setLoading(false);
+      }, error => {
+        if (!active) return;
+        console.warn('Could not load video project:', error);
+        setProjects([]);
+        setLoading(false);
+      });
+    };
+
+    setLoading(true);
+    const decoded = decodeURIComponent(slug);
+    void loadPrerenderPortfolioEntry('video', decoded)
+      .then(entry => {
+        if (!active) return;
+        if (entry) {
+          const candidate = { id: entry.id, ...entry.data };
+          if (isVideoProject(candidate)) {
+            setProjects([candidate]);
+            setLoading(false);
+            return;
+          }
+        }
+        subscribeToFirestore();
+      })
+      .catch(error => {
+        console.warn('Could not load video prerender snapshot, using Firestore:', error);
+        subscribeToFirestore();
+      });
+
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
   }, [slug]);
 
   const rawProject = useMemo(() => {
