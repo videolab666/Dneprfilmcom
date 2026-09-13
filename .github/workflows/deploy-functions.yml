@@ -1,0 +1,80 @@
+name: Validate and Deploy Firebase Functions
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - functions/**
+      - firebase.json
+      - src/lib/firebase.ts
+      - src/lib/cloudinaryAdmin.ts
+      - src/components/admin/MediaLibraryManager.tsx
+      - .github/workflows/deploy-functions.yml
+  push:
+    branches:
+      - main
+    paths:
+      - functions/**
+      - firebase.json
+      - .github/workflows/deploy-functions.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-functions-production
+  cancel-in-progress: false
+
+env:
+  FIREBASE_PROJECT_ID: gen-lang-client-0973206519
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install function dependencies
+        run: npm install --prefix functions --ignore-scripts
+
+      - name: Check function syntax
+        run: node --check functions/index.js
+
+  deploy:
+    needs: validate
+    if: ${{ github.event_name != 'pull_request' && vars.FIREBASE_FUNCTIONS_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install function dependencies
+        run: npm install --prefix functions --ignore-scripts
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.FIREBASE_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_FIREBASE_FUNCTIONS_SERVICE_ACCOUNT }}
+
+      - name: Deploy Cloudinary admin function
+        run: >-
+          npx --yes firebase-tools@latest deploy
+          --only functions:cloudinaryMediaAdmin
+          --project "$FIREBASE_PROJECT_ID"
+          --non-interactive
