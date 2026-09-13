@@ -7,10 +7,17 @@ interface FirebaseConfig extends FirebaseOptions {
   firestoreDatabaseId?: string;
 }
 
+interface SitemapImage {
+  loc: string;
+  title?: string;
+  caption?: string;
+}
+
 interface RouteEntry {
   path: string;
   lastmod?: string;
   source: 'static' | 'case' | 'gallery' | 'video';
+  images?: SitemapImage[];
 }
 
 const CYRILLIC_MAP: Record<string, string> = {
@@ -87,6 +94,83 @@ function projectSlug(data: Record<string, unknown>, id: string): string {
   return String(data.slug || '').trim() || slugify(String(data.title_uk || data.title || data.title_en || id));
 }
 
+function stringValue(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function uniqueImages(images: SitemapImage[]): SitemapImage[] {
+  const map = new Map<string, SitemapImage>();
+  images.forEach(image => {
+    if (!image.loc) return;
+    if (!map.has(image.loc)) map.set(image.loc, image);
+  });
+  return Array.from(map.values()).slice(0, 1000);
+}
+
+function caseImages(data: Record<string, unknown>): SitemapImage[] {
+  const title = stringValue(data.title_uk) || stringValue(data.title) || stringValue(data.title_en);
+  const images: SitemapImage[] = [];
+  const cover = stringValue(data.imageUrl);
+  if (cover) images.push({ loc: cover, title });
+  if (Array.isArray(data.media)) {
+    data.media.forEach(value => {
+      if (!value || typeof value !== 'object') return;
+      const media = value as Record<string, unknown>;
+      if (media.type !== 'image') return;
+      const loc = stringValue(media.url);
+      if (!loc) return;
+      images.push({
+        loc,
+        title: stringValue(media.alt_uk) || stringValue(media.alt) || stringValue(media.title_uk) || title,
+        caption: stringValue(media.caption_uk) || stringValue(media.caption),
+      });
+    });
+  }
+  return uniqueImages(images);
+}
+
+function galleryImages(data: Record<string, unknown>): SitemapImage[] {
+  const title = stringValue(data.title_uk) || stringValue(data.title) || stringValue(data.title_en);
+  const images: SitemapImage[] = [];
+  const cover = stringValue(data.coverUrl);
+  if (cover) images.push({ loc: cover, title });
+  if (Array.isArray(data.images)) {
+    data.images.forEach(value => {
+      if (!value || typeof value !== 'object') return;
+      const image = value as Record<string, unknown>;
+      const loc = stringValue(image.url);
+      if (!loc) return;
+      images.push({
+        loc,
+        title: stringValue(image.alt_uk) || stringValue(image.alt) || title,
+        caption: stringValue(image.caption_uk) || stringValue(image.caption),
+      });
+    });
+  }
+  return uniqueImages(images);
+}
+
+function videoImages(data: Record<string, unknown>): SitemapImage[] {
+  const title = stringValue(data.title_uk) || stringValue(data.title) || stringValue(data.title_en);
+  const images: SitemapImage[] = [];
+  const cover = stringValue(data.coverUrl);
+  if (cover) images.push({ loc: cover, title });
+  if (Array.isArray(data.videos)) {
+    data.videos.forEach(value => {
+      if (!value || typeof value !== 'object') return;
+      const media = value as Record<string, unknown>;
+      const loc = stringValue(media.posterUrl);
+      if (!loc) return;
+      images.push({
+        loc,
+        title: stringValue(media.title_uk) || stringValue(media.title) || title,
+        caption: stringValue(media.caption_uk) || stringValue(media.caption),
+      });
+    });
+  }
+  return uniqueImages(images);
+}
+
 async function loadDynamicRoutes(config: FirebaseConfig, routes: Map<string, RouteEntry>) {
   const app = initializeApp({
     apiKey: config.apiKey,
@@ -113,6 +197,7 @@ async function loadDynamicRoutes(config: FirebaseConfig, routes: Map<string, Rou
         path,
         source: 'case',
         lastmod: asLastmod(data.updatedAt ?? data.createdAt),
+        images: caseImages(data),
       });
     });
 
@@ -126,6 +211,7 @@ async function loadDynamicRoutes(config: FirebaseConfig, routes: Map<string, Rou
           path,
           source: 'gallery',
           lastmod: asLastmod(data.updatedAt ?? data.createdAt),
+          images: galleryImages(data),
         });
       }
 
@@ -135,6 +221,7 @@ async function loadDynamicRoutes(config: FirebaseConfig, routes: Map<string, Rou
           path,
           source: 'video',
           lastmod: asLastmod(data.updatedAt ?? data.createdAt),
+          images: videoImages(data),
         });
       }
     });
@@ -147,6 +234,10 @@ async function loadDynamicRoutes(config: FirebaseConfig, routes: Map<string, Rou
   } finally {
     await deleteApp(app);
   }
+}
+
+function absolutePageUrl(siteUrl: string, path: string): string {
+  return path === '/' ? `${siteUrl}/` : `${siteUrl}${path}`;
 }
 
 async function main() {
@@ -171,7 +262,7 @@ async function main() {
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ...ordered.map(route => {
-      const loc = route.path === '/' ? `${siteUrl}/` : `${siteUrl}${route.path}`;
+      const loc = absolutePageUrl(siteUrl, route.path);
       return [
         '  <url>',
         `    <loc>${xmlEscape(loc)}</loc>`,
@@ -183,22 +274,45 @@ async function main() {
     '',
   ].join('\n');
 
+  const imageRoutes = ordered.filter(route => route.images?.length);
+  const imageSitemap = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">',
+    ...imageRoutes.map(route => [
+      '  <url>',
+      `    <loc>${xmlEscape(absolutePageUrl(siteUrl, route.path))}</loc>`,
+      ...(route.images || []).flatMap(image => [
+        '    <image:image>',
+        `      <image:loc>${xmlEscape(image.loc)}</image:loc>`,
+        ...(image.title ? [`      <image:title>${xmlEscape(image.title)}</image:title>`] : []),
+        ...(image.caption ? [`      <image:caption>${xmlEscape(image.caption)}</image:caption>`] : []),
+        '    </image:image>',
+      ]),
+      '  </url>',
+    ].join('\n')),
+    '</urlset>',
+    '',
+  ].join('\n');
+
   const robots = [
     'User-agent: *',
     'Allow: /',
     'Disallow: /admin',
     '',
     `Sitemap: ${siteUrl}/sitemap.xml`,
+    `Sitemap: ${siteUrl}/sitemap-images.xml`,
     '',
   ].join('\n');
 
   const routeFile = join(distDir, 'prerender-routes.json');
   mkdirSync(dirname(routeFile), { recursive: true });
   writeFileSync(join(distDir, 'sitemap.xml'), sitemap);
+  writeFileSync(join(distDir, 'sitemap-images.xml'), imageSitemap);
   writeFileSync(join(distDir, 'robots.txt'), robots);
   writeFileSync(routeFile, JSON.stringify(ordered, null, 2));
 
-  console.log(`Generated sitemap.xml, robots.txt and ${ordered.length} prerender routes (${ordered.filter(item => item.source !== 'static').length} dynamic).`);
+  const imageCount = imageRoutes.reduce((total, route) => total + (route.images?.length || 0), 0);
+  console.log(`Generated sitemap.xml, sitemap-images.xml (${imageCount} images), robots.txt and ${ordered.length} prerender routes (${ordered.filter(item => item.source !== 'static').length} dynamic).`);
 }
 
 await main();
