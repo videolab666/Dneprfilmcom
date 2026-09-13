@@ -1,13 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
   Building2,
   Camera,
   Edit3,
+  Library,
+  Loader2,
   Plus,
   Save,
   Trash2,
+  Upload,
   UserRound,
   Video,
   X,
@@ -15,6 +18,9 @@ import {
 import { clonePageContent, PageContent, PageContentItem, PageContentLocale, PageItemText } from '../../data/pageContent';
 import { usePageCmsContent } from '../../hooks/usePageCmsContent';
 import { useSiteContent } from '../../context/SiteContentContext';
+import { uploadLibraryImage } from '../../lib/mediaUpload';
+import { registerMediaAsset, type MediaLibraryAsset } from '../../lib/mediaLibrary';
+import { MediaLibraryPicker } from './MediaLibraryPicker';
 
 type PageKey = keyof PageContent;
 type LangKey = PageContentLocale;
@@ -118,6 +124,10 @@ export function PageContentManager() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!dirty) setDraft(clonePageContent(content));
@@ -138,8 +148,10 @@ export function PageContentManager() {
   const startEdit = (item: PageContentItem) => {
     const originalItems = getItems(draft, page, sectionConfig.key);
     setEditingIndex(originalItems.findIndex(current => current.id === item.id));
-    setEditing(clonePageContent({ video: { works: [item], steps: [] }, construction: { works: [] }, photo: { gallery: [], packages: [] }, about: { milestones: [], principles: [] } }).video.works[0]);
+    setEditing(JSON.parse(JSON.stringify(item)) as PageContentItem);
     setLang('uk');
+    setImageError('');
+    setLibraryPickerOpen(false);
   };
 
   const startAdd = () => {
@@ -148,6 +160,15 @@ export function PageContentManager() {
     setEditingIndex(null);
     setEditing(newItem(page, sectionConfig.key, nextOrder));
     setLang('uk');
+    setImageError('');
+    setLibraryPickerOpen(false);
+  };
+
+  const closeEditor = () => {
+    setEditing(null);
+    setEditingIndex(null);
+    setLibraryPickerOpen(false);
+    setImageError('');
   };
 
   const saveModal = () => {
@@ -157,8 +178,7 @@ export function PageContentManager() {
     else current[editingIndex] = editing;
     setDraft(replaceItems(draft, page, sectionConfig.key, current));
     setDirty(true);
-    setEditing(null);
-    setEditingIndex(null);
+    closeEditor();
   };
 
   const removeItem = (id: string) => {
@@ -200,6 +220,31 @@ export function PageContentManager() {
     if (!editing) return;
     const current = editing[lang] || blankText();
     setEditing({ ...editing, [lang]: { ...current, [field]: value } });
+  };
+
+  const uploadImage = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file || !editing) return;
+    setUploadingImage(true);
+    setImageError('');
+    try {
+      const uploaded = await uploadLibraryImage(file);
+      await registerMediaAsset(uploaded, file.name);
+      setEditing(current => current ? { ...current, imageUrl: uploaded.url } : current);
+    } catch (error) {
+      console.error(error);
+      setImageError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
+    }
+  };
+
+  const chooseImageFromLibrary = (asset: MediaLibraryAsset) => {
+    if (asset.assetType !== 'image') return;
+    setEditing(current => current ? { ...current, imageUrl: asset.url } : current);
+    setLibraryPickerOpen(false);
+    setImageError('');
   };
 
   const text = editing ? (editing[lang] || blankText()) : blankText();
@@ -276,7 +321,7 @@ export function PageContentManager() {
                 <div className="text-xs text-indigo-600 font-black uppercase tracking-wider">{pageConfig.label} / {sectionConfig.label}</div>
                 <h3 className="text-xl font-black text-slate-900">{editingIndex === null ? 'Новый элемент' : 'Редактирование'}</h3>
               </div>
-              <button onClick={() => setEditing(null)} className="p-2 rounded-xl hover:bg-slate-100"><X className="w-5 h-5" /></button>
+              <button onClick={closeEditor} className="p-2 rounded-xl hover:bg-slate-100"><X className="w-5 h-5" /></button>
             </div>
 
             <div className="p-5 sm:p-7 space-y-6">
@@ -289,12 +334,64 @@ export function PageContentManager() {
                 </label>
               </div>
 
-              {sectionConfig.showImage && <label className="block text-sm font-semibold text-slate-700">URL изображения
-                <input value={editing.imageUrl || ''} onChange={e => setCommon('imageUrl', e.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-xl border border-slate-300 font-normal" />
-              </label>}
+              {sectionConfig.showImage && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-slate-700">URL изображения
+                    <input value={editing.imageUrl || ''} onChange={e => setCommon('imageUrl', e.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-xl border border-slate-300 font-normal" placeholder="Можно вставить URL вручную или загрузить фото ниже" />
+                  </label>
+
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={event => void uploadImage(event.target.files)}
+                  />
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      {uploadingImage ? 'Загрузка…' : 'Загрузить фото'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLibraryPickerOpen(true)}
+                      disabled={uploadingImage}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      <Library className="w-4 h-4" />
+                      Из медиатеки
+                    </button>
+                    {editing.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCommon('imageUrl', '')}
+                        disabled={uploadingImage}
+                        className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Убрать фото
+                      </button>
+                    )}
+                  </div>
+
+                  {imageError && <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{imageError}</div>}
+
+                  {editing.imageUrl && (
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                      <img src={editing.imageUrl} alt="Предпросмотр" className="max-h-64 w-full object-contain" />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-2 p-1.5 bg-slate-100 rounded-xl w-fit">
-                {LANGS.map(item => <button key={item.key} onClick={() => setLang(item.key)} className={`px-4 py-2 rounded-lg text-xs font-black ${lang === item.key ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>{item.label}</button>)}
+                {LANGS.map(item => <button key={item.key} type="button" onClick={() => setLang(item.key)} className={`px-4 py-2 rounded-lg text-xs font-black ${lang === item.key ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>{item.label}</button>)}
               </div>
 
               <div className="space-y-4">
@@ -350,11 +447,20 @@ export function PageContentManager() {
             </div>
 
             <div className="p-5 border-t border-slate-200 flex justify-end gap-3 bg-slate-50">
-              <button onClick={() => setEditing(null)} className="px-5 py-2.5 rounded-xl border border-slate-300 font-bold text-sm text-slate-600">Отмена</button>
-              <button onClick={saveModal} className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700">Применить</button>
+              <button type="button" onClick={closeEditor} className="px-5 py-2.5 rounded-xl border border-slate-300 font-bold text-sm text-slate-600">Отмена</button>
+              <button type="button" onClick={saveModal} disabled={uploadingImage} className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 disabled:opacity-50">Применить</button>
             </div>
           </div>
         </div>
+      )}
+
+      {libraryPickerOpen && editing && (
+        <MediaLibraryPicker
+          type="image"
+          title="Выбрать изображение"
+          onClose={() => setLibraryPickerOpen(false)}
+          onSelect={chooseImageFromLibrary}
+        />
       )}
     </div>
   );
