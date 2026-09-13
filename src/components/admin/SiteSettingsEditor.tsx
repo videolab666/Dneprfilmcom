@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useSiteContent } from '../../context/SiteContentContext';
 import { SiteSetting } from '../../types';
+import { AdminImageField } from './AdminImageField';
 import { HeroSlidesEditor } from './HeroSlidesEditor';
 
 type EditableTextField = 
@@ -34,7 +35,6 @@ export function SiteSettingsEditor() {
   const [activeSubTab, setActiveSubTab] = useState<'hero' | 'founder' | 'contacts' | 'announcement'>('hero');
   const [langTab, setLangTab] = useState<'uk' | 'ru' | 'en'>('uk');
 
-  // Keep local form in sync if context loaded new data
   React.useEffect(() => {
     setFormData(rawSettings);
   }, [rawSettings]);
@@ -82,7 +82,6 @@ export function SiteSettingsEditor() {
 
   return (
     <div className="space-y-8">
-      {/* Top Header Card */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider mb-2">
@@ -105,7 +104,6 @@ export function SiteSettingsEditor() {
         )}
       </div>
 
-      {/* Language Selector Bar */}
       <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
         <div className="flex items-center space-x-3">
           <div className="p-2 rounded-xl bg-indigo-600/30 text-indigo-400 border border-indigo-500/30">
@@ -159,7 +157,6 @@ export function SiteSettingsEditor() {
         </div>
       </div>
 
-      {/* Sub-tab Navigation */}
       <div className="flex border-b border-slate-200 space-x-2 sm:space-x-8 overflow-x-auto pb-px">
         <button
           type="button"
@@ -208,7 +205,6 @@ export function SiteSettingsEditor() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Current Active Language Indicator */}
         <div className="bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-2.5 flex items-center justify-between text-xs text-indigo-900">
           <span className="font-semibold flex items-center space-x-2">
             <span>Сейчас редактируется версия:</span>
@@ -221,7 +217,6 @@ export function SiteSettingsEditor() {
           </span>
         </div>
 
-        {/* HERO TAB */}
         {activeSubTab === 'hero' && (
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
             <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2 border-b border-slate-100 pb-3">
@@ -231,7 +226,6 @@ export function SiteSettingsEditor() {
 
             <HeroSlidesEditor formData={formData} setFormData={setFormData} langTab={langTab} />
 
-            {/* Mini visual live preview */}
             <div className="relative rounded-2xl overflow-hidden bg-slate-950 p-6 sm:p-8 text-white border border-slate-800">
               <div className="absolute inset-0 opacity-30 bg-center bg-cover" style={{ backgroundImage: `url(${formData.heroBgImage})` }} />
               <div className="relative z-10 max-w-xl">
@@ -350,22 +344,18 @@ export function SiteSettingsEditor() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Fallback-фото Hero (используется, если слайдов нет)
-                </label>
-                <input
-                  type="url"
+                <AdminImageField
+                  label="Fallback-фото Hero"
                   value={formData.heroBgImage || ''}
-                  onChange={(e) => setFormData({ ...formData, heroBgImage: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 text-sm"
-                  placeholder="https://images.unsplash.com/..."
+                  onChange={heroBgImage => setFormData({ ...formData, heroBgImage })}
+                  previewAlt="Fallback Hero"
+                  helperText="Используется только если список Hero-слайдов пуст. Можно загрузить фото, выбрать его из медиатеки или указать URL вручную."
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* FOUNDER TAB */}
         {activeSubTab === 'founder' && (
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
             <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2 border-b border-slate-100 pb-3">
@@ -427,29 +417,19 @@ export function SiteSettingsEditor() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Фотография основателя (URL)
-                </label>
-                <div className="flex gap-4 items-center">
-                  <img
-                    src={formData.founderPhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80'}
-                    alt="Портрет"
-                    className="w-16 h-16 rounded-2xl object-cover border border-slate-200 shrink-0"
-                  />
-                  <input
-                    type="url"
-                    value={formData.founderPhoto || ''}
-                    onChange={(e) => setFormData({ ...formData, founderPhoto: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 text-sm"
-                    placeholder="https://..."
-                  />
-                </div>
+                <AdminImageField
+                  label="Фотография основателя"
+                  value={formData.founderPhoto || ''}
+                  onChange={founderPhoto => setFormData({ ...formData, founderPhoto })}
+                  previewAlt={getFieldValue('founderName') || 'Портрет основателя'}
+                  previewShape="portrait"
+                  helperText="Загрузите портрет или выберите уже загруженный файл из медиатеки."
+                />
               </div>
             </div>
           </div>
         )}
 
-        {/* CONTACTS TAB */}
         {activeSubTab === 'contacts' && (
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
             <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2 border-b border-slate-100 pb-3">
@@ -576,7 +556,6 @@ export function SiteSettingsEditor() {
           </div>
         )}
 
-        {/* ANNOUNCEMENT TAB */}
         {activeSubTab === 'announcement' && (
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
             <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2 border-b border-slate-100 pb-3">
@@ -631,7 +610,6 @@ export function SiteSettingsEditor() {
           </div>
         )}
 
-        {/* Save button bar */}
         <div className="flex justify-end items-center space-x-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm sticky bottom-4 z-20">
           {saved && (
             <span className="text-sm font-bold text-emerald-600 flex items-center space-x-1.5">

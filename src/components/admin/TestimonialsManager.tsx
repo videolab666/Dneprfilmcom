@@ -3,6 +3,7 @@ import { Edit3, MessageSquare, Plus, Star, Trash2, X } from 'lucide-react';
 import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Locale, Testimonial } from '../../types';
+import { AdminImageField } from './AdminImageField';
 
 const LANGS: Array<{ id: Locale; label: string }> = [
   { id: 'uk', label: 'Українська' },
@@ -102,7 +103,10 @@ export function TestimonialsManager() {
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           {items.map(item => (
             <article key={item.id} className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col">
-              <div className="flex gap-1 text-amber-400 mb-4">{Array.from({ length: item.rating || 5 }).map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400" />)}</div>
+              <div className="flex items-center gap-3 mb-4">
+                {item.avatar ? <img src={item.avatar} alt={item.author_uk || item.author || ''} className="h-11 w-11 rounded-full object-cover border border-slate-200" /> : null}
+                <div className="flex gap-1 text-amber-400">{Array.from({ length: item.rating || 5 }).map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400" />)}</div>
+              </div>
               <p className="text-sm text-slate-600 italic line-clamp-5 flex-1">“{item.quote_uk || item.quote}”</p>
               <div className="mt-5 pt-4 border-t border-slate-100 flex justify-between items-center gap-3">
                 <div className="min-w-0"><div className="font-bold text-sm truncate">{item.author_uk || item.author}</div><div className="text-xs text-slate-500 truncate">{item.company_uk || item.company}</div></div>
@@ -118,8 +122,15 @@ export function TestimonialsManager() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[94vh] overflow-y-auto">
             <form onSubmit={save} className="p-6 sm:p-8 space-y-6">
               <div className="flex justify-between"><div><h3 className="text-xl font-black">Редактор отзыва</h3><p className="text-xs text-slate-400">{editing.id}</p></div><button type="button" onClick={() => setEditing(null)} className="p-2 h-fit rounded-full hover:bg-slate-100"><X className="w-5 h-5" /></button></div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <label className="text-xs font-bold">URL аватара<input type="url" value={editing.avatar} onChange={e => setEditing({ ...editing, avatar: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300 font-normal text-sm" /></label>
+              <div className="grid sm:grid-cols-[minmax(0,1fr)_180px] gap-4 items-start">
+                <AdminImageField
+                  label="Аватар клиента"
+                  value={editing.avatar || ''}
+                  onChange={avatar => setEditing({ ...editing, avatar })}
+                  previewAlt={editing.author_uk || editing.author || 'Клиент'}
+                  previewShape="square"
+                  helperText="Загрузите фото или выберите существующее из медиатеки. URL остаётся доступен как запасной вариант."
+                />
                 <label className="text-xs font-bold">Рейтинг 1–5<input type="number" min="1" max="5" value={editing.rating || 5} onChange={e => setEditing({ ...editing, rating: Math.max(1, Math.min(5, Number(e.target.value))) })} className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300 font-normal text-sm" /></label>
               </div>
               <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">{LANGS.map(lang => <button key={lang.id} type="button" onClick={() => setLanguage(lang.id)} className={`px-4 py-2 rounded-xl text-sm font-bold ${language === lang.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{lang.label}</button>)}</div>

@@ -3,6 +3,7 @@ import { Edit3, Plus, Radio, Trash2, X } from 'lucide-react';
 import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { BackstageItem, Locale } from '../../types';
+import { AdminImageField } from './AdminImageField';
 
 const LANGS: Array<{ id: Locale; label: string }> = [
   { id: 'uk', label: 'Українська' },
@@ -117,7 +118,13 @@ export function BackstageManager() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[94vh] overflow-y-auto">
             <form onSubmit={save} className="p-6 sm:p-8 space-y-6">
               <div className="flex justify-between"><div><h3 className="text-xl font-black">Редактор backstage</h3><p className="text-xs text-slate-400">{editing.id}</p></div><button type="button" onClick={() => setEditing(null)} className="p-2 h-fit rounded-full hover:bg-slate-100"><X className="w-5 h-5" /></button></div>
-              <label className="block text-xs font-bold">URL изображения<input type="url" value={editing.imageUrl} onChange={e => setEditing({ ...editing, imageUrl: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300 font-normal text-sm" /></label>
+              <AdminImageField
+                label="Изображение карточки"
+                value={editing.imageUrl || ''}
+                onChange={imageUrl => setEditing({ ...editing, imageUrl })}
+                previewAlt={editing.title_uk || editing.title || 'Backstage'}
+                helperText="Можно загрузить новое фото, выбрать уже загруженное из медиатеки или оставить внешний URL."
+              />
               <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">{LANGS.map(lang => <button key={lang.id} type="button" onClick={() => setLanguage(lang.id)} className={`px-4 py-2 rounded-xl text-sm font-bold ${language === lang.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{lang.label}</button>)}</div>
               <div className="grid sm:grid-cols-2 gap-4">
                 {(['title', 'category', 'tech'] as LocalizedField[]).map(field => <label key={field} className={`text-xs font-bold ${field === 'title' ? 'sm:col-span-2' : ''}`}>{field}<input value={fieldValue(field)} onChange={e => setFieldValue(field, e.target.value)} className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300 font-normal text-sm" /></label>)}

@@ -114,17 +114,38 @@ function titleForDocument(data: Record<string, unknown>, id: string): string {
     data.name_uk,
     data.name,
     data.name_en,
+    data.author_uk,
+    data.author,
+    data.author_en,
     data.client_uk,
     data.client,
   ];
   for (const value of candidates) {
     if (typeof value === 'string' && value.trim()) return value.trim();
   }
+
+  const config = data.config;
+  if (config && typeof config === 'object') {
+    const heading = (config as Record<string, unknown>).heading;
+    if (typeof heading === 'string' && heading.trim()) return heading.trim();
+  }
+
+  const uk = data.uk;
+  if (uk && typeof uk === 'object') {
+    const title = (uk as Record<string, unknown>).title;
+    if (typeof title === 'string' && title.trim()) return title.trim();
+  }
+
   return id;
 }
 
 function sourceTypeFor(collectionName: string, data: Record<string, unknown>): string {
   if (collectionName === 'cases') return 'Кейс';
+  if (collectionName === 'articles') return 'Статья';
+  if (collectionName === 'testimonials') return 'Отзыв';
+  if (collectionName === 'backstage') return 'Backstage';
+  if (collectionName === 'site_blocks') return 'Блок главной';
+
   const kind = typeof data.kind === 'string' ? data.kind : '';
   if (kind === 'photo_gallery') return 'Фотогалерея';
   if (kind === 'video_project') return 'Видеопроект';
@@ -188,9 +209,20 @@ function scanValue(
 }
 
 export async function loadMediaLibrary(): Promise<MediaLibraryAsset[]> {
-  const [siteSnapshot, casesSnapshot] = await Promise.all([
+  const [
+    siteSnapshot,
+    casesSnapshot,
+    articlesSnapshot,
+    testimonialsSnapshot,
+    backstageSnapshot,
+    blocksSnapshot,
+  ] = await Promise.all([
     getDocs(collection(db, 'site_settings')),
     getDocs(collection(db, 'cases')),
+    getDocs(collection(db, 'articles')),
+    getDocs(collection(db, 'testimonials')),
+    getDocs(collection(db, 'backstage')),
+    getDocs(collection(db, 'site_blocks')),
   ]);
 
   const registered = new Map<string, StoredMediaAsset>();
@@ -226,14 +258,24 @@ export async function loadMediaLibrary(): Promise<MediaLibraryAsset[]> {
     scanValue(data, '', context, found, usages);
   }
 
-  for (const snap of casesSnapshot.docs) {
-    const data = snap.data() as Record<string, unknown>;
-    const context: ScanContext = {
-      sourceType: sourceTypeFor('cases', data),
-      sourceId: snap.id,
-      sourceTitle: titleForDocument(data, snap.id),
-    };
-    scanValue(data, '', context, found, usages);
+  const contentSnapshots = [
+    { name: 'cases', docs: casesSnapshot.docs },
+    { name: 'articles', docs: articlesSnapshot.docs },
+    { name: 'testimonials', docs: testimonialsSnapshot.docs },
+    { name: 'backstage', docs: backstageSnapshot.docs },
+    { name: 'site_blocks', docs: blocksSnapshot.docs },
+  ];
+
+  for (const source of contentSnapshots) {
+    for (const snap of source.docs) {
+      const data = snap.data() as Record<string, unknown>;
+      const context: ScanContext = {
+        sourceType: sourceTypeFor(source.name, data),
+        sourceId: snap.id,
+        sourceTitle: titleForDocument(data, snap.id),
+      };
+      scanValue(data, '', context, found, usages);
+    }
   }
 
   const urls = new Set<string>([...registered.keys(), ...found.keys()]);
