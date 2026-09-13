@@ -103,8 +103,15 @@ service cloud.firestore {
         && validCalculatorDetails(data);
     }
 
+    function isPublicPortfolioSetting(data) {
+      let kind = data.get('kind', '');
+      return kind == 'project_relation'
+        || ((kind == 'gallery' || kind == 'video_project')
+          && data.get('published', false) == true);
+    }
+
     match /cases/{caseId} {
-      allow read: if true;
+      allow read: if isAdmin() || resource.data.get('published', false) == true;
       allow write: if isAdmin();
     }
 
@@ -114,7 +121,12 @@ service cloud.firestore {
     }
 
     match /site_settings/{docId} {
-      allow read: if true;
+      // The public app only needs the global settings document, published
+      // portfolio entities and relation documents. Media registry records and
+      // draft galleries/videos remain admin-only.
+      allow read: if isAdmin()
+        || docId == 'global'
+        || isPublicPortfolioSetting(resource.data);
       allow write: if isAdmin();
     }
 
