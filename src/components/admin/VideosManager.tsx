@@ -21,8 +21,13 @@ import type { Locale } from '../../types';
 import { slugifyCase } from '../../lib/caseMedia';
 import { uploadPortfolioImage, uploadPortfolioVideo } from '../../lib/mediaUpload';
 import type { MediaLibraryAsset } from '../../lib/mediaLibrary';
+import { cleanupPortfolioRelations } from '../../lib/portfolioRelationsAdmin';
 import { ResponsiveImage } from '../ResponsiveImage';
 import { MediaLibraryPicker } from './MediaLibraryPicker';
+import {
+  PortfolioRelationsField,
+  type PortfolioRelationsFieldHandle,
+} from './PortfolioRelationsField';
 import {
   VIDEO_PROJECT_COLLECTION,
   VIDEO_PROJECT_KIND,
@@ -121,6 +126,7 @@ export function VideosManager() {
   const [libraryPicker, setLibraryPicker] = useState<LibraryPickerMode>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const relationsRef = useRef<PortfolioRelationsFieldHandle>(null);
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -188,12 +194,13 @@ export function VideosManager() {
         updatedAt: Date.now(),
       };
       await setDoc(doc(db, VIDEO_PROJECT_COLLECTION, payload.id), cleanForFirestore(payload));
+      await relationsRef.current?.save();
       setEditing(null);
       setLibraryPicker(null);
       await fetchProjects();
     } catch (err) {
       console.error('Could not save video project:', err);
-      setError('Не удалось сохранить видеопроект.');
+      setError(err instanceof Error ? err.message : 'Не удалось сохранить видеопроект.');
     } finally {
       setSaving(false);
     }
@@ -203,6 +210,7 @@ export function VideosManager() {
     if (!window.confirm(`Удалить видеопроект «${project.title_uk || project.title || project.title_en || project.id}»?`)) return;
     try {
       await deleteDoc(doc(db, VIDEO_PROJECT_COLLECTION, project.id));
+      await cleanupPortfolioRelations('video', project.id);
       await fetchProjects();
     } catch (err) {
       console.error('Could not delete video project:', err);
@@ -371,6 +379,13 @@ export function VideosManager() {
           </div>
 
           {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
+
+          <PortfolioRelationsField
+            ref={relationsRef}
+            entityType="video"
+            entityId={editing.id}
+            entityTitle={editing.title_uk || editing.title || editing.title_en || 'Новый видеопроект'}
+          />
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className="space-y-6">
