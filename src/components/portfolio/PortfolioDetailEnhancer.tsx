@@ -135,6 +135,12 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
 
   useEffect(() => {
     let cancelled = false;
+    // Dynamic routes are pessimistically non-indexable until this exact Firestore
+    // entity has been resolved as an existing published document. This component
+    // is the sole owner of dynamic robots/canonical state.
+    upsertMeta('meta[name="robots"]', { name: 'robots' }, 'noindex, follow');
+    removeCanonical();
+    removeJsonLd('detail-seo-jsonld');
     setResolved(false);
     setPayload(null);
 
