@@ -22,7 +22,12 @@ import type { Locale } from '../../types';
 import { uploadCaseImage } from '../../lib/mediaUpload';
 import { slugifyCase } from '../../lib/caseMedia';
 import type { MediaLibraryAsset } from '../../lib/mediaLibrary';
+import { cleanupPortfolioRelations } from '../../lib/portfolioRelationsAdmin';
 import { MediaLibraryPicker } from './MediaLibraryPicker';
+import {
+  PortfolioRelationsField,
+  type PortfolioRelationsFieldHandle,
+} from './PortfolioRelationsField';
 import {
   GALLERY_COLLECTION,
   GALLERY_KIND,
@@ -79,6 +84,7 @@ export function GalleriesManager() {
   const [draggedImageId, setDraggedImageId] = useState<string | null>(null);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const relationsRef = useRef<PortfolioRelationsFieldHandle>(null);
 
   const fetchGalleries = async () => {
     setLoading(true);
@@ -286,6 +292,7 @@ export function GalleriesManager() {
       };
 
       await setDoc(doc(db, GALLERY_COLLECTION, editing.id), payload);
+      await relationsRef.current?.save();
       setEditing(null);
       setLibraryPickerOpen(false);
       await fetchGalleries();
@@ -301,6 +308,7 @@ export function GalleriesManager() {
     if (!window.confirm(`Удалить галерею «${gallery.title_uk || gallery.title || gallery.title_en}»?`)) return;
     try {
       await deleteDoc(doc(db, GALLERY_COLLECTION, gallery.id));
+      await cleanupPortfolioRelations('gallery', gallery.id);
       await fetchGalleries();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -435,6 +443,13 @@ export function GalleriesManager() {
                   <input type="checkbox" checked={editing.published !== false} onChange={event => setEditing({ ...editing, published: event.target.checked })} className="h-4 w-4" /> Опубликована
                 </label>
               </section>
+
+              <PortfolioRelationsField
+                ref={relationsRef}
+                entityType="gallery"
+                entityId={editing.id}
+                entityTitle={editing.title_uk || editing.title || editing.title_en || 'Новая галерея'}
+              />
 
               <section className="rounded-2xl border border-fuchsia-200 bg-fuchsia-50/40 p-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

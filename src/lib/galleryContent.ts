@@ -38,7 +38,7 @@ export interface PhotoGallery {
   updatedAt?: number;
 }
 
-export function isPhotoGallery(value: unknown): value is PhotoGallery {
+export function isPhotoGallery(value: unknown): value is PhotoGallery & Record<string, unknown> {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<PhotoGallery>;
   return candidate.kind === GALLERY_KIND && typeof candidate.id === 'string';

@@ -30,8 +30,13 @@ import {
 } from '../../lib/caseMedia';
 import { uploadCaseImage } from '../../lib/mediaUpload';
 import type { MediaLibraryAsset } from '../../lib/mediaLibrary';
+import { cleanupPortfolioRelations } from '../../lib/portfolioRelationsAdmin';
 import { ResponsiveImage } from '../ResponsiveImage';
 import { MediaLibraryPicker } from './MediaLibraryPicker';
+import {
+  PortfolioRelationsField,
+  type PortfolioRelationsFieldHandle,
+} from './PortfolioRelationsField';
 
 const LANGS: Array<{ id: Locale; label: string }> = [
   { id: 'uk', label: 'Українська' },
@@ -114,6 +119,7 @@ export function CasesManager() {
   const [draggedMediaId, setDraggedMediaId] = useState<string | null>(null);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const relationsRef = useRef<PortfolioRelationsFieldHandle>(null);
 
   const fetchCases = async () => {
     setLoading(true);
@@ -122,7 +128,7 @@ export function CasesManager() {
       const snapshot = await getDocs(collection(db, 'cases'));
       const list = snapshot.docs
         .map(item => ({ id: item.id, ...item.data() } as CaseStudy))
-        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        .sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
       setCases(list);
     } catch (e) {
       console.error(e);
@@ -353,9 +359,11 @@ export function CasesManager() {
         videoUrl: editing.videoUrl || firstVideo?.url || '',
         media: cleanedMedia,
         published: editing.published !== false,
+        updatedAt: Date.now(),
       };
 
       await setDoc(doc(db, 'cases', editing.id), payload);
+      await relationsRef.current?.save();
       setEditing(null);
       setLibraryPickerOpen(false);
       await fetchCases();
@@ -371,6 +379,7 @@ export function CasesManager() {
     if (!window.confirm('Удалить кейс? Он исчезнет с публичной страницы.')) return;
     try {
       await deleteDoc(doc(db, 'cases', item.id));
+      await cleanupPortfolioRelations('case', item.id);
       await fetchCases();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -444,6 +453,13 @@ export function CasesManager() {
                   <label className="text-xs font-bold text-slate-700 sm:col-span-2">Метрики ({language.toUpperCase()}): одна строка = Название | Значение<textarea rows={4} value={metricsToText(getLocalizedMetrics())} onChange={e => setLocalizedMetrics(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 font-normal text-sm" /></label>
                 </div>
               </section>
+
+              <PortfolioRelationsField
+                ref={relationsRef}
+                entityType="case"
+                entityId={editing.id}
+                entityTitle={editing.title_uk || editing.title || editing.title_en || 'Новый кейс'}
+              />
 
               <section className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

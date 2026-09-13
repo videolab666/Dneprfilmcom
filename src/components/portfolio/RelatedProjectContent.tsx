@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { ArrowRight, Briefcase, Film, Images } from 'lucide-react';
+import { ArrowRight, Briefcase, Film, Images, Link2 } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import type { CaseStudy } from '../../types';
 import { getCasePath } from '../../lib/caseMedia';
@@ -31,6 +31,7 @@ interface RelatedProjectContentProps {
 }
 
 type RelatedCard = {
+  key: string;
   id: string;
   type: RelatedEntityType;
   title: string;
@@ -64,65 +65,72 @@ export function RelatedProjectContent({ entityType, entityId }: RelatedProjectCo
     };
   }, []);
 
-  const relation = useMemo(() => {
-    if (entityType === 'case') return relations.find(item => item.caseId === entityId) || null;
-    if (entityType === 'gallery') return relations.find(item => item.galleryIds.includes(entityId)) || null;
-    return relations.find(item => item.videoProjectIds.includes(entityId)) || null;
+  const matchingRelations = useMemo(() => {
+    if (entityType === 'case') return relations.filter(item => item.caseId === entityId);
+    if (entityType === 'gallery') return relations.filter(item => item.galleryIds.includes(entityId));
+    return relations.filter(item => item.videoProjectIds.includes(entityId));
   }, [relations, entityType, entityId]);
 
   const cards = useMemo<RelatedCard[]>(() => {
-    if (!relation) return [];
+    if (!matchingRelations.length) return [];
     const result: RelatedCard[] = [];
 
-    if (entityType !== 'case') {
-      const rawCase = cases.find(item => item.id === relation.caseId && item.published !== false);
-      if (rawCase) {
-        const localized = getLocalizedCase(rawCase);
-        result.push({
-          id: rawCase.id,
-          type: 'case',
-          title: localized.title,
-          subtitle: localized.client || l('Кейс проєкту', 'Кейс проекта', 'Project case study'),
-          path: getCasePath(rawCase),
-          image: rawCase.imageUrl || '',
-        });
-      }
-    }
-
-    if (entityType !== 'gallery') {
-      relation.galleryIds.forEach(id => {
-        const raw = galleries.find(item => item.id === id && item.published !== false);
-        if (!raw) return;
-        const gallery = localizeGallery(raw, locale);
-        result.push({
-          id: raw.id,
-          type: 'gallery',
-          title: gallery.title,
-          subtitle: gallery.location || l('Фотогалерея', 'Фотогалерея', 'Photo gallery'),
-          path: getGalleryPath(raw),
-          image: galleryCover(raw),
-        });
+    const addCase = (id: string) => {
+      if (entityType === 'case' && id === entityId) return;
+      const rawCase = cases.find(item => item.id === id && item.published !== false);
+      if (!rawCase) return;
+      const localized = getLocalizedCase(rawCase);
+      result.push({
+        key: `case:${rawCase.id}`,
+        id: rawCase.id,
+        type: 'case',
+        title: localized.title,
+        subtitle: localized.client || l('Кейс проєкту', 'Кейс проекта', 'Project case study'),
+        path: getCasePath(rawCase),
+        image: rawCase.imageUrl || '',
       });
-    }
+    };
 
-    if (entityType !== 'video') {
-      relation.videoProjectIds.forEach(id => {
-        const raw = videos.find(item => item.id === id && item.published !== false);
-        if (!raw) return;
-        const project = localizeVideoProject(raw, locale);
-        result.push({
-          id: raw.id,
-          type: 'video',
-          title: project.title,
-          subtitle: project.category || l('Відеопроєкт', 'Видеопроект', 'Video project'),
-          path: getVideoProjectPath(raw),
-          image: videoProjectCover(raw),
-        });
+    const addGallery = (id: string) => {
+      if (entityType === 'gallery' && id === entityId) return;
+      const raw = galleries.find(item => item.id === id && item.published !== false);
+      if (!raw) return;
+      const gallery = localizeGallery(raw, locale);
+      result.push({
+        key: `gallery:${raw.id}`,
+        id: raw.id,
+        type: 'gallery',
+        title: gallery.title,
+        subtitle: gallery.location || l('Фотогалерея', 'Фотогалерея', 'Photo gallery'),
+        path: getGalleryPath(raw),
+        image: galleryCover(raw),
       });
-    }
+    };
 
-    return result;
-  }, [relation, entityType, cases, galleries, videos, locale, getLocalizedCase, l]);
+    const addVideo = (id: string) => {
+      if (entityType === 'video' && id === entityId) return;
+      const raw = videos.find(item => item.id === id && item.published !== false);
+      if (!raw) return;
+      const project = localizeVideoProject(raw, locale);
+      result.push({
+        key: `video:${raw.id}`,
+        id: raw.id,
+        type: 'video',
+        title: project.title,
+        subtitle: project.category || l('Відеопроєкт', 'Видеопроект', 'Video project'),
+        path: getVideoProjectPath(raw),
+        image: videoProjectCover(raw),
+      });
+    };
+
+    matchingRelations.forEach(relation => {
+      addCase(relation.caseId);
+      relation.galleryIds.forEach(addGallery);
+      relation.videoProjectIds.forEach(addVideo);
+    });
+
+    return Array.from(new Map(result.map(item => [item.key, item])).values()).slice(0, 9);
+  }, [matchingRelations, entityType, entityId, cases, galleries, videos, locale, getLocalizedCase, l]);
 
   if (!cards.length) return null;
 
@@ -141,18 +149,25 @@ export function RelatedProjectContent({ entityType, entityId }: RelatedProjectCo
   return (
     <section className="border-t border-slate-200 bg-white">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <div className="mb-7">
-          <div className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">
-            {l('Один проєкт — усі матеріали', 'Один проект — все материалы', 'One project — all media')}
+        <div className="mb-7 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-indigo-600">
+              <Link2 className="h-4 w-4" />{l('Один проєкт — усі матеріали', 'Один проект — все материалы', 'One project — all media')}
+            </div>
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+              {l('Пов’язані матеріали проєкту', 'Связанные материалы проекта', 'Related project content')}
+            </h2>
           </div>
-          <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
-            {l('Пов’язані матеріали проєкту', 'Связанные материалы проекта', 'Related project content')}
-          </h2>
+          <p className="max-w-xl text-sm leading-relaxed text-slate-500">{l(
+            'Кейси, фотогалереї та відео, які належать до цієї ж зйомки або проєкту.',
+            'Кейсы, фотогалереи и видео, которые относятся к этой же съёмке или проекту.',
+            'Case studies, galleries and videos connected to the same production.',
+          )}</p>
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {cards.map(card => (
-            <Link key={`${card.type}-${card.id}`} to={card.path} className="group overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg">
+            <Link key={card.key} to={card.path} className="group overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg">
               <div className="aspect-video overflow-hidden bg-slate-200">
                 {card.image ? (
                   <ResponsiveImage src={card.image} alt={card.title} displayWidth={900} sizes="(max-width: 768px) 100vw, 33vw" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]" />
