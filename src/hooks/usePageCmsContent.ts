@@ -13,8 +13,33 @@ export interface LocalizedPageContentItem extends PageContentItem {
   text: PageItemText;
 }
 
+const CYRILLIC_RE = /[А-Яа-яЁёІіЇїЄєҐґ]/;
+
 function chooseItems(stored: PageContentItem[] | undefined, fallback: PageContentItem[]): PageContentItem[] {
   return Array.isArray(stored) ? stored : fallback;
+}
+
+function englishText(item: PageContentItem): PageItemText {
+  const fallback = getPageItemText({ ...item, en: undefined }, 'en');
+  const explicit = item.en;
+  if (!explicit) return fallback;
+
+  const result: PageItemText = { ...fallback };
+
+  for (const [key, value] of Object.entries(explicit) as [keyof PageItemText, PageItemText[keyof PageItemText]][]) {
+    if (typeof value === 'string') {
+      if (value.trim() && !CYRILLIC_RE.test(value)) {
+        (result as Record<string, unknown>)[key] = value;
+      }
+      continue;
+    }
+
+    if (Array.isArray(value) && value.length && value.every(entry => !CYRILLIC_RE.test(entry))) {
+      (result as Record<string, unknown>)[key] = value;
+    }
+  }
+
+  return result;
 }
 
 export function usePageCmsContent() {
@@ -42,7 +67,10 @@ export function usePageCmsContent() {
   }, [rawSettings]);
 
   const localize = (items: PageContentItem[]): LocalizedPageContentItem[] =>
-    sortPageItems(items).map(item => ({ ...item, text: getPageItemText(item, locale) }));
+    sortPageItems(items).map(item => ({
+      ...item,
+      text: locale === 'en' ? englishText(item) : getPageItemText(item, locale),
+    }));
 
   return { content, locale, localize };
 }
