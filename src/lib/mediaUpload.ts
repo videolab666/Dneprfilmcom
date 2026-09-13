@@ -8,12 +8,24 @@ const WEBP_QUALITY = 0.88;
 interface CloudinaryUploadResponse {
   secure_url?: string;
   public_id?: string;
+  resource_type?: 'image' | 'video';
+  bytes?: number;
+  width?: number;
+  height?: number;
+  format?: string;
+  original_filename?: string;
   error?: { message?: string };
 }
 
 export interface UploadedAsset {
   url: string;
   publicId: string;
+  resourceType?: 'image' | 'video';
+  bytes?: number;
+  width?: number;
+  height?: number;
+  format?: string;
+  originalFilename?: string;
 }
 
 function sanitizeName(name: string): string {
@@ -75,7 +87,16 @@ async function uploadUnsigned(
     throw new Error(data.error?.message || `Cloudinary upload failed (${response.status}).`);
   }
 
-  return { url: data.secure_url, publicId: data.public_id };
+  return {
+    url: data.secure_url,
+    publicId: data.public_id,
+    resourceType: data.resource_type || resourceType,
+    bytes: data.bytes,
+    width: data.width,
+    height: data.height,
+    format: data.format,
+    originalFilename: data.original_filename,
+  };
 }
 
 export function videoPosterUrl(url: string): string | undefined {
@@ -126,6 +147,33 @@ export async function uploadPortfolioVideo(
     'video',
     `dneprfilm/video-projects/${sanitizeName(projectId)}`,
     `${sanitizeName(file.name)}.${extension}`,
+  );
+  return { ...uploaded, posterUrl: videoPosterUrl(uploaded.url) };
+}
+
+export async function uploadLibraryImage(file: File): Promise<UploadedAsset> {
+  const optimized = await optimizeImage(file);
+  return uploadUnsigned(
+    optimized,
+    'image',
+    'dneprfilm/library/images',
+    `${sanitizeName(file.name)}-${Date.now()}.webp`,
+  );
+}
+
+export async function uploadLibraryVideo(file: File): Promise<UploadedAsset & { posterUrl?: string }> {
+  if (!['video/mp4', 'video/webm'].includes(file.type)) {
+    throw new Error('Для медиатеки используйте MP4 или WebM.');
+  }
+  if (file.size > MAX_VIDEO_SOURCE_BYTES) {
+    throw new Error('Видео больше 100 МБ. Сожмите файл или используйте внешнюю ссылку.');
+  }
+  const extension = file.type === 'video/webm' ? 'webm' : 'mp4';
+  const uploaded = await uploadUnsigned(
+    file,
+    'video',
+    'dneprfilm/library/videos',
+    `${sanitizeName(file.name)}-${Date.now()}.${extension}`,
   );
   return { ...uploaded, posterUrl: videoPosterUrl(uploaded.url) };
 }
