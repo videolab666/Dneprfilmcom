@@ -8,6 +8,9 @@ on:
     branches:
       - main
   workflow_dispatch:
+  schedule:
+    # Refresh Firestore-driven sitemap/prerender even when content changes only through the CMS.
+    - cron: '17 */6 * * *'
 
 permissions:
   contents: read
