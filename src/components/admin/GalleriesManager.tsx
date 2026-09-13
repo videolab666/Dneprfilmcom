@@ -8,6 +8,7 @@ import {
   ExternalLink,
   GripVertical,
   Images,
+  Library,
   Loader2,
   MapPin,
   Plus,
@@ -20,6 +21,8 @@ import { db } from '../../lib/firebase';
 import type { Locale } from '../../types';
 import { uploadCaseImage } from '../../lib/mediaUpload';
 import { slugifyCase } from '../../lib/caseMedia';
+import type { MediaLibraryAsset } from '../../lib/mediaLibrary';
+import { MediaLibraryPicker } from './MediaLibraryPicker';
 import {
   GALLERY_COLLECTION,
   GALLERY_KIND,
@@ -74,6 +77,7 @@ export function GalleriesManager() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [draggedImageId, setDraggedImageId] = useState<string | null>(null);
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchGalleries = async () => {
@@ -106,6 +110,7 @@ export function GalleriesManager() {
     });
     setLanguage('uk');
     setError('');
+    setLibraryPickerOpen(false);
   };
 
   const createNew = () => {
@@ -115,6 +120,7 @@ export function GalleriesManager() {
     setEditing(emptyGallery(nextOrder));
     setLanguage('uk');
     setError('');
+    setLibraryPickerOpen(false);
   };
 
   const getLocalizedField = (base: 'title' | 'description' | 'location'): string => {
@@ -188,6 +194,33 @@ export function GalleriesManager() {
     }
   };
 
+  const addImagesFromLibrary = (assets: MediaLibraryAsset[]) => {
+    if (!editing) return;
+    const existingUrls = new Set(images.map(image => image.url));
+    const added: GalleryImage[] = assets
+      .filter(asset => asset.assetType === 'image' && !existingUrls.has(asset.url))
+      .map(asset => {
+        const fallback = asset.name || editing.title_uk || editing.title || editing.title_en || 'Фото';
+        return {
+          id: makeImageId(),
+          url: asset.url,
+          cloudinaryPublicId: asset.publicId,
+          alt: editing.title || editing.title_uk || fallback,
+          alt_uk: editing.title_uk || editing.title || fallback,
+          alt_en: editing.title_en || editing.title_uk || editing.title || fallback,
+          caption: '',
+          caption_uk: '',
+          caption_en: '',
+        };
+      });
+    setEditing({
+      ...editing,
+      images: [...images, ...added],
+      coverUrl: editing.coverUrl || added[0]?.url || '',
+    });
+    setLibraryPickerOpen(false);
+  };
+
   const removeImage = (image: GalleryImage) => {
     if (!editing) return;
     const nextImages = images.filter(item => item.id !== image.id);
@@ -254,6 +287,7 @@ export function GalleriesManager() {
 
       await setDoc(doc(db, GALLERY_COLLECTION, editing.id), payload);
       setEditing(null);
+      setLibraryPickerOpen(false);
       await fetchGalleries();
     } catch (e) {
       console.error(e);
@@ -361,7 +395,7 @@ export function GalleriesManager() {
                   <h3 className="text-2xl font-black text-slate-950">{editing.createdAt === editing.updatedAt ? 'Галерея' : (editing.title_uk || editing.title || editing.title_en || 'Новая галерея')}</h3>
                   <p className="mt-1 text-xs text-slate-500">URL после сохранения: /galleries/{editing.slug || getGallerySlug(editing)}</p>
                 </div>
-                <button type="button" onClick={() => setEditing(null)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Закрыть</button>
+                <button type="button" onClick={() => { setEditing(null); setLibraryPickerOpen(false); }} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Закрыть</button>
               </div>
 
               <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
@@ -406,9 +440,12 @@ export function GalleriesManager() {
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
                     <h4 className="text-sm font-black text-slate-900">Фотографии</h4>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-500">Можно выбрать до 50 файлов за одну загрузку. Фото автоматически уменьшаются до WebP ≤ 2400 px. Порядок меняется перетаскиванием или стрелками.</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">Можно выбрать до 50 файлов за одну загрузку или повторно использовать уже загруженные изображения из медиатеки. Порядок меняется перетаскиванием или стрелками.</p>
                   </div>
-                  <div>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => setLibraryPickerOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-200 bg-white px-4 py-2.5 text-xs font-bold text-fuchsia-700 hover:bg-fuchsia-50">
+                      <Library className="h-4 w-4" /> Из медиатеки
+                    </button>
                     <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={event => uploadImages(event.target.files)} />
                     <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="inline-flex items-center gap-2 rounded-xl bg-fuchsia-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-fuchsia-700 disabled:opacity-60">
                       {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
@@ -454,7 +491,7 @@ export function GalleriesManager() {
               </section>
 
               <div className="sticky bottom-0 -mx-5 flex flex-wrap justify-end gap-3 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur sm:-mx-8 sm:px-8">
-                <button type="button" onClick={() => setEditing(null)} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Отмена</button>
+                <button type="button" onClick={() => { setEditing(null); setLibraryPickerOpen(false); }} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700">Отмена</button>
                 <button type="submit" disabled={saving || uploading} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   {saving ? 'Сохранение…' : 'Сохранить галерею'}
@@ -463,6 +500,16 @@ export function GalleriesManager() {
             </form>
           </div>
         </div>
+      )}
+
+      {editing && libraryPickerOpen && (
+        <MediaLibraryPicker
+          type="image"
+          multiple
+          title="Добавить фотографии из медиатеки"
+          onSelectMany={addImagesFromLibrary}
+          onClose={() => setLibraryPickerOpen(false)}
+        />
       )}
     </div>
   );
