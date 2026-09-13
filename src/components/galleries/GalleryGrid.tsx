@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { ChevronLeft, ChevronRight, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
 import type { GalleryImage } from '../../lib/galleryContent';
 import { useSiteContent } from '../../context/SiteContentContext';
@@ -21,7 +21,7 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
-  const pointersRef = useRef(new Map<number, Point>());
+  const pointersRef = useRef<Map<number, Point>>(new Map<number, Point>());
   const gestureRef = useRef<{ start: Point; offset: Point; pinchDistance?: number; pinchScale?: number } | null>(null);
   const lastTapRef = useRef<{ time: number; point: Point } | null>(null);
 
@@ -86,9 +86,9 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
     if (!activeImage) resetZoom();
   }, [activeImage]);
 
-  const pointerPoint = (event: React.PointerEvent): Point => ({ x: event.clientX, y: event.clientY });
+  const pointerPoint = (event: ReactPointerEvent<HTMLElement>): Point => ({ x: event.clientX, y: event.clientY });
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const point = pointerPoint(event);
     pointersRef.current.set(event.pointerId, point);
@@ -96,7 +96,8 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
     if (pointersRef.current.size === 1) {
       gestureRef.current = { start: point, offset };
     } else if (pointersRef.current.size === 2) {
-      const [a, b] = Array.from(pointersRef.current.values());
+      const points: Point[] = Array.from(pointersRef.current.values());
+      const [a, b] = points;
       gestureRef.current = {
         start: point,
         offset,
@@ -106,7 +107,7 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
     }
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!pointersRef.current.has(event.pointerId)) return;
     const point = pointerPoint(event);
     pointersRef.current.set(event.pointerId, point);
@@ -114,7 +115,8 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
     if (!gesture) return;
 
     if (pointersRef.current.size >= 2 && gesture.pinchDistance && gesture.pinchScale) {
-      const [a, b] = Array.from(pointersRef.current.values());
+      const points: Point[] = Array.from(pointersRef.current.values());
+      const [a, b] = points;
       const ratio = distance(a, b) / Math.max(1, gesture.pinchDistance);
       setZoom(gesture.pinchScale * ratio);
       return;
@@ -128,7 +130,7 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
     }
   };
 
-  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     const point = pointerPoint(event);
     const gesture = gestureRef.current;
     const wasSinglePointer = pointersRef.current.size === 1;
@@ -155,8 +157,8 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
     }
 
     if (pointersRef.current.size === 1) {
-      const [remaining] = Array.from(pointersRef.current.values());
-      gestureRef.current = { start: remaining, offset };
+      const remaining = Array.from(pointersRef.current.values())[0];
+      if (remaining) gestureRef.current = { start: remaining, offset };
     } else if (pointersRef.current.size === 0) {
       gestureRef.current = null;
     }
