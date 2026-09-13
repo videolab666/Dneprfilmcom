@@ -63,7 +63,7 @@ export interface VideoProject {
   updatedAt?: number;
 }
 
-export function isVideoProject(value: unknown): value is VideoProject {
+export function isVideoProject(value: unknown): value is VideoProject & Record<string, unknown> {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<VideoProject>;
   return candidate.kind === VIDEO_PROJECT_KIND && typeof candidate.id === 'string';
