@@ -53,11 +53,10 @@ export function SeoManager() {
     }
 
     if (dynamicType) {
-      // Dynamic detail pages validate the Firestore document themselves before switching to index/follow.
-      // This effect intentionally does not depend on site settings, so a late settings refresh cannot
-      // reset a detail page that PortfolioDetailEnhancer has already validated.
-      upsertMeta('meta[name="robots"]', { name: 'robots' }, 'noindex, follow');
-      removeCanonical();
+      // Dynamic portfolio routes have one SEO owner: PortfolioDetailEnhancer.
+      // It immediately marks the route noindex while validating Firestore and
+      // then promotes an existing published entity to index/follow. Keeping
+      // robots/canonical out of this global manager prevents effect-order races.
       removeJsonLd('static-breadcrumb-jsonld');
       return;
     }
