@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useSiteContent } from '../../context/SiteContentContext';
 import { SiteBlock, BlockType } from '../../types';
+import { AdminImageField } from './AdminImageField';
 
 export function BlocksManager() {
   const { blocks, saveBlock, deleteBlock, toggleBlockActive, reorderBlock, resetToDefaults } = useSiteContent();
@@ -130,7 +131,7 @@ export function BlocksManager() {
           : undefined,
         buttonText: type === 'cta' || type === 'text_image' ? 'Связаться с нами' : undefined,
         buttonLink: type === 'cta' || type === 'text_image' ? '#contact-cta' : undefined,
-        imageUrl: type === 'text_image' || type === 'video_embed' ? 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&q=80' : undefined,
+        imageUrl: type === 'text_image' ? '' : undefined,
         imagePosition: 'right'
       }
     };
@@ -149,7 +150,6 @@ export function BlocksManager() {
 
   return (
     <div className="space-y-8">
-      {/* Header controls */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider mb-2">
@@ -176,7 +176,6 @@ export function BlocksManager() {
         </div>
       </div>
 
-      {/* Add block dropdown / buttons */}
       <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl">
         <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-400 mb-4 flex items-center space-x-2">
           <Plus className="w-4 h-4" />
@@ -206,7 +205,6 @@ export function BlocksManager() {
         </div>
       </div>
 
-      {/* Blocks List */}
       <div className="space-y-4">
         <div className="flex justify-between items-center px-2">
           <h3 className="text-base font-bold text-slate-800">
@@ -246,7 +244,6 @@ export function BlocksManager() {
                     : 'bg-slate-100/70 border-slate-200 opacity-60'
                 }`}
               >
-                {/* Left info */}
                 <div className="flex items-center space-x-4">
                   <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-sm shrink-0">
                     {index + 1}
@@ -273,9 +270,7 @@ export function BlocksManager() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center space-x-2 self-end sm:self-center">
-                  {/* Order controls */}
                   <div className="flex items-center bg-slate-100 rounded-xl p-1">
                     <button
                       onClick={() => reorderBlock(block.id, 'up')}
@@ -295,7 +290,6 @@ export function BlocksManager() {
                     </button>
                   </div>
 
-                  {/* Toggle Active */}
                   <button
                     onClick={() => toggleBlockActive(block.id, !block.isActive)}
                     className={`p-2 rounded-xl border transition-colors ${
@@ -308,7 +302,6 @@ export function BlocksManager() {
                     {block.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </button>
 
-                  {/* Edit */}
                   <button
                     onClick={() => {
                       setEditingBlock(JSON.parse(JSON.stringify(block)));
@@ -320,7 +313,6 @@ export function BlocksManager() {
                     <Edit3 className="w-4 h-4" />
                   </button>
 
-                  {/* Delete */}
                   <button
                     onClick={() => {
                       if (window.confirm(`Удалить блок «${block.title}»?`)) {
@@ -339,7 +331,6 @@ export function BlocksManager() {
         )}
       </div>
 
-      {/* EDIT MODAL */}
       {editingBlock && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
@@ -391,7 +382,6 @@ export function BlocksManager() {
             </div>
 
             <form onSubmit={handleSaveModal} className="space-y-6">
-              {/* Internal admin title */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Название блока (для админки)
@@ -405,7 +395,6 @@ export function BlocksManager() {
                 />
               </div>
 
-              {/* Section Headline */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Основной заголовок (H2) ({modalLangTab.toUpperCase()})
@@ -425,7 +414,6 @@ export function BlocksManager() {
                 />
               </div>
 
-              {/* Subheading / description */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Подзаголовок / Описание секции ({modalLangTab.toUpperCase()})
@@ -445,7 +433,6 @@ export function BlocksManager() {
                 />
               </div>
 
-              {/* Badge (if applicable) */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Мини-бейдж над заголовком ({modalLangTab.toUpperCase()})
@@ -459,7 +446,6 @@ export function BlocksManager() {
                 />
               </div>
 
-              {/* Style selector for CTA / Stats */}
               {(editingBlock.type === 'cta' || editingBlock.type === 'stats_counter') && (
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
@@ -480,7 +466,6 @@ export function BlocksManager() {
                 </div>
               )}
 
-              {/* Rich Content for text_image */}
               {editingBlock.type === 'text_image' && (
                 <div className="space-y-4">
                   <div>
@@ -495,20 +480,16 @@ export function BlocksManager() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                      URL изображения (общий)
-                    </label>
-                    <input
-                      type="url"
-                      value={editingBlock.config.imageUrl || ''}
-                      onChange={(e) => setEditingBlock({
-                        ...editingBlock,
-                        config: { ...editingBlock.config, imageUrl: e.target.value }
-                      })}
-                      className="w-full px-4 py-2 rounded-xl border border-slate-300 text-slate-900 text-sm"
-                    />
-                  </div>
+                  <AdminImageField
+                    label="Изображение блока"
+                    value={editingBlock.config.imageUrl || ''}
+                    onChange={imageUrl => setEditingBlock({
+                      ...editingBlock,
+                      config: { ...editingBlock.config, imageUrl }
+                    })}
+                    previewAlt={getBlockText('heading') || editingBlock.title || 'Изображение блока'}
+                    helperText="Загрузите изображение, выберите его из медиатеки или оставьте внешний URL."
+                  />
 
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
@@ -529,7 +510,6 @@ export function BlocksManager() {
                 </div>
               )}
 
-              {/* Buttons for CTA / text_image */}
               {(editingBlock.type === 'cta' || editingBlock.type === 'text_image') && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
                   <div>
@@ -585,7 +565,6 @@ export function BlocksManager() {
                 </div>
               )}
 
-              {/* Items for stats_counter & features_grid */}
               {(editingBlock.type === 'stats_counter' || editingBlock.type === 'features_grid') && (
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
@@ -663,7 +642,6 @@ export function BlocksManager() {
                 </div>
               )}
 
-              {/* FAQ items */}
               {editingBlock.type === 'faq' && (
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
@@ -730,7 +708,6 @@ export function BlocksManager() {
                 </div>
               )}
 
-              {/* Video Embed */}
               {editingBlock.type === 'video_embed' && (
                 <div className="space-y-4">
                   <div>
@@ -765,7 +742,6 @@ export function BlocksManager() {
                 </div>
               )}
 
-              {/* Submit Buttons */}
               <div className="pt-4 border-t border-slate-100 flex justify-end space-x-3">
                 <button
                   type="button"

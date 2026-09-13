@@ -4,6 +4,7 @@ import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase';
 import { Article, ArticleCategory, ArticleTranslation, Locale } from '../../types';
 import { articleCategoryLabel, normalizeArticle, slugifyArticleTitle } from '../../lib/articleCms';
+import { AdminImageField } from './AdminImageField';
 
 const LANGS: Array<{ id: Locale; label: string }> = [
   { id: 'uk', label: 'Українська' },
@@ -32,7 +33,7 @@ function newArticle(): Article {
     id: `art-${now}`,
     slug: '',
     category: 'live',
-    coverImage: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&q=80',
+    coverImage: '',
     published: false,
     publishedAt: now,
     createdAt: now,
@@ -251,10 +252,13 @@ export function ArticlesManager() {
                 </label>
               </div>
 
-              <label className="block text-xs font-bold text-slate-700">
-                URL обложки
-                <input type="url" value={editing.coverImage} onChange={e => setEditing({ ...editing, coverImage: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300 font-normal text-sm" />
-              </label>
+              <AdminImageField
+                label="Обложка статьи"
+                value={editing.coverImage || ''}
+                onChange={coverImage => setEditing({ ...editing, coverImage })}
+                previewAlt={editing.uk.title || editing.ru.title || editing.en?.title || 'Обложка статьи'}
+                helperText="Новое фото автоматически оптимизируется и сохраняется в медиатеке. При необходимости можно оставить внешний URL."
+              />
 
               <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
                 {LANGS.map(item => (
