@@ -21,6 +21,7 @@ interface RouteEntry {
   lastmod?: string;
   source: 'static' | DynamicSource;
   images?: SitemapImage[];
+  hasVideos?: boolean;
 }
 
 interface PrerenderContentEntry {
@@ -204,6 +205,15 @@ function videoImages(data: Record<string, unknown>): SitemapImage[] {
   return uniqueImages(images);
 }
 
+function hasVideoMedia(data: Record<string, unknown>): boolean {
+  if (!Array.isArray(data.videos)) return false;
+  return data.videos.some(value => {
+    if (!value || typeof value !== 'object') return false;
+    const media = value as Record<string, unknown>;
+    return Boolean(stringValue(media.url));
+  });
+}
+
 async function loadDynamicRoutes(
   config: FirebaseConfig,
   routes: Map<string, RouteEntry>,
@@ -284,6 +294,7 @@ async function loadDynamicRoutes(
           source: 'video',
           lastmod: asLastmod(data.updatedAt ?? data.createdAt),
           images: videoImages(data),
+          hasVideos: hasVideoMedia(data),
         });
         prerenderContent[path] = {
           source: 'video',
