@@ -1,4 +1,4 @@
-import type { Locale } from '../types';
+import type { Locale, SiteSetting } from '../types';
 
 export type SeoEntry = Record<Locale, { title: string; description: string }>;
 
@@ -96,6 +96,16 @@ export function canonicalUrlForPath(path: string): string {
   return normalized === '/' ? `${base}/` : `${base}${normalized}`;
 }
 
+export function toIsoDate(value: number | string | undefined): string | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const date = typeof value === 'number'
+    ? new Date(value)
+    : /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? new Date(`${value}T12:00:00Z`)
+      : new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
 export function upsertMeta(selector: string, attributes: Record<string, string>, content: string) {
   if (typeof document === 'undefined') return;
   let element = document.head.querySelector<HTMLMetaElement>(selector);
@@ -126,4 +136,129 @@ export function removeCanonical() {
 export function removeMeta(selector: string) {
   if (typeof document === 'undefined') return;
   document.head.querySelector<HTMLMetaElement>(selector)?.remove();
+}
+
+export function upsertJsonLd(id: string, value: unknown) {
+  if (typeof document === 'undefined') return;
+  let script = document.getElementById(id) as HTMLScriptElement | null;
+  if (!script) {
+    script = document.createElement('script');
+    script.id = id;
+    script.type = 'application/ld+json';
+    document.head.appendChild(script);
+  }
+  script.text = JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
+export function removeJsonLd(id: string) {
+  if (typeof document === 'undefined') return;
+  document.getElementById(id)?.remove();
+}
+
+export function organizationJsonLd(settings: SiteSetting, locale: Locale): Record<string, unknown> {
+  const siteUrl = canonicalUrlForPath('/').replace(/\/$/, '');
+  const name = locale === 'uk'
+    ? settings.studioName_uk || settings.studioName || 'Dneprfilm'
+    : locale === 'en'
+      ? settings.studioName_en || settings.studioName_uk || settings.studioName || 'Dneprfilm'
+      : settings.studioName || settings.studioName_uk || 'Dneprfilm';
+  const address = locale === 'uk'
+    ? settings.address_uk || settings.address
+    : locale === 'en'
+      ? settings.address_en || settings.address_uk || settings.address
+      : settings.address || settings.address_uk;
+  const sameAs = [settings.youtubeUrl, settings.instagramUrl, settings.facebookUrl].filter(Boolean);
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': `${siteUrl}/#organization`,
+    name,
+    url: `${siteUrl}/`,
+    ...(settings.phone ? { telephone: settings.phone } : {}),
+    ...(settings.email ? { email: settings.email } : {}),
+    ...(address ? { address: { '@type': 'PostalAddress', streetAddress: address, addressCountry: 'UA' } } : {}),
+    ...(sameAs.length ? { sameAs } : {}),
+  };
+}
+
+export interface BreadcrumbItem {
+  name: string;
+  path: string;
+}
+
+export function breadcrumbJsonLd(items: BreadcrumbItem[]): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: canonicalUrlForPath(item.path),
+    })),
+  };
+}
+
+export interface DetailSeoOptions {
+  title: string;
+  description: string;
+  path: string;
+  image?: string;
+  imageAlt?: string;
+  ogType?: string;
+  datePublished?: number | string;
+  dateModified?: number | string;
+  allowVideoPreview?: boolean;
+  jsonLd?: unknown;
+}
+
+export function applyDetailSeo(options: DetailSeoOptions): () => void {
+  const description = options.description.trim().slice(0, 220);
+  const canonical = canonicalUrlForPath(options.path);
+  const published = toIsoDate(options.datePublished);
+  const modified = toIsoDate(options.dateModified);
+
+  document.title = options.title;
+  upsertMeta('meta[name="description"]', { name: 'description' }, description);
+  upsertMeta('meta[name="robots"]', { name: 'robots' }, options.allowVideoPreview
+    ? 'index, follow, max-image-preview:large, max-video-preview:-1'
+    : 'index, follow, max-image-preview:large');
+  upsertMeta('meta[property="og:title"]', { property: 'og:title' }, options.title);
+  upsertMeta('meta[property="og:description"]', { property: 'og:description' }, description);
+  upsertMeta('meta[property="og:type"]', { property: 'og:type' }, options.ogType || 'article');
+  upsertMeta('meta[property="og:url"]', { property: 'og:url' }, canonical);
+  upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title' }, options.title);
+  upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description' }, description);
+  upsertCanonical(canonical);
+
+  if (options.image) {
+    upsertMeta('meta[property="og:image"]', { property: 'og:image' }, options.image);
+    upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image' }, options.image);
+    if (options.imageAlt) {
+      upsertMeta('meta[property="og:image:alt"]', { property: 'og:image:alt' }, options.imageAlt);
+      upsertMeta('meta[name="twitter:image:alt"]', { name: 'twitter:image:alt' }, options.imageAlt);
+    }
+  } else {
+    removeMeta('meta[property="og:image"]');
+    removeMeta('meta[name="twitter:image"]');
+    removeMeta('meta[property="og:image:alt"]');
+    removeMeta('meta[name="twitter:image:alt"]');
+  }
+
+  if (published) upsertMeta('meta[property="article:published_time"]', { property: 'article:published_time' }, published);
+  else removeMeta('meta[property="article:published_time"]');
+  if (modified) upsertMeta('meta[property="article:modified_time"]', { property: 'article:modified_time' }, modified);
+  else removeMeta('meta[property="article:modified_time"]');
+
+  if (options.jsonLd) upsertJsonLd('detail-seo-jsonld', options.jsonLd);
+  else removeJsonLd('detail-seo-jsonld');
+
+  return () => {
+    removeMeta('meta[property="article:published_time"]');
+    removeMeta('meta[property="article:modified_time"]');
+    removeMeta('meta[property="og:image:alt"]');
+    removeMeta('meta[name="twitter:image:alt"]');
+    removeJsonLd('detail-seo-jsonld');
+  };
 }
