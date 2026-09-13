@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { onSnapshot } from 'firebase/firestore';
 import { ArrowRight, Briefcase, Film, Images, Link2 } from 'lucide-react';
-import { db } from '../../lib/firebase';
+import {
+  publicProjectRelationsQuery,
+  publishedCasesQuery,
+  publishedGalleriesQuery,
+  publishedVideoProjectsQuery,
+} from '../../lib/publicPortfolioQueries';
 import type { CaseStudy } from '../../types';
 import { getCasePath } from '../../lib/caseMedia';
 import {
@@ -48,19 +53,26 @@ export function RelatedProjectContent({ entityType, entityId }: RelatedProjectCo
   const [videos, setVideos] = useState<VideoProject[]>([]);
 
   useEffect(() => {
-    const unsubscribeSettings = onSnapshot(collection(db, 'site_settings'), snapshot => {
+    const unsubscribeRelations = onSnapshot(publicProjectRelationsQuery(), snapshot => {
       const docs = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
       setRelations(docs.filter(isProjectRelation));
+    }, error => console.warn('Could not load related portfolio relations:', error));
+    const unsubscribeGalleries = onSnapshot(publishedGalleriesQuery(), snapshot => {
+      const docs = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
       setGalleries(docs.filter(isPhotoGallery));
+    }, error => console.warn('Could not load related galleries:', error));
+    const unsubscribeVideos = onSnapshot(publishedVideoProjectsQuery(), snapshot => {
+      const docs = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
       setVideos(docs.filter(isVideoProject));
-    }, error => console.warn('Could not load related portfolio settings:', error));
-
-    const unsubscribeCases = onSnapshot(collection(db, 'cases'), snapshot => {
+    }, error => console.warn('Could not load related videos:', error));
+    const unsubscribeCases = onSnapshot(publishedCasesQuery(), snapshot => {
       setCases(snapshot.docs.map(item => ({ id: item.id, ...item.data() } as CaseStudy)));
     }, error => console.warn('Could not load related cases:', error));
 
     return () => {
-      unsubscribeSettings();
+      unsubscribeRelations();
+      unsubscribeGalleries();
+      unsubscribeVideos();
       unsubscribeCases();
     };
   }, []);

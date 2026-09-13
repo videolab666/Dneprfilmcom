@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { addDoc, collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { publishedCasesQuery } from '../lib/publicPortfolioQueries';
 import type { CaseStudy } from '../types';
 import { INITIAL_CASES } from '../data/initialCases';
 import { getCasePath, getMediaPreview, normalizedCaseMedia } from '../lib/caseMedia';
@@ -50,7 +51,7 @@ export function Cases() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'cases'), snapshot => {
+    const unsubscribe = onSnapshot(publishedCasesQuery(), snapshot => {
       const loaded = snapshot.empty
         ? INITIAL_CASES
         : snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as CaseStudy));

@@ -14,6 +14,7 @@ import {
   Video,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
+import { publishedCasesQuery } from '../lib/publicPortfolioQueries';
 import { INITIAL_CASES } from '../data/initialCases';
 import type { CaseStudy } from '../types';
 import { getCaseSlug, getMediaPreview, normalizedCaseMedia } from '../lib/caseMedia';
@@ -39,7 +40,7 @@ export function CaseDetail() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    const unsubscribe = onSnapshot(collection(db, 'cases'), snapshot => {
+    const unsubscribe = onSnapshot(publishedCasesQuery(), snapshot => {
       if (!snapshot.empty) {
         setCases(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as CaseStudy)));
       } else {

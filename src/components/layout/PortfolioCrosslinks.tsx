@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { onSnapshot } from 'firebase/firestore';
 import { ArrowRight, Film, Images, Play } from 'lucide-react';
-import { db } from '../../lib/firebase';
+import { publishedGalleriesQuery, publishedVideoProjectsQuery } from '../../lib/publicPortfolioQueries';
 import { ResponsiveImage } from '../ResponsiveImage';
 import { useSiteContent } from '../../context/SiteContentContext';
 import {
-  GALLERY_COLLECTION,
   galleryCover,
   getGalleryPath,
   isPhotoGallery,
@@ -33,12 +32,15 @@ export function PortfolioCrosslinks() {
 
   useEffect(() => {
     if (!isPhotoPage && !isVideoPage) return;
-    const unsubscribe = onSnapshot(collection(db, GALLERY_COLLECTION), snapshot => {
+    const unsubscribeGalleries = onSnapshot(publishedGalleriesQuery(), snapshot => {
       const docs = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
-      setGalleries(sortGalleries(docs.filter(isPhotoGallery).filter(item => item.published !== false)));
-      setVideos(sortVideoProjects(docs.filter(isVideoProject).filter(item => item.published !== false)));
-    }, error => console.warn('Could not load portfolio crosslinks:', error));
-    return () => unsubscribe();
+      setGalleries(sortGalleries(docs.filter(isPhotoGallery)));
+    }, error => console.warn('Could not load portfolio gallery crosslinks:', error));
+    const unsubscribeVideos = onSnapshot(publishedVideoProjectsQuery(), snapshot => {
+      const docs = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+      setVideos(sortVideoProjects(docs.filter(isVideoProject)));
+    }, error => console.warn('Could not load portfolio video crosslinks:', error));
+    return () => { unsubscribeGalleries(); unsubscribeVideos(); };
   }, [isPhotoPage, isVideoPage]);
 
   const photoItems = useMemo(() => galleries.slice(0, 3).map(item => localizeGallery(item, locale)), [galleries, locale]);

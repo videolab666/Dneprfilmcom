@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Building2, Radio, Video } from 'lucide-react';
-import { collection, onSnapshot } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { onSnapshot } from 'firebase/firestore';
+import { publishedCasesQuery } from '../../lib/publicPortfolioQueries';
 import type { CaseStudy } from '../../types';
 import { INITIAL_CASES } from '../../data/initialCases';
 import { getCasePath, getMediaPreview, normalizedCaseMedia } from '../../lib/caseMedia';
@@ -28,7 +28,7 @@ export function FeaturedCases() {
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
-      collection(db, 'cases'),
+      publishedCasesQuery(),
       snapshot => {
         const loaded = snapshot.empty
           ? INITIAL_CASES

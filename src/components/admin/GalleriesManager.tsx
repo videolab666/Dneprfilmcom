@@ -19,9 +19,9 @@ import {
 import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { Locale } from '../../types';
-import { uploadCaseImage } from '../../lib/mediaUpload';
+import { uploadGalleryImage } from '../../lib/mediaUpload';
 import { slugifyCase } from '../../lib/caseMedia';
-import type { MediaLibraryAsset } from '../../lib/mediaLibrary';
+import { registerMediaAsset, type MediaLibraryAsset } from '../../lib/mediaLibrary';
 import { cleanupPortfolioRelations } from '../../lib/portfolioRelationsAdmin';
 import { MediaLibraryPicker } from './MediaLibraryPicker';
 import {
@@ -172,7 +172,8 @@ export function GalleriesManager() {
       const added: GalleryImage[] = [];
       const selected = Array.from(files).slice(0, 50);
       for (const file of selected) {
-        const uploaded = await uploadCaseImage(file, `gallery-${editing.id}`);
+        const uploaded = await uploadGalleryImage(file, editing.id);
+        await registerMediaAsset(uploaded, file.name);
         added.push({
           id: makeImageId(),
           url: uploaded.url,
