@@ -22,7 +22,8 @@ function seoState(html: string): string {
 }
 
 function renderRoute(route: RouteEntry): string {
-  const url = route.path === '/' ? `${previewBase}/` : `${previewBase}${route.path}`;
+  const pageUrl = route.path === '/' ? `${previewBase}/` : `${previewBase}${route.path}`;
+  const url = `${pageUrl}?__prerender=1`;
   const dynamic = route.source !== 'static';
   const budgets = dynamic ? [12000, 22000, 35000] : [12000];
   let lastHtml = '';
