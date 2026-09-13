@@ -4,7 +4,13 @@ import { useParams } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { INITIAL_CASES } from '../../data/initialCases';
 import type { CaseStudy } from '../../types';
-import { getCaseSlug, getMediaPreview, normalizedCaseMedia } from '../../lib/caseMedia';
+import {
+  getCaseSlug,
+  getMediaPreview,
+  getVideoEmbedUrl,
+  localizeMediaItem,
+  normalizedCaseMedia,
+} from '../../lib/caseMedia';
 import {
   galleryCover,
   getGallerySlug,
@@ -16,14 +22,17 @@ import {
   getVideoProjectSlug,
   isVideoProject,
   localizeVideoProject,
+  videoEmbedUrl,
+  videoMediaPoster,
   videoProjectCover,
   type VideoProject,
 } from '../../lib/videoPortfolio';
 import {
+  applyDetailSeo,
+  breadcrumbJsonLd,
   canonicalUrlForPath,
   removeCanonical,
-  removeMeta,
-  upsertCanonical,
+  removeJsonLd,
   upsertMeta,
 } from '../../lib/seo';
 import { useSiteContent } from '../../context/SiteContentContext';
@@ -41,7 +50,30 @@ type SeoPayload = {
   image: string;
   canonicalPath: string;
   ogType: string;
+  createdAt?: number | string;
+  updatedAt?: number | string;
+  jsonLd: Record<string, unknown>;
 };
+
+function organizationId(): string {
+  return `${canonicalUrlForPath('/').replace(/\/$/, '')}/#organization`;
+}
+
+function localizedParentLabel(type: RelatedEntityType, locale: 'uk' | 'ru' | 'en'): string {
+  if (type === 'case') return locale === 'uk' ? 'Кейси' : locale === 'ru' ? 'Кейсы' : 'Case studies';
+  if (type === 'gallery') return locale === 'uk' ? 'Фотогалереї' : locale === 'ru' ? 'Фотогалереи' : 'Photo galleries';
+  return locale === 'uk' ? 'Відеопортфоліо' : locale === 'ru' ? 'Видеопортфолио' : 'Video portfolio';
+}
+
+function parentPath(type: RelatedEntityType): string {
+  if (type === 'case') return '/cases';
+  if (type === 'gallery') return '/galleries';
+  return '/videos';
+}
+
+function homeLabel(locale: 'uk' | 'ru' | 'en'): string {
+  return locale === 'uk' ? 'Головна' : locale === 'ru' ? 'Главная' : 'Home';
+}
 
 export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhancerProps) {
   const { slug = '' } = useParams();
@@ -65,14 +97,64 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           const raw = loaded.find(item => item.published !== false && (getCaseSlug(item) === decoded || item.id === decoded)) || null;
           if (!raw || cancelled) return;
           const localized = getLocalizedCase(raw);
-          const image = raw.imageUrl || normalizedCaseMedia(raw).map(getMediaPreview).find(Boolean) || '';
+          const media = normalizedCaseMedia(raw).map(item => localizeMediaItem(item, locale));
+          const image = raw.imageUrl || media.map(getMediaPreview).find(Boolean) || '';
+          const canonicalPath = `/cases/${encodeURIComponent(getCaseSlug(raw))}`;
+          const canonical = canonicalUrlForPath(canonicalPath);
+          const description = localized.description || localized.result || localized.challenge || localized.title;
+          const images = Array.from(new Set([
+            image,
+            ...media.filter(item => item.type === 'image').map(item => item.url),
+          ].filter(Boolean)));
+          const videos = media.filter(item => item.type !== 'image').map((item, index) => ({
+            '@type': 'VideoObject',
+            '@id': `${canonical}#video-${index + 1}`,
+            name: item.title || `${localized.title} — video ${index + 1}`,
+            description: item.caption || description,
+            ...(getMediaPreview(item) ? { thumbnailUrl: [getMediaPreview(item)] } : {}),
+            ...(getVideoEmbedUrl(item) ? { embedUrl: getVideoEmbedUrl(item) } : {}),
+            ...(item.type === 'video' ? { contentUrl: item.url } : {}),
+            ...(raw.updatedAt || raw.createdAt ? { uploadDate: new Date(raw.updatedAt || raw.createdAt).toISOString() } : {}),
+            publisher: { '@id': organizationId() },
+          }));
+          const graph: Record<string, unknown>[] = [
+            {
+              '@type': 'CreativeWork',
+              '@id': `${canonical}#case`,
+              url: canonical,
+              name: localized.title,
+              headline: localized.title,
+              description,
+              ...(images.length ? { image: images } : {}),
+              ...(raw.createdAt ? { datePublished: new Date(raw.createdAt).toISOString() } : {}),
+              ...(raw.updatedAt || raw.createdAt ? { dateModified: new Date(raw.updatedAt || raw.createdAt).toISOString() } : {}),
+              ...(localized.client ? { about: { '@type': 'Organization', name: localized.client } } : {}),
+              ...(localized.categoryLabel || raw.category ? { genre: localized.categoryLabel || raw.category } : {}),
+              ...(localized.location ? { locationCreated: { '@type': 'Place', name: localized.location } } : {}),
+              creator: { '@id': organizationId() },
+              publisher: { '@id': organizationId() },
+              ...(videos.length ? { video: videos.map(video => ({ '@id': video['@id'] })) } : {}),
+            },
+            breadcrumbJsonLd([
+              { name: homeLabel(locale), path: '/' },
+              { name: localizedParentLabel(type, locale), path: parentPath(type) },
+              { name: localized.title, path: canonicalPath },
+            ]),
+            ...videos,
+          ];
           setPayload({
             id: raw.id,
             title: localized.title,
-            description: localized.description || localized.result || localized.challenge || '',
+            description,
             image,
-            canonicalPath: `/cases/${encodeURIComponent(getCaseSlug(raw))}`,
+            canonicalPath,
             ogType: 'article',
+            createdAt: raw.createdAt,
+            updatedAt: raw.updatedAt || raw.createdAt,
+            jsonLd: { '@context': 'https://schema.org', '@graph': graph.map(item => {
+              const { ['@context']: _context, ...rest } = item;
+              return rest;
+            }) },
           });
           return;
         }
@@ -84,13 +166,50 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           const raw = docs.filter(isPhotoGallery).find(item => item.published !== false && (getGallerySlug(item) === decoded || item.id === decoded)) as PhotoGallery | undefined;
           if (!raw || cancelled) return;
           const localized = localizeGallery(raw, locale);
+          const canonicalPath = `/galleries/${encodeURIComponent(getGallerySlug(raw))}`;
+          const canonical = canonicalUrlForPath(canonicalPath);
+          const description = localized.description || l(`Фотогалерея «${localized.title}»`, `Фотогалерея «${localized.title}»`, `Photo gallery “${localized.title}”`);
+          const imageObjects = localized.images.slice(0, 100).map((image, index) => ({
+            '@type': 'ImageObject',
+            '@id': `${canonical}#image-${index + 1}`,
+            contentUrl: image.url,
+            name: image.alt || localized.title,
+            ...(image.caption ? { caption: image.caption } : {}),
+            ...(index === 0 ? { representativeOfPage: true } : {}),
+          }));
+          const graph: Record<string, unknown>[] = [
+            {
+              '@type': 'ImageGallery',
+              '@id': `${canonical}#gallery`,
+              url: canonical,
+              name: localized.title,
+              description,
+              ...(raw.date ? { dateCreated: raw.date } : {}),
+              ...(raw.updatedAt || raw.createdAt ? { dateModified: new Date(raw.updatedAt || raw.createdAt).toISOString() } : {}),
+              ...(localized.location ? { contentLocation: { '@type': 'Place', name: localized.location } } : {}),
+              provider: { '@id': organizationId() },
+              image: imageObjects.map(image => ({ '@id': image['@id'] })),
+            },
+            breadcrumbJsonLd([
+              { name: homeLabel(locale), path: '/' },
+              { name: localizedParentLabel(type, locale), path: parentPath(type) },
+              { name: localized.title, path: canonicalPath },
+            ]),
+            ...imageObjects,
+          ];
           setPayload({
             id: raw.id,
             title: localized.title,
-            description: localized.description || l(`Фотогалерея «${localized.title}»`, `Фотогалерея «${localized.title}»`, `Photo gallery “${localized.title}”`),
+            description,
             image: galleryCover(raw),
-            canonicalPath: `/galleries/${encodeURIComponent(getGallerySlug(raw))}`,
+            canonicalPath,
             ogType: 'article',
+            createdAt: raw.date || raw.createdAt,
+            updatedAt: raw.updatedAt || raw.createdAt,
+            jsonLd: { '@context': 'https://schema.org', '@graph': graph.map(item => {
+              const { ['@context']: _context, ...rest } = item;
+              return rest;
+            }) },
           });
           return;
         }
@@ -98,13 +217,58 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
         const raw = docs.filter(isVideoProject).find(item => item.published !== false && (getVideoProjectSlug(item) === decoded || item.id === decoded)) as VideoProject | undefined;
         if (!raw || cancelled) return;
         const localized = localizeVideoProject(raw, locale);
+        const canonicalPath = `/videos/${encodeURIComponent(getVideoProjectSlug(raw))}`;
+        const canonical = canonicalUrlForPath(canonicalPath);
+        const description = localized.description || localized.result || localized.title;
+        const cover = videoProjectCover(raw);
+        const videoObjects = localized.videos.map((media, index) => {
+          const embed = videoEmbedUrl(media);
+          const poster = videoMediaPoster(media) || cover;
+          return {
+            '@type': 'VideoObject',
+            '@id': `${canonical}#video-${index + 1}`,
+            name: media.title || localized.title,
+            description: media.caption || description,
+            ...(poster ? { thumbnailUrl: [poster] } : {}),
+            ...(raw.date || raw.createdAt ? { uploadDate: raw.date || new Date(raw.createdAt).toISOString() } : {}),
+            ...(embed ? { embedUrl: embed } : {}),
+            ...(media.type === 'video' ? { contentUrl: media.url } : {}),
+            publisher: { '@id': organizationId() },
+          };
+        });
+        const graph: Record<string, unknown>[] = [
+          {
+            '@type': 'CollectionPage',
+            '@id': `${canonical}#project`,
+            url: canonical,
+            name: localized.title,
+            description,
+            ...(cover ? { primaryImageOfPage: { '@type': 'ImageObject', contentUrl: cover } } : {}),
+            ...(raw.createdAt ? { datePublished: new Date(raw.createdAt).toISOString() } : {}),
+            ...(raw.updatedAt || raw.createdAt ? { dateModified: new Date(raw.updatedAt || raw.createdAt).toISOString() } : {}),
+            publisher: { '@id': organizationId() },
+            mainEntity: videoObjects.map(video => ({ '@id': video['@id'] })),
+          },
+          breadcrumbJsonLd([
+            { name: homeLabel(locale), path: '/' },
+            { name: localizedParentLabel(type, locale), path: parentPath(type) },
+            { name: localized.title, path: canonicalPath },
+          ]),
+          ...videoObjects,
+        ];
         setPayload({
           id: raw.id,
           title: localized.title,
-          description: localized.description || localized.result || localized.title,
-          image: videoProjectCover(raw),
-          canonicalPath: `/videos/${encodeURIComponent(getVideoProjectSlug(raw))}`,
+          description,
+          image: cover,
+          canonicalPath,
           ogType: 'video.other',
+          createdAt: raw.date || raw.createdAt,
+          updatedAt: raw.updatedAt || raw.createdAt,
+          jsonLd: { '@context': 'https://schema.org', '@graph': graph.map(item => {
+            const { ['@context']: _context, ...rest } = item;
+            return rest;
+          }) },
         });
       } catch (error) {
         console.warn('Could not resolve portfolio detail SEO:', error);
@@ -123,32 +287,22 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
     if (!payload) {
       upsertMeta('meta[name="robots"]', { name: 'robots' }, 'noindex, nofollow, noarchive');
       removeCanonical();
+      removeJsonLd('detail-seo-jsonld');
       return;
     }
 
-    const title = `${payload.title} — Dneprfilm`;
-    const description = payload.description.slice(0, 220);
-    const canonical = canonicalUrlForPath(payload.canonicalPath);
-    document.title = title;
-
-    upsertMeta('meta[name="description"]', { name: 'description' }, description);
-    upsertMeta('meta[name="robots"]', { name: 'robots' }, type === 'video'
-      ? 'index, follow, max-image-preview:large, max-video-preview:-1'
-      : 'index, follow, max-image-preview:large');
-    upsertMeta('meta[property="og:title"]', { property: 'og:title' }, title);
-    upsertMeta('meta[property="og:description"]', { property: 'og:description' }, description);
-    upsertMeta('meta[property="og:type"]', { property: 'og:type' }, payload.ogType);
-    upsertMeta('meta[property="og:url"]', { property: 'og:url' }, canonical);
-    upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title' }, title);
-    upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description' }, description);
-    if (payload.image) {
-      upsertMeta('meta[property="og:image"]', { property: 'og:image' }, payload.image);
-      upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image' }, payload.image);
-    } else {
-      removeMeta('meta[property="og:image"]');
-      removeMeta('meta[name="twitter:image"]');
-    }
-    upsertCanonical(canonical);
+    return applyDetailSeo({
+      title: `${payload.title} — Dneprfilm`,
+      description: payload.description,
+      path: payload.canonicalPath,
+      image: payload.image,
+      imageAlt: payload.title,
+      ogType: payload.ogType,
+      datePublished: payload.createdAt,
+      dateModified: payload.updatedAt,
+      allowVideoPreview: type === 'video',
+      jsonLd: payload.jsonLd,
+    });
   }, [resolved, payload, type]);
 
   return (
