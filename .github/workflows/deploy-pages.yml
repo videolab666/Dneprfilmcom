@@ -34,6 +34,9 @@ jobs:
       - name: Type check
         run: bun run lint
 
+      - name: Admin media consistency audit
+        run: bunx tsx scripts/audit-admin-media-consistency.ts
+
       - name: Build
         run: bun run build
         env:
