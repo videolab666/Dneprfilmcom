@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { onSnapshot } from 'firebase/firestore';
 import { ArrowLeft, CalendarDays, Images, MapPin } from 'lucide-react';
 import { publishedGalleriesQuery } from '../lib/publicPortfolioQueries';
+import { loadPrerenderPortfolioEntry } from '../lib/prerenderContent';
 import {
   galleryCover,
   getGallerySlug,
@@ -30,18 +31,50 @@ export function GalleryDetail() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    const unsubscribe = onSnapshot(publishedGalleriesQuery(), snapshot => {
-      const loaded = snapshot.docs
-        .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
-        .filter(isPhotoGallery);
-      setGalleries(loaded);
-      setLoading(false);
-    }, error => {
-      console.warn('Could not load photo gallery:', error);
-      setGalleries([]);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    const subscribeToFirestore = () => {
+      if (!active) return;
+      unsubscribe = onSnapshot(publishedGalleriesQuery(), snapshot => {
+        if (!active) return;
+        const loaded = snapshot.docs
+          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+          .filter(isPhotoGallery);
+        setGalleries(loaded);
+        setLoading(false);
+      }, error => {
+        if (!active) return;
+        console.warn('Could not load photo gallery:', error);
+        setGalleries([]);
+        setLoading(false);
+      });
+    };
+
+    setLoading(true);
+    const decoded = decodeURIComponent(slug);
+    void loadPrerenderPortfolioEntry('gallery', decoded)
+      .then(entry => {
+        if (!active) return;
+        if (entry) {
+          const candidate = { id: entry.id, ...entry.data };
+          if (isPhotoGallery(candidate)) {
+            setGalleries([candidate]);
+            setLoading(false);
+            return;
+          }
+        }
+        subscribeToFirestore();
+      })
+      .catch(error => {
+        console.warn('Could not load gallery prerender snapshot, using Firestore:', error);
+        subscribeToFirestore();
+      });
+
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
   }, [slug]);
 
   const rawGallery = useMemo(() => {
