@@ -33,6 +33,7 @@ import {
   canonicalUrlForPath,
   removeCanonical,
   removeJsonLd,
+  toIsoDate,
   upsertMeta,
 } from '../../lib/seo';
 import { useSiteContent } from '../../context/SiteContentContext';
@@ -50,8 +51,8 @@ type SeoPayload = {
   image: string;
   canonicalPath: string;
   ogType: string;
-  createdAt?: number | string;
-  updatedAt?: number | string;
+  createdAt?: string;
+  updatedAt?: string;
   jsonLd: Record<string, unknown>;
 };
 
@@ -64,6 +65,10 @@ type LocalizedCaseSeo = {
   categoryLabel: string;
   client: string;
 };
+
+function setResolverState(state: 'loading' | 'resolved' | 'missing' | 'error') {
+  if (typeof document !== 'undefined') document.documentElement.dataset.portfolioSeoState = state;
+}
 
 function organizationId(): string {
   return `${canonicalUrlForPath('/').replace(/\/$/, '')}/#organization`;
@@ -135,9 +140,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
 
   useEffect(() => {
     let cancelled = false;
-    // Dynamic routes are pessimistically non-indexable until this exact Firestore
-    // entity has been resolved as an existing published document. This component
-    // is the sole owner of dynamic robots/canonical state.
+    setResolverState('loading');
     upsertMeta('meta[name="robots"]', { name: 'robots' }, 'noindex, follow');
     removeCanonical();
     removeJsonLd('detail-seo-jsonld');
@@ -160,6 +163,8 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           const canonicalPath = `/cases/${encodeURIComponent(getCaseSlug(raw))}`;
           const canonical = canonicalUrlForPath(canonicalPath);
           const description = localized.description || localized.result || localized.challenge || localized.title;
+          const datePublished = toIsoDate(raw.createdAt);
+          const dateModified = toIsoDate(raw.updatedAt || raw.createdAt);
           const images = Array.from(new Set([
             image,
             ...media.filter(item => item.type === 'image').map(item => item.url),
@@ -172,7 +177,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
             ...(getMediaPreview(item) ? { thumbnailUrl: [getMediaPreview(item)] } : {}),
             ...(getVideoEmbedUrl(item) ? { embedUrl: getVideoEmbedUrl(item) } : {}),
             ...(item.type === 'video' ? { contentUrl: item.url } : {}),
-            ...(raw.updatedAt || raw.createdAt ? { uploadDate: new Date(raw.updatedAt || raw.createdAt).toISOString() } : {}),
+            ...(dateModified ? { uploadDate: dateModified } : {}),
             publisher: { '@id': organizationId() },
           }));
           const graph: Record<string, unknown>[] = [
@@ -184,8 +189,8 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
               headline: localized.title,
               description,
               ...(images.length ? { image: images } : {}),
-              ...(raw.createdAt ? { datePublished: new Date(raw.createdAt).toISOString() } : {}),
-              ...(raw.updatedAt || raw.createdAt ? { dateModified: new Date(raw.updatedAt || raw.createdAt).toISOString() } : {}),
+              ...(datePublished ? { datePublished } : {}),
+              ...(dateModified ? { dateModified } : {}),
               ...(localized.client ? { about: { '@type': 'Organization', name: localized.client } } : {}),
               ...(localized.categoryLabel || raw.category ? { genre: localized.categoryLabel || raw.category } : {}),
               ...(localized.location ? { locationCreated: { '@type': 'Place', name: localized.location } } : {}),
@@ -208,8 +213,8 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
             image,
             canonicalPath,
             ogType: 'article',
-            createdAt: raw.createdAt,
-            updatedAt: raw.updatedAt || raw.createdAt,
+            createdAt: datePublished,
+            updatedAt: dateModified,
             jsonLd: { '@context': 'https://schema.org', '@graph': graph.map(item => {
               const { ['@context']: _context, ...rest } = item;
               return rest;
@@ -228,6 +233,8 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           const canonicalPath = `/galleries/${encodeURIComponent(getGallerySlug(raw))}`;
           const canonical = canonicalUrlForPath(canonicalPath);
           const description = localized.description || galleryFallbackDescription(localized.title, locale);
+          const datePublished = toIsoDate(raw.date || raw.createdAt);
+          const dateModified = toIsoDate(raw.updatedAt || raw.createdAt || raw.date);
           const imageObjects = localized.images.slice(0, 100).map((image, index) => ({
             '@type': 'ImageObject',
             '@id': `${canonical}#image-${index + 1}`,
@@ -243,8 +250,8 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
               url: canonical,
               name: localized.title,
               description,
-              ...(raw.date ? { dateCreated: raw.date } : {}),
-              ...(raw.updatedAt || raw.createdAt ? { dateModified: new Date(raw.updatedAt || raw.createdAt).toISOString() } : {}),
+              ...(datePublished ? { dateCreated: datePublished } : {}),
+              ...(dateModified ? { dateModified } : {}),
               ...(localized.location ? { contentLocation: { '@type': 'Place', name: localized.location } } : {}),
               provider: { '@id': organizationId() },
               image: imageObjects.map(image => ({ '@id': image['@id'] })),
@@ -264,8 +271,8 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
             image: galleryCover(raw),
             canonicalPath,
             ogType: 'article',
-            createdAt: raw.date || raw.createdAt,
-            updatedAt: raw.updatedAt || raw.createdAt,
+            createdAt: datePublished,
+            updatedAt: dateModified,
             jsonLd: { '@context': 'https://schema.org', '@graph': graph.map(item => {
               const { ['@context']: _context, ...rest } = item;
               return rest;
@@ -281,6 +288,8 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
         const canonical = canonicalUrlForPath(canonicalPath);
         const description = localized.description || localized.result || localized.title;
         const cover = videoProjectCover(raw);
+        const datePublished = toIsoDate(raw.date || raw.createdAt);
+        const dateModified = toIsoDate(raw.updatedAt || raw.createdAt || raw.date);
         const videoObjects = localized.videos.map((media, index) => {
           const embed = videoEmbedUrl(media);
           const poster = videoMediaPoster(media) || cover;
@@ -290,7 +299,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
             name: media.title || localized.title,
             description: media.caption || description,
             ...(poster ? { thumbnailUrl: [poster] } : {}),
-            ...(raw.date || raw.createdAt ? { uploadDate: raw.date || new Date(raw.createdAt).toISOString() } : {}),
+            ...(datePublished ? { uploadDate: datePublished } : {}),
             ...(embed ? { embedUrl: embed } : {}),
             ...(media.type === 'video' ? { contentUrl: media.url } : {}),
             publisher: { '@id': organizationId() },
@@ -304,8 +313,8 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
             name: localized.title,
             description,
             ...(cover ? { primaryImageOfPage: { '@type': 'ImageObject', contentUrl: cover } } : {}),
-            ...(raw.createdAt ? { datePublished: new Date(raw.createdAt).toISOString() } : {}),
-            ...(raw.updatedAt || raw.createdAt ? { dateModified: new Date(raw.updatedAt || raw.createdAt).toISOString() } : {}),
+            ...(datePublished ? { datePublished } : {}),
+            ...(dateModified ? { dateModified } : {}),
             publisher: { '@id': organizationId() },
             mainEntity: videoObjects.map(video => ({ '@id': video['@id'] })),
           },
@@ -324,14 +333,15 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           image: cover,
           canonicalPath,
           ogType: 'video.other',
-          createdAt: raw.date || raw.createdAt,
-          updatedAt: raw.updatedAt || raw.createdAt,
+          createdAt: datePublished,
+          updatedAt: dateModified,
           jsonLd: { '@context': 'https://schema.org', '@graph': graph.map(item => {
             const { ['@context']: _context, ...rest } = item;
             return rest;
           }) },
         });
       } catch (error) {
+        setResolverState('error');
         console.warn('Could not resolve portfolio detail SEO:', error);
       } finally {
         if (!cancelled) setResolved(true);
@@ -346,12 +356,14 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
     if (!resolved) return;
 
     if (!payload) {
+      if (document.documentElement.dataset.portfolioSeoState !== 'error') setResolverState('missing');
       upsertMeta('meta[name="robots"]', { name: 'robots' }, 'noindex, nofollow, noarchive');
       removeCanonical();
       removeJsonLd('detail-seo-jsonld');
       return;
     }
 
+    setResolverState('resolved');
     return applyDetailSeo({
       title: `${payload.title} — Dneprfilm`,
       description: payload.description,
