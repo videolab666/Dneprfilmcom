@@ -5,6 +5,7 @@ interface RouteEntry {
   path: string;
   source: 'static' | 'case' | 'gallery' | 'video';
   images?: Array<{ loc: string }>;
+  hasVideos?: boolean;
 }
 
 function fail(message: string): never {
@@ -59,7 +60,10 @@ for (const route of dynamic) {
   if (route.source === 'gallery') requireText(html, '"@type":"ImageGallery"', route.path);
   if (route.source === 'video') {
     requireText(html, '"@type":"CollectionPage"', route.path);
-    requireText(html, '"@type":"VideoObject"', route.path);
+    // A migrated legacy video-project can legitimately be a portfolio landing
+    // page with cover/copy but no actual video URL yet. Do not invent a
+    // VideoObject for such records; require it only when real video media exists.
+    if (route.hasVideos) requireText(html, '"@type":"VideoObject"', route.path);
   }
 
   for (const image of route.images || []) {
