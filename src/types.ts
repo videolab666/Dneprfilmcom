@@ -93,6 +93,7 @@ export interface CaseStudy {
   featured?: boolean;
   featuredOrder?: number;
   createdAt: number;
+  updatedAt?: number;
 }
 
 export type ArticleCategory = 'live' | 'video' | 'construction' | 'photo' | 'tech';
