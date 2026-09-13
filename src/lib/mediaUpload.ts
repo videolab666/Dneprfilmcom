@@ -113,10 +113,28 @@ export function videoPosterUrl(url: string): string | undefined {
 
 export async function uploadCaseImage(file: File, caseId: string): Promise<UploadedAsset> {
   const optimized = await optimizeImage(file);
+  // Galleries historically called the case uploader with a `gallery-` prefix.
+  // Keep that API compatible while routing all NEW gallery uploads into their
+  // own Cloudinary namespace. Existing URLs are intentionally left untouched.
+  const isGalleryUpload = caseId.startsWith('gallery-');
+  const logicalId = isGalleryUpload ? caseId.replace(/^gallery-/, '') : caseId;
+  const folder = isGalleryUpload
+    ? `dneprfilm/galleries/${sanitizeName(logicalId)}`
+    : `dneprfilm/cases/${sanitizeName(caseId)}`;
   return uploadUnsigned(
     optimized,
     'image',
-    `dneprfilm/cases/${sanitizeName(caseId)}`,
+    folder,
+    `${sanitizeName(file.name)}.webp`,
+  );
+}
+
+export async function uploadGalleryImage(file: File, galleryId: string): Promise<UploadedAsset> {
+  const optimized = await optimizeImage(file);
+  return uploadUnsigned(
+    optimized,
+    'image',
+    `dneprfilm/galleries/${sanitizeName(galleryId)}`,
     `${sanitizeName(file.name)}.webp`,
   );
 }
