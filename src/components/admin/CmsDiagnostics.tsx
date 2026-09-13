@@ -52,7 +52,7 @@ function CountCard({
   );
 }
 
-function SecurityCheck({ check }: { check: SecurityProbeCheck }) {
+function SecurityCheck({ check }: { check: SecurityProbeCheck; key?: string }) {
   const Icon = check.passed ? CheckCircle2 : XCircle;
   return (
     <div className={`rounded-xl border px-4 py-3 ${check.passed ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'}`}>
@@ -69,7 +69,7 @@ function SecurityCheck({ check }: { check: SecurityProbeCheck }) {
   );
 }
 
-function IssueRow({ issue }: { issue: DiagnosticIssue }) {
+function IssueRow({ issue }: { issue: DiagnosticIssue; key?: string }) {
   const Icon = issue.severity === 'error' ? XCircle : issue.severity === 'warning' ? AlertTriangle : Activity;
   const styles = issue.severity === 'error'
     ? 'border-red-200 bg-red-50 text-red-700'
