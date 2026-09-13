@@ -20,10 +20,18 @@ import {
 export function SeoManager() {
   const location = useLocation();
   const { locale, settings } = useSiteContent();
+  const path = normalizeRoutePath(location.pathname);
+  const isAdmin = path === '/admin' || path.startsWith('/admin/');
 
   useEffect(() => {
-    const path = normalizeRoutePath(location.pathname);
-    const isAdmin = path === '/admin' || path.startsWith('/admin/');
+    if (isAdmin) {
+      removeJsonLd('organization-jsonld');
+      return;
+    }
+    upsertJsonLd('organization-jsonld', organizationJsonLd(settings, locale));
+  }, [isAdmin, locale, settings]);
+
+  useEffect(() => {
     const dynamicType = dynamicPortfolioTypeForPath(path);
     const staticEntry = STATIC_SEO[path];
     const isKnownStatic = Boolean(staticEntry);
@@ -40,16 +48,14 @@ export function SeoManager() {
       removeCanonical();
       removeMeta('meta[property="og:image"]');
       removeMeta('meta[name="twitter:image"]');
-      removeJsonLd('organization-jsonld');
       removeJsonLd('static-breadcrumb-jsonld');
       return;
     }
 
-    upsertJsonLd('organization-jsonld', organizationJsonLd(settings, locale));
-
     if (dynamicType) {
       // Dynamic detail pages validate the Firestore document themselves before switching to index/follow.
-      // This prevents a non-existent /cases/foo, /videos/foo or /galleries/foo URL from being indexed.
+      // This effect intentionally does not depend on site settings, so a late settings refresh cannot
+      // reset a detail page that PortfolioDetailEnhancer has already validated.
       upsertMeta('meta[name="robots"]', { name: 'robots' }, 'noindex, follow');
       removeCanonical();
       removeJsonLd('static-breadcrumb-jsonld');
@@ -88,7 +94,7 @@ export function SeoManager() {
         ? [{ name: homeName, path: '/' }]
         : [{ name: homeName, path: '/' }, { name: pageName, path }],
     ));
-  }, [location.pathname, locale, settings]);
+  }, [isAdmin, locale, path]);
 
   return null;
 }
