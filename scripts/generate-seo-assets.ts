@@ -13,11 +13,19 @@ interface SitemapImage {
   caption?: string;
 }
 
+type DynamicSource = 'case' | 'gallery' | 'video';
+
 interface RouteEntry {
   path: string;
   lastmod?: string;
-  source: 'static' | 'case' | 'gallery' | 'video';
+  source: 'static' | DynamicSource;
   images?: SitemapImage[];
+}
+
+interface PrerenderContentEntry {
+  source: DynamicSource;
+  id: string;
+  data: Record<string, unknown>;
 }
 
 const CYRILLIC_MAP: Record<string, string> = {
@@ -66,6 +74,30 @@ function asLastmod(value: unknown): string | undefined {
     if (typeof seconds === 'number') return new Date(seconds * 1000).toISOString().slice(0, 10);
   }
   return undefined;
+}
+
+function jsonSafe(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(jsonSafe);
+  if (typeof value === 'object') {
+    const candidate = value as { toDate?: () => Date; seconds?: number; _seconds?: number; nanoseconds?: number; _nanoseconds?: number };
+    if (typeof candidate.toDate === 'function') {
+      const parsed = candidate.toDate();
+      if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+    }
+    const seconds = candidate.seconds ?? candidate._seconds;
+    const nanos = candidate.nanoseconds ?? candidate._nanoseconds;
+    if (typeof seconds === 'number' && (typeof nanos === 'number' || Object.keys(candidate).length <= 3)) {
+      const millis = seconds * 1000 + (typeof nanos === 'number' ? Math.floor(nanos / 1_000_000) : 0);
+      return new Date(millis).toISOString();
+    }
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, nested]) => [key, jsonSafe(nested)]),
+    );
+  }
+  return String(value);
 }
 
 function discoverStaticRoutes(): string[] {
@@ -171,7 +203,11 @@ function videoImages(data: Record<string, unknown>): SitemapImage[] {
   return uniqueImages(images);
 }
 
-async function loadDynamicRoutes(config: FirebaseConfig, routes: Map<string, RouteEntry>) {
+async function loadDynamicRoutes(
+  config: FirebaseConfig,
+  routes: Map<string, RouteEntry>,
+  prerenderContent: Record<string, PrerenderContentEntry>,
+) {
   const app = initializeApp({
     apiKey: config.apiKey,
     authDomain: config.authDomain,
@@ -199,6 +235,11 @@ async function loadDynamicRoutes(config: FirebaseConfig, routes: Map<string, Rou
         lastmod: asLastmod(data.updatedAt ?? data.createdAt),
         images: caseImages(data),
       });
+      prerenderContent[path] = {
+        source: 'case',
+        id: document.id,
+        data: jsonSafe(data) as Record<string, unknown>,
+      };
     });
 
     settingsSnapshot.docs.forEach(document => {
@@ -213,6 +254,11 @@ async function loadDynamicRoutes(config: FirebaseConfig, routes: Map<string, Rou
           lastmod: asLastmod(data.updatedAt ?? data.createdAt),
           images: galleryImages(data),
         });
+        prerenderContent[path] = {
+          source: 'gallery',
+          id: document.id,
+          data: jsonSafe(data) as Record<string, unknown>,
+        };
       }
 
       if (data.kind === 'video_project') {
@@ -223,6 +269,11 @@ async function loadDynamicRoutes(config: FirebaseConfig, routes: Map<string, Rou
           lastmod: asLastmod(data.updatedAt ?? data.createdAt),
           images: videoImages(data),
         });
+        prerenderContent[path] = {
+          source: 'video',
+          id: document.id,
+          data: jsonSafe(data) as Record<string, unknown>,
+        };
       }
     });
 
@@ -247,11 +298,12 @@ async function main() {
   const config = JSON.parse(readFileSync('firebase-applet-config.json', 'utf8')) as FirebaseConfig;
   const siteUrl = (process.env.SITE_URL || 'https://videolab666.github.io/Dneprfilmcom').replace(/\/+$/, '');
   const routes = new Map<string, RouteEntry>();
+  const prerenderContent: Record<string, PrerenderContentEntry> = {};
 
   discoverStaticRoutes().forEach(path => routes.set(path, { path, source: 'static' }));
 
   try {
-    const stats = await loadDynamicRoutes(config, routes);
+    const stats = await loadDynamicRoutes(config, routes, prerenderContent);
     console.log(`Firebase SDK loaded ${stats.cases} cases and ${stats.settings} site_settings documents; ${stats.dynamic} published dynamic routes discovered.`);
   } catch (error) {
     console.warn('Dynamic Firestore routes could not be loaded. Static sitemap/prerender routes will still be generated.', error);
@@ -310,9 +362,10 @@ async function main() {
   writeFileSync(join(distDir, 'sitemap-images.xml'), imageSitemap);
   writeFileSync(join(distDir, 'robots.txt'), robots);
   writeFileSync(routeFile, JSON.stringify(ordered, null, 2));
+  writeFileSync(join(distDir, 'portfolio-prerender-data.json'), JSON.stringify(prerenderContent));
 
   const imageCount = imageRoutes.reduce((total, route) => total + (route.images?.length || 0), 0);
-  console.log(`Generated sitemap.xml, sitemap-images.xml (${imageCount} images), robots.txt and ${ordered.length} prerender routes (${ordered.filter(item => item.source !== 'static').length} dynamic).`);
+  console.log(`Generated sitemap.xml, sitemap-images.xml (${imageCount} images), robots.txt, ${Object.keys(prerenderContent).length} prerender data record(s) and ${ordered.length} prerender routes (${ordered.filter(item => item.source !== 'static').length} dynamic).`);
 }
 
 await main();
