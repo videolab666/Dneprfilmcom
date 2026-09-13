@@ -18,6 +18,11 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  SITE_URL: https://videolab666.github.io/Dneprfilmcom
+  VITE_SITE_URL: https://videolab666.github.io/Dneprfilmcom
+  VITE_BASE_PATH: /Dneprfilmcom/
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -41,17 +46,69 @@ jobs:
 
       - name: Build
         run: bun run build
-        env:
-          VITE_BASE_PATH: /Dneprfilmcom/
+
+      - name: Generate sitemap, robots and prerender route manifest
+        run: bun scripts/generate-seo-assets.ts
 
       - name: Add SPA fallback
         run: |
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
 
+      - name: Prerender public routes
+        run: |
+          set -euo pipefail
+
+          bun run preview -- --host 127.0.0.1 --port 4174 > /tmp/dneprfilm-prerender-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID" 2>/dev/null || true' EXIT
+
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:4174/Dneprfilmcom/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          if ! curl -fsS http://127.0.0.1:4174/Dneprfilmcom/ >/dev/null; then
+            echo 'Vite prerender preview did not become ready.'
+            cat /tmp/dneprfilm-prerender-preview.log
+            exit 1
+          fi
+
+          CHROME=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              CHROME="$(command -v "$candidate")"
+              break
+            fi
+          done
+
+          if [ -z "$CHROME" ]; then
+            echo 'No Chromium-compatible browser found on the runner.'
+            exit 1
+          fi
+
+          CHROME="$CHROME" PREVIEW_BASE_URL="http://127.0.0.1:4174/Dneprfilmcom" bun scripts/prerender-pages.ts
+
+      - name: SEO artifact audit
+        run: |
+          set -euo pipefail
+          test -s dist/sitemap.xml
+          test -s dist/robots.txt
+          test -s dist/prerender-routes.json
+          grep -q 'https://videolab666.github.io/Dneprfilmcom/videos' dist/sitemap.xml
+          grep -q 'https://videolab666.github.io/Dneprfilmcom/galleries' dist/sitemap.xml
+          grep -q 'Sitemap: https://videolab666.github.io/Dneprfilmcom/sitemap.xml' dist/robots.txt
+          test -f dist/videos/index.html
+          test -f dist/galleries/index.html
+          grep -q 'rel="canonical"' dist/videos/index.html
+          grep -q 'rel="canonical"' dist/galleries/index.html
+          if grep -q 'name="robots" content="noindex' dist/videos/index.html; then echo '/videos is unexpectedly noindex'; exit 1; fi
+          if grep -q 'name="robots" content="noindex' dist/galleries/index.html; then echo '/galleries is unexpectedly noindex'; exit 1; fi
+          echo 'SEO artifacts and prerendered portfolio indexes look correct.'
+
       - name: Browser smoke test
-        env:
-          VITE_BASE_PATH: /Dneprfilmcom/
         run: |
           set -euo pipefail
 

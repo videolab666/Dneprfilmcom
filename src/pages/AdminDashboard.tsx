@@ -16,6 +16,7 @@ import {
   FileText,
   ExternalLink,
   ShieldCheck,
+  Link2,
 } from 'lucide-react';
 import { BlocksManager } from '../components/admin/BlocksManager';
 import { SiteSettingsEditor } from '../components/admin/SiteSettingsEditor';
@@ -29,9 +30,10 @@ import { LeadsCRM } from '../components/admin/LeadsCRM';
 import { ArticlesManager } from '../components/admin/ArticlesManager';
 import { PageContentManager } from '../components/admin/PageContentManager';
 import { PageCopyManager } from '../components/admin/PageCopyManager';
+import { RelationsManager } from '../components/admin/RelationsManager';
 import { useSiteContent } from '../context/SiteContentContext';
 
-type AdminTab = 'blocks' | 'settings' | 'pages' | 'page-copy' | 'cases' | 'galleries' | 'videos' | 'media' | 'testimonials' | 'backstage' | 'leads' | 'articles';
+type AdminTab = 'blocks' | 'settings' | 'pages' | 'page-copy' | 'cases' | 'galleries' | 'videos' | 'relations' | 'media' | 'testimonials' | 'backstage' | 'leads' | 'articles';
 
 interface NavItem {
   id: AdminTab;
@@ -58,7 +60,8 @@ export function AdminDashboard() {
     { id: 'cases', label: isUk ? 'Кейси студії' : 'Кейсы студии', icon: <Briefcase className="w-4 h-4" /> },
     { id: 'galleries', label: isUk ? 'Фотогалереї' : 'Фотогалереи', icon: <Images className="w-4 h-4" /> },
     { id: 'videos', label: isUk ? 'Відеопортфоліо' : 'Видеопортфолио', icon: <Film className="w-4 h-4" /> },
-    { id: 'media', label: isUk ? 'Медіатека' : 'Медиатека', icon: <FolderOpen className="w-4 h-4" />, badge: 'NEW' },
+    { id: 'relations', label: isUk ? 'Зв’язки портфоліо' : 'Связи портфолио', icon: <Link2 className="w-4 h-4" />, badge: 'NEW' },
+    { id: 'media', label: isUk ? 'Медіатека' : 'Медиатека', icon: <FolderOpen className="w-4 h-4" /> },
     { id: 'testimonials', label: isUk ? 'Відгуки клієнтів' : 'Отзывы клиентов', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'backstage', label: isUk ? 'ПТС та Бекстейдж' : 'ПТС и Бэкстейдж', icon: <Radio className="w-4 h-4" /> },
     { id: 'leads', label: 'Заявки / CRM', icon: <Inbox className="w-4 h-4" /> },
@@ -110,6 +113,7 @@ export function AdminDashboard() {
         {activeTab === 'cases' && <CasesManager />}
         {activeTab === 'galleries' && <GalleriesManager />}
         {activeTab === 'videos' && <VideosManager />}
+        {activeTab === 'relations' && <RelationsManager />}
         {activeTab === 'media' && <MediaLibraryManager />}
         {activeTab === 'testimonials' && <TestimonialsManager />}
         {activeTab === 'backstage' && <BackstageManager />}
