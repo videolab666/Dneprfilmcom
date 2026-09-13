@@ -147,7 +147,9 @@ async function migrateLegacyPortfolio(): Promise<{
     .filter(item => item.kind === GALLERY_KIND)
     .map(item => String(item.title_uk || item.title || item.title_en || ''));
 
-  const globalData = globalSnapshot.exists() ? globalSnapshot.data() as { pageContent?: Partial<PageContent> } : {};
+  const globalData = globalSnapshot.exists()
+    ? globalSnapshot.data() as { pageContent?: Partial<PageContent>; portfolioMigrationVersion?: number }
+    : {};
   const legacy = effectivePageContent(globalData.pageContent);
   const batch = writeBatch(db);
   const now = Date.now();
@@ -156,6 +158,14 @@ async function migrateLegacyPortfolio(): Promise<{
   let legacyVideosMigrated = 0;
   let legacyGalleriesMigrated = 0;
   let legacyConstructionCasesMigrated = 0;
+
+  if ((globalData.portfolioMigrationVersion || 0) < 1) {
+    batch.set(doc(db, 'site_settings', 'global'), {
+      portfolioMigrationVersion: 1,
+      portfolioMigratedAt: now,
+    }, { merge: true });
+    writeCount += 1;
+  }
 
   // Prior versions treated a missing `published` field as public. Preserve that
   // meaning explicitly before public Firestore queries switch to published == true.

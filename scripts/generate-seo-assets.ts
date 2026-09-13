@@ -1,7 +1,8 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { deleteApp, initializeApp, type FirebaseOptions } from 'firebase/app';
-import { collection, getDocs, getFirestore, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, getFirestore, query, where } from 'firebase/firestore';
+import { INITIAL_CASES } from '../src/data/initialCases';
 
 interface FirebaseConfig extends FirebaseOptions {
   firestoreDatabaseId?: string;
@@ -219,15 +220,28 @@ async function loadDynamicRoutes(
 
   try {
     const db = getFirestore(app, config.firestoreDatabaseId || '(default)');
-    const [caseSnapshot, gallerySnapshot, videoSnapshot] = await Promise.all([
+    const [caseSnapshot, gallerySnapshot, videoSnapshot, globalSnapshot] = await Promise.all([
       getDocs(query(collection(db, 'cases'), where('published', '==', true))),
       getDocs(query(collection(db, 'site_settings'), where('kind', '==', 'gallery'), where('published', '==', true))),
       getDocs(query(collection(db, 'site_settings'), where('kind', '==', 'video_project'), where('published', '==', true))),
+      getDoc(doc(db, 'site_settings', 'global')),
     ]);
     const portfolioSettingsDocs = [...gallerySnapshot.docs, ...videoSnapshot.docs];
+    const migrationVersion = Number(globalSnapshot.data()?.portfolioMigrationVersion || 0);
+    const publishedCaseRecords: Array<{ id: string; data: Record<string, unknown> }> = caseSnapshot.docs.map(document => ({
+      id: document.id,
+      data: document.data() as Record<string, unknown>,
+    }));
+    if (publishedCaseRecords.length === 0 && migrationVersion < 1) {
+      INITIAL_CASES.forEach(item => publishedCaseRecords.push({
+        id: item.id,
+        data: item as unknown as Record<string, unknown>,
+      }));
+      console.warn('No explicit published case records yet; using bundled legacy cases until CMS migration v1 is completed.');
+    }
 
-    caseSnapshot.docs.forEach(document => {
-      const data = document.data() as Record<string, unknown>;
+    publishedCaseRecords.forEach(document => {
+      const data = document.data;
       if (data.published === false) return;
       const slug = caseSlug(data, document.id);
       const path = `/cases/${encodeURIComponent(slug)}`;
@@ -280,7 +294,7 @@ async function loadDynamicRoutes(
     });
 
     return {
-      cases: caseSnapshot.size,
+      cases: publishedCaseRecords.length,
       settings: portfolioSettingsDocs.length,
       dynamic: Array.from(routes.values()).filter(item => item.source !== 'static').length,
     };

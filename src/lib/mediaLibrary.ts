@@ -147,7 +147,7 @@ function sourceTypeFor(collectionName: string, data: Record<string, unknown>): s
   if (collectionName === 'site_blocks') return 'Блок главной';
 
   const kind = typeof data.kind === 'string' ? data.kind : '';
-  if (kind === 'photo_gallery') return 'Фотогалерея';
+  if (kind === 'gallery' || kind === 'photo_gallery') return 'Фотогалерея';
   if (kind === 'video_project') return 'Видеопроект';
   if (kind === 'article') return 'Статья';
   if (kind === 'media_asset') return 'Медиатека';
