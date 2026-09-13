@@ -9,6 +9,7 @@ import { AuthProvider } from './context/AuthContext';
 import { SiteContentProvider } from './context/SiteContentContext';
 import { Layout } from './components/layout/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { PortfolioDetailEnhancer } from './components/portfolio/PortfolioDetailEnhancer';
 
 const Home = lazy(() => import('./pages/Home').then((module) => ({ default: module.Home })));
 const LiveProduction = lazy(() => import('./pages/LiveProduction').then((module) => ({ default: module.LiveProduction })));
@@ -51,13 +52,13 @@ export default function App() {
                 <Route path="live" element={<LiveProduction />} />
                 <Route path="video" element={<VideoProduction />} />
                 <Route path="videos" element={<Videos />} />
-                <Route path="videos/:slug" element={<VideoDetail />} />
+                <Route path="videos/:slug" element={<PortfolioDetailEnhancer type="video"><VideoDetail /></PortfolioDetailEnhancer>} />
                 <Route path="construction" element={<ConstructionMedia />} />
                 <Route path="photo" element={<PhotoProduction />} />
                 <Route path="cases" element={<Cases />} />
-                <Route path="cases/:slug" element={<CaseDetail />} />
+                <Route path="cases/:slug" element={<PortfolioDetailEnhancer type="case"><CaseDetail /></PortfolioDetailEnhancer>} />
                 <Route path="galleries" element={<Galleries />} />
-                <Route path="galleries/:slug" element={<GalleryDetail />} />
+                <Route path="galleries/:slug" element={<PortfolioDetailEnhancer type="gallery"><GalleryDetail /></PortfolioDetailEnhancer>} />
                 <Route path="media-center" element={<MediaCenter />} />
                 <Route path="about" element={<About />} />
                 <Route path="contacts" element={<Contacts />} />
