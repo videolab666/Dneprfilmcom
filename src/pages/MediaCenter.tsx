@@ -10,9 +10,9 @@ import {
   FileText,
   Search,
   Send,
-  User,
   X,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { addDoc, collection, onSnapshot, query, serverTimestamp, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import {
@@ -36,7 +36,6 @@ export function MediaCenter() {
   const [articlesLoading, setArticlesLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
-  const [readingArticle, setReadingArticle] = useState<Article | null>(null);
   const [downloadSuccessDocId, setDownloadSuccessDocId] = useState<string | null>(null);
 
   const [contactName, setContactName] = useState('');
@@ -209,9 +208,9 @@ export function MediaCenter() {
                       {text.date && <span className="inline-flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{text.date}</span>}
                       {text.readTime && <span className="inline-flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{text.readTime}</span>}
                     </div>
-                    <button onClick={() => setReadingArticle(article)} className="mt-5 py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white text-sm font-bold transition-colors">
+                    <Link to={`/media-center/${encodeURIComponent(article.slug)}`} className="mt-5 py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white text-sm font-bold transition-colors text-center">
                       {l("Читати статтю", "Читать статью")}
-                    </button>
+                    </Link>
                   </div>
                 </article>
               ))}
@@ -278,41 +277,6 @@ export function MediaCenter() {
           </div>
         </div>
       </section>
-
-      {readingArticle && (() => {
-        const text = localizeArticle(readingArticle, locale);
-        return (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm p-4 overflow-y-auto" onClick={() => setReadingArticle(null)}>
-            <article className="max-w-4xl mx-auto my-6 bg-white rounded-3xl overflow-hidden shadow-2xl" onClick={event => event.stopPropagation()}>
-              {readingArticle.coverImage && <img src={readingArticle.coverImage} alt={text.title} className="w-full aspect-[16/7] object-cover" />}
-              <div className="p-6 sm:p-10">
-                <div className="flex justify-between gap-4">
-                  <div>
-                    <div className="text-xs font-bold uppercase tracking-wider text-indigo-600">{text.categoryLabel}</div>
-                    <h1 className="text-2xl sm:text-4xl font-black leading-tight mt-2">{text.title}</h1>
-                  </div>
-                  <button onClick={() => setReadingArticle(null)} className="p-2 h-fit rounded-full bg-slate-100 hover:bg-slate-200"><X className="w-5 h-5" /></button>
-                </div>
-                <div className="flex flex-wrap gap-4 text-xs text-slate-500 mt-5 pb-6 border-b border-slate-200">
-                  {text.author && <span className="inline-flex items-center gap-1"><User className="w-3.5 h-3.5" />{text.author}</span>}
-                  {text.date && <span className="inline-flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{text.date}</span>}
-                  {text.readTime && <span className="inline-flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{text.readTime}</span>}
-                </div>
-                <p className="mt-6 text-lg text-slate-600 font-medium leading-relaxed">{text.summary}</p>
-                {text.keyTakeaways.length > 0 && (
-                  <div className="my-8 rounded-2xl bg-indigo-50 border border-indigo-100 p-5">
-                    <h2 className="font-black text-indigo-950 mb-3">{l("Ключові висновки", "Ключевые выводы")}</h2>
-                    <ul className="space-y-2">{text.keyTakeaways.map(item => <li key={item} className="text-sm text-slate-700 flex gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />{item}</li>)}</ul>
-                  </div>
-                )}
-                <div className="space-y-5 text-base text-slate-700 leading-8">
-                  {text.content.map((paragraph, index) => <p key={`${readingArticle.id}-${index}`}>{paragraph}</p>)}
-                </div>
-              </div>
-            </article>
-          </div>
-        );
-      })()}
     </div>
   );
 }
