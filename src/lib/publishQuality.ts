@@ -6,6 +6,16 @@ export interface PublishQualityIssue {
   severity: 'warning' | 'error';
 }
 
+export interface PublishQualityOptions {
+  duplicateSlug?: boolean;
+  brokenRelation?: boolean;
+}
+
+export interface PublishApprovalResult {
+  allowed: boolean;
+  issues: PublishQualityIssue[];
+}
+
 function recordOf(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? value as Record<string, unknown> : {};
 }
@@ -67,7 +77,7 @@ function videoPosterMissing(type: PublishQualityType, record: Record<string, unk
 export function evaluatePublishQuality(
   type: PublishQualityType,
   value: unknown,
-  options?: { duplicateSlug?: boolean; brokenRelation?: boolean },
+  options?: PublishQualityOptions,
 ): PublishQualityIssue[] {
   const record = recordOf(value);
   const issues: PublishQualityIssue[] = [];
@@ -86,4 +96,40 @@ export function evaluatePublishQuality(
   if ((type === 'video' || type === 'case') && videoPosterMissing(type, record)) issues.push({ code: 'missing-video-poster', label: 'У видео нет poster/thumbnail', severity: 'warning' });
 
   return issues;
+}
+
+function qualityTypeLabel(type: PublishQualityType): string {
+  if (type === 'case') return 'кейс';
+  if (type === 'gallery') return 'галерею';
+  if (type === 'video') return 'видеопроект';
+  return 'статью';
+}
+
+export function formatPublishQualityIssues(issues: PublishQualityIssue[]): string {
+  return issues
+    .map(issue => `${issue.severity === 'error' ? '⛔' : '⚠'} ${issue.label}`)
+    .join('\n');
+}
+
+export function requestPublishApproval(
+  type: PublishQualityType,
+  value: unknown,
+  options?: PublishQualityOptions,
+): PublishApprovalResult {
+  const issues = evaluatePublishQuality(type, value, options);
+  if (issues.length === 0) return { allowed: true, issues };
+
+  const errors = issues.filter(issue => issue.severity === 'error');
+  if (errors.length > 0) {
+    if (typeof window !== 'undefined') {
+      window.alert(`Публикация заблокирована. Исправьте ошибки:\n\n${formatPublishQualityIssues(errors)}`);
+    }
+    return { allowed: false, issues };
+  }
+
+  if (typeof window === 'undefined') return { allowed: false, issues };
+  const allowed = window.confirm(
+    `Перед публикацией ${qualityTypeLabel(type)} найдены замечания:\n\n${formatPublishQualityIssues(issues)}\n\nОпубликовать всё равно?`,
+  );
+  return { allowed, issues };
 }
