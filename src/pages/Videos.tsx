@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { onSnapshot } from 'firebase/firestore';
-import { ArrowRight, CalendarDays, Film, MapPin, Play, Search, Sparkles, X } from 'lucide-react';
+import { ArrowRight, CalendarDays, Film, MapPin, Play, Sparkles } from 'lucide-react';
 import { publishedVideoProjectsQuery } from '../lib/publicPortfolioQueries';
 import { ResponsiveImage } from '../components/ResponsiveImage';
+import { PortfolioFilterBar } from '../components/portfolio/PortfolioFilterBar';
 import {
   getVideoProjectPath,
   isVideoProject,
@@ -12,6 +13,7 @@ import {
   videoProjectCover,
   type VideoProject,
 } from '../lib/videoPortfolio';
+import { portfolioMatchesFilter, type PortfolioCategoryId } from '../lib/portfolioTaxonomy';
 import { useSiteContent } from '../context/SiteContentContext';
 
 function formatDate(value: string | undefined, locale: 'uk' | 'ru' | 'en'): string {
@@ -26,7 +28,8 @@ export function Videos() {
   const { locale, l } = useSiteContent();
   const [projects, setProjects] = useState<VideoProject[]>([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState('ALL');
+  const [category, setCategory] = useState<PortfolioCategoryId | 'all'>('all');
+  const [tag, setTag] = useState('all');
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -50,22 +53,10 @@ export function Videos() {
     [projects, locale],
   );
 
-  const categories = useMemo(() => {
-    const values = Array.from(new Set(localized.map(item => item.category?.trim()).filter(Boolean) as string[]));
-    return ['ALL', ...values];
-  }, [localized]);
-
-  const filtered = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    return localized.filter(item => {
-      const categoryMatch = category === 'ALL' || item.category === category;
-      if (!categoryMatch) return false;
-      if (!search) return true;
-      return [item.title, item.client, item.category, item.description, ...(item.tags || [])]
-        .filter(Boolean)
-        .some(value => String(value).toLowerCase().includes(search));
-    });
-  }, [localized, category, query]);
+  const filtered = useMemo(
+    () => localized.filter(item => portfolioMatchesFilter(item, category, tag, query)),
+    [localized, category, tag, query],
+  );
 
   useEffect(() => {
     const title = l('Відеопортфоліо — Dneprfilm', 'Видеопортфолио — Dneprfilm', 'Video portfolio — Dneprfilm');
@@ -115,36 +106,16 @@ export function Videos() {
         </div>
       </section>
 
-      <section className="sticky top-20 z-20 border-b border-slate-200 bg-white/95 py-4 shadow-sm backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-          <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
-            {categories.map(item => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setCategory(item)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition ${category === item ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-              >
-                {item === 'ALL' ? l('Усі', 'Все', 'All') : item}
-              </button>
-            ))}
-          </div>
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-              placeholder={l('Пошук відеоробіт…', 'Поиск видеоработ…', 'Search video projects…')}
-              className="w-full rounded-xl border border-slate-200 bg-slate-100 py-2.5 pl-10 pr-9 text-xs outline-none transition focus:border-indigo-500 focus:bg-white"
-            />
-            {query && (
-              <button type="button" onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
+      <PortfolioFilterBar
+        items={localized}
+        locale={locale}
+        category={category}
+        tag={tag}
+        query={query}
+        onCategoryChange={setCategory}
+        onTagChange={setTag}
+        onQueryChange={setQuery}
+      />
 
       <section className="py-14 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -167,11 +138,7 @@ export function Videos() {
               <h2 className="mt-4 text-xl font-black text-slate-950">
                 {localized.length ? l('Нічого не знайдено', 'Ничего не найдено', 'No projects found') : l('Відеопроєкти скоро з’являться', 'Видеопроекты скоро появятся', 'Video projects are coming soon')}
               </h2>
-              {localized.length > 0 && (
-                <button type="button" onClick={() => { setCategory('ALL'); setQuery(''); }} className="mt-5 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-500">
-                  {l('Скинути фільтри', 'Сбросить фильтры', 'Reset filters')}
-                </button>
-              )}
+              {localized.length > 0 && <p className="mt-2 text-sm text-slate-500">{l('Змініть категорію, тег або пошуковий запит.', 'Измените категорию, тег или поисковый запрос.', 'Change the category, tag or search query.')}</p>}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-3">
@@ -210,7 +177,7 @@ export function Videos() {
                       )}
                       {project.description && <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-500">{project.description}</p>}
                       <div className="mt-4 flex flex-wrap gap-1.5">
-                        {(project.tags || []).slice(0, 4).map(tag => <span key={tag} className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">{tag}</span>)}
+                        {(project.tags || []).slice(0, 4).map(tagName => <span key={tagName} className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">{tagName}</span>)}
                       </div>
                       <Link to={getVideoProjectPath(project)} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-indigo-600 transition hover:text-indigo-800">
                         {l('Дивитися проєкт', 'Смотреть проект', 'View project')} <ArrowRight className="h-4 w-4" />
