@@ -38,8 +38,8 @@ export function Navbar() {
         </div>
       )}
 
-      <div className="max-w-[1480px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-20 items-center gap-5 xl:gap-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-20 items-center gap-4 xl:gap-5">
           <Link to="/" className="flex shrink-0 items-center space-x-2">
             <Video className="h-6 w-6 text-indigo-600" />
             <span className="font-bold text-xl tracking-tight text-slate-900">
@@ -48,13 +48,13 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex flex-1 items-center justify-center gap-x-4 px-2 xl:gap-x-6 xl:px-4">
+          <nav className="hidden lg:flex min-w-0 flex-1 items-center justify-center gap-x-3 px-1 2xl:gap-x-4">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 className={cn(
-                  "text-sm font-medium transition-colors hover:text-indigo-600",
+                  "shrink-0 whitespace-nowrap text-[13px] font-medium transition-colors hover:text-indigo-600 2xl:text-sm",
                   location.pathname === link.path ? "text-indigo-600" : "text-slate-600"
                 )}
               >
@@ -62,13 +62,13 @@ export function Navbar() {
               </Link>
             ))}
             {user && (
-              <Link to="/admin" className="text-sm font-medium text-amber-600 hover:text-amber-700">
+              <Link to="/admin" className="shrink-0 whitespace-nowrap text-[13px] font-medium text-amber-600 hover:text-amber-700 2xl:text-sm">
                 {t('nav.admin')}
               </Link>
             )}
           </nav>
 
-          <div className="hidden lg:flex shrink-0 items-center gap-4 xl:gap-5">
+          <div className="hidden lg:flex shrink-0 items-center gap-3 xl:gap-4">
             {/* Language Switcher */}
             <div className="flex items-center bg-slate-100 rounded-full p-1 border border-slate-200 text-xs font-bold">
               <button
