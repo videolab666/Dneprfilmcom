@@ -1,4 +1,4 @@
-export type PrerenderPortfolioSource = 'case' | 'gallery' | 'video';
+export type PrerenderPortfolioSource = 'case' | 'gallery' | 'video' | 'article';
 
 export interface PrerenderPortfolioEntry {
   source: PrerenderPortfolioSource;
@@ -40,7 +40,13 @@ export async function loadPrerenderPortfolioEntry(
   const manifest = await loadManifest();
   if (!manifest) return null;
 
-  const prefix = source === 'case' ? '/cases/' : source === 'gallery' ? '/galleries/' : '/videos/';
+  const prefix = source === 'case'
+    ? '/cases/'
+    : source === 'gallery'
+      ? '/galleries/'
+      : source === 'video'
+        ? '/videos/'
+        : '/media-center/';
   const path = `${prefix}${encodeURIComponent(decodedSlug)}`;
   const entry = manifest[path];
   return entry?.source === source ? entry : null;

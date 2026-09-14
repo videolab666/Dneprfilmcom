@@ -121,6 +121,7 @@ export function normalizeArticle(id: string, value: unknown): Article {
         : Date.now();
 
     return {
+      ...data,
       id,
       slug: asString(data.slug, seed?.slug || slugifyArticleTitle(ru.title)),
       category: CATEGORY_MAP[asString(data.category)] || seed?.category || 'tech',
@@ -132,7 +133,7 @@ export function normalizeArticle(id: string, value: unknown): Article {
       ru,
       uk,
       en,
-    };
+    } as Article;
   }
 
   // Legacy ArticlesManager schema: title/category/excerpt/content/imageUrl/createdAt.
@@ -154,6 +155,7 @@ export function normalizeArticle(id: string, value: unknown): Article {
   };
 
   return {
+    ...data,
     id,
     slug: seed?.slug || slugifyArticleTitle(title),
     category,
@@ -164,7 +166,7 @@ export function normalizeArticle(id: string, value: unknown): Article {
     ru: legacyTranslation,
     uk: seed?.uk || legacyTranslation,
     en: seed?.en,
-  };
+  } as Article;
 }
 
 export function hasArticleLocale(article: Article, locale: Locale): boolean {

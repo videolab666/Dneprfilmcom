@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 interface RouteEntry {
   path: string;
-  source: 'static' | 'case' | 'gallery' | 'video';
+  source: 'static' | 'case' | 'gallery' | 'video' | 'article';
   images?: Array<{ loc: string }>;
   hasVideos?: boolean;
 }
@@ -58,6 +58,12 @@ for (const route of dynamic) {
 
   if (route.source === 'case') requireText(html, '"@type":"CreativeWork"', route.path);
   if (route.source === 'gallery') requireText(html, '"@type":"ImageGallery"', route.path);
+  if (route.source === 'article') {
+    requireText(html, '"Article"', route.path);
+    requireText(html, '"BlogPosting"', route.path);
+    requireText(html, '"datePublished"', route.path);
+    requireText(html, '"dateModified"', route.path);
+  }
   if (route.source === 'video') {
     requireText(html, '"@type":"CollectionPage"', route.path);
     // A migrated legacy video-project can legitimately be a portfolio landing

@@ -36,6 +36,7 @@ import {
   toIsoDate,
   upsertMeta,
 } from '../../lib/seo';
+import { resolveSeoOverrides } from '../../lib/seoOverrides';
 import { loadPrerenderPortfolioEntry } from '../../lib/prerenderContent';
 import { useSiteContent } from '../../context/SiteContentContext';
 import { RelatedProjectContent, type RelatedEntityType } from './RelatedProjectContent';
@@ -167,11 +168,15 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           const raw = loaded.find(item => item.published !== false && (getCaseSlug(item) === decoded || item.id === decoded)) || null;
           if (!raw || cancelled) return;
           const localized = localizeCaseForSeo(raw, locale);
+          const overrides = resolveSeoOverrides(raw, locale);
+          const title = overrides.title || localized.title;
           const media = normalizedCaseMedia(raw).map(item => localizeMediaItem(item, locale));
-          const image = raw.imageUrl || media.map(getMediaPreview).find(Boolean) || '';
+          const autoImage = raw.imageUrl || media.map(getMediaPreview).find(Boolean) || '';
+          const image = overrides.socialImage || autoImage;
           const canonicalPath = `/cases/${encodeURIComponent(getCaseSlug(raw))}`;
           const canonical = canonicalUrlForPath(canonicalPath);
-          const description = localized.description || localized.result || localized.challenge || localized.title;
+          const autoDescription = localized.description || localized.result || localized.challenge || localized.title;
+          const description = overrides.description || autoDescription;
           const datePublished = toIsoDate(raw.createdAt);
           const dateModified = toIsoDate(raw.updatedAt || raw.createdAt);
           const images = Array.from(new Set([
@@ -181,7 +186,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           const videos = media.filter(item => item.type !== 'image').map((item, index) => ({
             '@type': 'VideoObject',
             '@id': `${canonical}#video-${index + 1}`,
-            name: item.title || `${localized.title} — video ${index + 1}`,
+            name: item.title || `${title} — video ${index + 1}`,
             description: item.caption || description,
             ...(getMediaPreview(item) ? { thumbnailUrl: [getMediaPreview(item)] } : {}),
             ...(getVideoEmbedUrl(item) ? { embedUrl: getVideoEmbedUrl(item) } : {}),
@@ -194,8 +199,8 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
               '@type': 'CreativeWork',
               '@id': `${canonical}#case`,
               url: canonical,
-              name: localized.title,
-              headline: localized.title,
+              name: title,
+              headline: title,
               description,
               ...(images.length ? { image: images } : {}),
               ...(datePublished ? { datePublished } : {}),
@@ -210,14 +215,14 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
             breadcrumbJsonLd([
               { name: homeLabel(locale), path: '/' },
               { name: localizedParentLabel(type, locale), path: parentPath(type) },
-              { name: localized.title, path: canonicalPath },
+              { name: title, path: canonicalPath },
             ]),
             ...videos,
           ];
           if (cancelled) return;
           setPayload({
             id: raw.id,
-            title: localized.title,
+            title,
             description,
             image,
             canonicalPath,
@@ -244,17 +249,21 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           const raw = docs.filter(isPhotoGallery).find(item => item.published !== false && (getGallerySlug(item) === decoded || item.id === decoded)) as PhotoGallery | undefined;
           if (!raw || cancelled) return;
           const localized = localizeGallery(raw, locale);
+          const overrides = resolveSeoOverrides(raw, locale);
+          const title = overrides.title || localized.title;
           const canonicalPath = `/galleries/${encodeURIComponent(getGallerySlug(raw))}`;
           const canonical = canonicalUrlForPath(canonicalPath);
-          const description = localized.description || galleryFallbackDescription(localized.title, locale);
+          const autoDescription = localized.description || galleryFallbackDescription(localized.title, locale);
+          const description = overrides.description || autoDescription;
+          const image = overrides.socialImage || galleryCover(raw);
           const datePublished = toIsoDate(raw.date || raw.createdAt);
           const dateModified = toIsoDate(raw.updatedAt || raw.createdAt || raw.date);
-          const imageObjects = localized.images.slice(0, 100).map((image, index) => ({
+          const imageObjects = localized.images.slice(0, 100).map((galleryImage, index) => ({
             '@type': 'ImageObject',
             '@id': `${canonical}#image-${index + 1}`,
-            contentUrl: image.url,
-            name: image.alt || localized.title,
-            ...(image.caption ? { caption: image.caption } : {}),
+            contentUrl: galleryImage.url,
+            name: galleryImage.alt || title,
+            ...(galleryImage.caption ? { caption: galleryImage.caption } : {}),
             ...(index === 0 ? { representativeOfPage: true } : {}),
           }));
           const graph: Record<string, unknown>[] = [
@@ -262,27 +271,28 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
               '@type': 'ImageGallery',
               '@id': `${canonical}#gallery`,
               url: canonical,
-              name: localized.title,
+              name: title,
               description,
+              ...(image ? { primaryImageOfPage: { '@type': 'ImageObject', contentUrl: image } } : {}),
               ...(datePublished ? { dateCreated: datePublished } : {}),
               ...(dateModified ? { dateModified } : {}),
               ...(localized.location ? { contentLocation: { '@type': 'Place', name: localized.location } } : {}),
               provider: { '@id': organizationId() },
-              image: imageObjects.map(image => ({ '@id': image['@id'] })),
+              image: imageObjects.map(item => ({ '@id': item['@id'] })),
             },
             breadcrumbJsonLd([
               { name: homeLabel(locale), path: '/' },
               { name: localizedParentLabel(type, locale), path: parentPath(type) },
-              { name: localized.title, path: canonicalPath },
+              { name: title, path: canonicalPath },
             ]),
             ...imageObjects,
           ];
           if (cancelled) return;
           setPayload({
             id: raw.id,
-            title: localized.title,
+            title,
             description,
-            image: galleryCover(raw),
+            image,
             canonicalPath,
             ogType: 'article',
             createdAt: datePublished,
@@ -298,10 +308,13 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
         const raw = docs.filter(isVideoProject).find(item => item.published !== false && (getVideoProjectSlug(item) === decoded || item.id === decoded)) as VideoProject | undefined;
         if (!raw || cancelled) return;
         const localized = localizeVideoProject(raw, locale);
+        const overrides = resolveSeoOverrides(raw, locale);
+        const title = overrides.title || localized.title;
         const canonicalPath = `/videos/${encodeURIComponent(getVideoProjectSlug(raw))}`;
         const canonical = canonicalUrlForPath(canonicalPath);
-        const description = localized.description || localized.result || localized.title;
-        const cover = videoProjectCover(raw);
+        const autoDescription = localized.description || localized.result || localized.title;
+        const description = overrides.description || autoDescription;
+        const cover = overrides.socialImage || videoProjectCover(raw);
         const datePublished = toIsoDate(raw.date || raw.createdAt);
         const dateModified = toIsoDate(raw.updatedAt || raw.createdAt || raw.date);
         const videoObjects = localized.videos.map((media, index) => {
@@ -310,7 +323,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           return {
             '@type': 'VideoObject',
             '@id': `${canonical}#video-${index + 1}`,
-            name: media.title || localized.title,
+            name: media.title || title,
             description: media.caption || description,
             ...(poster ? { thumbnailUrl: [poster] } : {}),
             ...(datePublished ? { uploadDate: datePublished } : {}),
@@ -324,7 +337,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
             '@type': 'CollectionPage',
             '@id': `${canonical}#project`,
             url: canonical,
-            name: localized.title,
+            name: title,
             description,
             ...(cover ? { primaryImageOfPage: { '@type': 'ImageObject', contentUrl: cover } } : {}),
             ...(datePublished ? { datePublished } : {}),
@@ -335,14 +348,14 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
           breadcrumbJsonLd([
             { name: homeLabel(locale), path: '/' },
             { name: localizedParentLabel(type, locale), path: parentPath(type) },
-            { name: localized.title, path: canonicalPath },
+            { name: title, path: canonicalPath },
           ]),
           ...videoObjects,
         ];
         if (cancelled) return;
         setPayload({
           id: raw.id,
-          title: localized.title,
+          title,
           description,
           image: cover,
           canonicalPath,
@@ -379,7 +392,7 @@ export function PortfolioDetailEnhancer({ type, children }: PortfolioDetailEnhan
 
     setResolverState('resolved');
     return applyDetailSeo({
-      title: `${payload.title} — Dneprfilm`,
+      title: payload.title.includes('Dneprfilm') ? payload.title : `${payload.title} — Dneprfilm`,
       description: payload.description,
       path: payload.canonicalPath,
       image: payload.image,

@@ -14,7 +14,7 @@ interface SitemapImage {
   caption?: string;
 }
 
-type DynamicSource = 'case' | 'gallery' | 'video';
+type DynamicSource = 'case' | 'gallery' | 'video' | 'article';
 
 interface RouteEntry {
   path: string;
@@ -128,6 +128,15 @@ function projectSlug(data: Record<string, unknown>, id: string): string {
   return String(data.slug || '').trim() || slugify(String(data.title_uk || data.title || data.title_en || id));
 }
 
+function articleSlug(data: Record<string, unknown>, id: string): string {
+  const explicit = String(data.slug || '').trim();
+  if (explicit) return explicit;
+  const uk = data.uk && typeof data.uk === 'object' ? data.uk as Record<string, unknown> : {};
+  const ru = data.ru && typeof data.ru === 'object' ? data.ru as Record<string, unknown> : {};
+  const en = data.en && typeof data.en === 'object' ? data.en as Record<string, unknown> : {};
+  return slugify(String(uk.title || ru.title || en.title || data.title || id));
+}
+
 function stringValue(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -205,6 +214,15 @@ function videoImages(data: Record<string, unknown>): SitemapImage[] {
   return uniqueImages(images);
 }
 
+function articleImages(data: Record<string, unknown>): SitemapImage[] {
+  const uk = data.uk && typeof data.uk === 'object' ? data.uk as Record<string, unknown> : {};
+  const ru = data.ru && typeof data.ru === 'object' ? data.ru as Record<string, unknown> : {};
+  const en = data.en && typeof data.en === 'object' ? data.en as Record<string, unknown> : {};
+  const title = stringValue(uk.title) || stringValue(ru.title) || stringValue(en.title) || stringValue(data.title);
+  const cover = stringValue(data.coverImage) || stringValue(data.socialImage_uk) || stringValue(data.socialImage) || stringValue(data.socialImage_en);
+  return cover ? [{ loc: cover, title }] : [];
+}
+
 function hasVideoMedia(data: Record<string, unknown>): boolean {
   if (!Array.isArray(data.videos)) return false;
   return data.videos.some(value => {
@@ -230,10 +248,11 @@ async function loadDynamicRoutes(
 
   try {
     const db = getFirestore(app, config.firestoreDatabaseId || '(default)');
-    const [caseSnapshot, gallerySnapshot, videoSnapshot, globalSnapshot] = await Promise.all([
+    const [caseSnapshot, gallerySnapshot, videoSnapshot, articleSnapshot, globalSnapshot] = await Promise.all([
       getDocs(query(collection(db, 'cases'), where('published', '==', true))),
       getDocs(query(collection(db, 'site_settings'), where('kind', '==', 'gallery'), where('published', '==', true))),
       getDocs(query(collection(db, 'site_settings'), where('kind', '==', 'video_project'), where('published', '==', true))),
+      getDocs(query(collection(db, 'articles'), where('published', '==', true))),
       getDoc(doc(db, 'site_settings', 'global')),
     ]);
     const portfolioSettingsDocs = [...gallerySnapshot.docs, ...videoSnapshot.docs];
@@ -304,9 +323,27 @@ async function loadDynamicRoutes(
       }
     });
 
+    articleSnapshot.docs.forEach(document => {
+      const data = document.data() as Record<string, unknown>;
+      if (data.published === false) return;
+      const path = `/media-center/${encodeURIComponent(articleSlug(data, document.id))}`;
+      routes.set(path, {
+        path,
+        source: 'article',
+        lastmod: asLastmod(data.updatedAt ?? data.publishedAt ?? data.createdAt),
+        images: articleImages(data),
+      });
+      prerenderContent[path] = {
+        source: 'article',
+        id: document.id,
+        data: jsonSafe(data) as Record<string, unknown>,
+      };
+    });
+
     return {
       cases: publishedCaseRecords.length,
       settings: portfolioSettingsDocs.length,
+      articles: articleSnapshot.size,
       dynamic: Array.from(routes.values()).filter(item => item.source !== 'static').length,
     };
   } finally {
@@ -331,7 +368,7 @@ async function main() {
 
   try {
     const stats = await loadDynamicRoutes(config, routes, prerenderContent);
-    console.log(`Firebase SDK loaded ${stats.cases} cases and ${stats.settings} site_settings documents; ${stats.dynamic} published dynamic routes discovered.`);
+    console.log(`Firebase SDK loaded ${stats.cases} cases, ${stats.settings} site_settings documents and ${stats.articles} published articles; ${stats.dynamic} published dynamic routes discovered.`);
   } catch (error) {
     console.warn('Dynamic Firestore routes could not be loaded. Static sitemap/prerender routes will still be generated.', error);
   }
