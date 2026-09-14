@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { addDoc, collection, onSnapshot } from 'firebase/firestore';
 import {
   ArrowLeft,
@@ -27,8 +27,20 @@ function categoryIcon(category: CaseStudy['category']) {
   return <Video className="h-4 w-4" />;
 }
 
+function matchesLegacyLocalizedSlug(item: CaseStudy, candidate: string): boolean {
+  if (item.slug?.trim()) return false;
+  const suffix = item.id
+    .replace(/^case-/, '')
+    .replace(/[^a-zA-Z0-9-]/g, '')
+    .slice(-18)
+    .toLowerCase();
+  return Boolean(suffix && candidate.toLowerCase().endsWith(`-${suffix}`));
+}
+
 export function CaseDetail() {
   const { slug = '' } = useParams();
+  const navigate = useNavigate();
+  const routeLocation = useLocation();
   const { locale, getLocalizedCase, settings, l } = useSiteContent();
   const [cases, setCases] = useState<CaseStudy[]>(INITIAL_CASES);
   const [name, setName] = useState('');
@@ -55,8 +67,23 @@ export function CaseDetail() {
 
   const rawCase = useMemo(() => {
     const decoded = decodeURIComponent(slug);
-    return cases.find(item => item.published !== false && (getCaseSlug(item) === decoded || item.id === decoded)) || null;
+    return cases.find(item => item.published !== false && (
+      getCaseSlug(item) === decoded
+      || item.id === decoded
+      || matchesLegacyLocalizedSlug(item, decoded)
+    )) || null;
   }, [cases, slug]);
+
+  useEffect(() => {
+    if (!rawCase) return;
+    const decoded = decodeURIComponent(slug);
+    const canonicalSlug = getCaseSlug(rawCase);
+    if (decoded === canonicalSlug) return;
+    navigate(
+      `/cases/${encodeURIComponent(canonicalSlug)}${routeLocation.search}${routeLocation.hash}`,
+      { replace: true },
+    );
+  }, [navigate, rawCase, routeLocation.hash, routeLocation.search, slug]);
 
   const currentCase = rawCase ? getLocalizedCase(rawCase) : null;
 
