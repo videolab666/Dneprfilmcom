@@ -5,16 +5,38 @@ import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import { useSiteContent } from '../../context/SiteContentContext';
 
+type NavLink = {
+  name: string;
+  path: string;
+  desktopLines?: string[];
+};
+
+function splitDesktopLabel(value: string): string[] {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length <= 1) {
+    return [value];
+  }
+
+  return [parts[0], parts.slice(1).join(' ')];
+}
+
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
   const { settings, t, l, locale, setLocale } = useSiteContent();
 
-  const navLinks = [
+  const constructionLabel = t('nav.construction');
+
+  const navLinks: NavLink[] = [
     { name: t('nav.live'), path: '/live' },
     { name: t('nav.video'), path: '/video' },
-    { name: t('nav.construction'), path: '/construction' },
+    {
+      name: constructionLabel,
+      path: '/construction',
+      desktopLines: splitDesktopLabel(constructionLabel),
+    },
     { name: t('nav.photo'), path: '/photo' },
     { name: l('Галереї', 'Галереи', 'Galleries'), path: '/galleries' },
     { name: t('nav.cases'), path: '/cases' },
@@ -38,7 +60,7 @@ export function Navbar() {
         </div>
       )}
 
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-4 xl:px-6">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-4 2xl:px-6">
         <div className="flex h-20 items-center gap-3">
           <Link to="/" className="flex shrink-0 items-center space-x-2">
             <Video className="h-6 w-6 text-indigo-600" />
@@ -48,27 +70,37 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex min-w-0 flex-1 items-center justify-center gap-x-3 px-0">
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-x-3 px-0 xl:flex">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 className={cn(
-                  "min-w-0 max-w-[118px] whitespace-normal text-center text-[13px] font-medium leading-tight transition-colors hover:text-indigo-600 2xl:text-sm",
+                  "flex-none w-max text-center text-[13px] font-medium leading-tight transition-colors hover:text-indigo-600 2xl:text-sm",
                   location.pathname === link.path ? "text-indigo-600" : "text-slate-600"
                 )}
               >
-                {link.name}
+                {link.desktopLines ? (
+                  <span className="flex flex-col items-center">
+                    {link.desktopLines.map((line, index) => (
+                      <span key={`${link.path}-${index}`} className="block whitespace-nowrap">
+                        {line}
+                      </span>
+                    ))}
+                  </span>
+                ) : (
+                  <span className="whitespace-nowrap">{link.name}</span>
+                )}
               </Link>
             ))}
             {user && (
-              <Link to="/admin" className="min-w-0 max-w-[118px] whitespace-normal text-center text-[13px] font-medium leading-tight text-amber-600 hover:text-amber-700 2xl:text-sm">
+              <Link to="/admin" className="flex-none w-max whitespace-nowrap text-center text-[13px] font-medium leading-tight text-amber-600 hover:text-amber-700 2xl:text-sm">
                 {t('nav.admin')}
               </Link>
             )}
           </nav>
 
-          <div className="hidden lg:flex shrink-0 items-center gap-3">
+          <div className="hidden shrink-0 items-center gap-3 xl:flex">
             {/* Language Switcher */}
             <div className="flex items-center bg-slate-100 rounded-full p-1 border border-slate-200 text-xs font-bold">
               <button
@@ -121,7 +153,7 @@ export function Navbar() {
           </div>
 
           {/* Mobile Right Controls */}
-          <div className="ml-auto flex items-center space-x-2 lg:hidden">
+          <div className="ml-auto flex items-center space-x-2 xl:hidden">
             {/* Mobile Language Switcher */}
             <div className="flex items-center bg-slate-100 rounded-full p-0.5 border border-slate-200 text-xs font-bold mr-1">
               <button
@@ -169,7 +201,7 @@ export function Navbar() {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="lg:hidden bg-white border-b border-slate-100 px-4 pt-2 pb-4 space-y-1">
+        <div className="bg-white border-b border-slate-100 px-4 pt-2 pb-4 space-y-1 xl:hidden">
           {navLinks.map((link) => (
             <Link
               key={link.path}
