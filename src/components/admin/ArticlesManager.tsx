@@ -4,6 +4,7 @@ import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase';
 import { Article, ArticleCategory, ArticleTranslation, Locale } from '../../types';
 import { articleCategoryLabel, normalizeArticle, slugifyArticleTitle } from '../../lib/articleCms';
+import { requestPublishApproval } from '../../lib/publishQuality';
 import { AdminImageField } from './AdminImageField';
 
 const LANGS: Array<{ id: Locale; label: string }> = [
@@ -55,6 +56,11 @@ function splitLines(value: string): string[] {
     .split('\n')
     .map(item => item.trim())
     .filter(Boolean);
+}
+
+function articleResolvedSlug(article: Article): string {
+  const fallbackTitle = article.uk.title || article.ru.title || article.en?.title || article.id;
+  return (article.slug || slugifyArticleTitle(fallbackTitle)).trim().toLowerCase();
 }
 
 export function ArticlesManager() {
@@ -126,6 +132,9 @@ export function ArticlesManager() {
       publishedAt: editing.publishedAt || Date.now(),
       updatedAt: Date.now(),
     };
+
+    const duplicateSlug = articles.some(article => article.id !== prepared.id && articleResolvedSlug(article) === articleResolvedSlug(prepared));
+    if (prepared.published && !requestPublishApproval('article', prepared, { duplicateSlug }).allowed) return;
 
     setSaving(true);
     setError('');
