@@ -16,16 +16,40 @@ if (!existsSync(routeFile)) throw new Error(`${routeFile} is missing. Run genera
 
 const routes = JSON.parse(readFileSync(routeFile, 'utf8')) as RouteEntry[];
 const ordered = [...routes].sort((a, b) => Number(a.path === '/') - Number(b.path === '/'));
+const previewBasePath = new URL(previewBase).pathname.replace(/\/+$/, '');
+
+const indexSourceByPath = new Map<string, RouteEntry['source']>([
+  ['/cases', 'case'],
+  ['/galleries', 'gallery'],
+  ['/videos', 'video'],
+  ['/media-center', 'article'],
+]);
 
 function seoState(html: string): string {
   return html.match(/data-portfolio-seo-state="([^"]+)"/)?.[1] || 'n/a';
+}
+
+function expectedIndexLinks(path: string): string[] {
+  const source = indexSourceByPath.get(path);
+  if (!source) return [];
+  return routes
+    .filter(route => route.source === source)
+    .map(route => `${previewBasePath}${route.path}`);
+}
+
+function missingExpectedIndexLinks(path: string, html: string): string[] {
+  return expectedIndexLinks(path).filter(expected => {
+    const encoded = expected.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    return !html.includes(`href="${encoded}"`);
+  });
 }
 
 function renderRoute(route: RouteEntry): string {
   const pageUrl = route.path === '/' ? `${previewBase}/` : `${previewBase}${route.path}`;
   const url = `${pageUrl}?__prerender=1`;
   const dynamic = route.source !== 'static';
-  const budgets = dynamic ? [12000, 22000, 35000] : [12000];
+  const indexRoute = indexSourceByPath.has(route.path);
+  const budgets = dynamic || indexRoute ? [12000, 22000, 35000] : [12000];
   let lastHtml = '';
   let lastError = '';
 
@@ -45,6 +69,7 @@ function renderRoute(route: RouteEntry): string {
 
     const html = result.stdout || '';
     const state = seoState(html);
+    const missingIndexLinks = indexRoute ? missingExpectedIndexLinks(route.path, html) : [];
     lastHtml = html;
 
     if (!html.includes('id="root"')) {
@@ -57,6 +82,8 @@ function renderRoute(route: RouteEntry): string {
       lastError = `portfolio SEO resolver state=${state}`;
     } else if (dynamic && html.includes('name="robots" content="noindex')) {
       lastError = `resolver state=${state}, but robots remained noindex`;
+    } else if (missingIndexLinks.length > 0) {
+      lastError = `portfolio index is missing ${missingIndexLinks.length} canonical link(s): ${missingIndexLinks.slice(0, 3).join(', ')}`;
     } else {
       if (attempt > 0) {
         console.log(`Prerender recovered ${route.path} on attempt ${attempt + 1} (SEO state: ${state}).`);
