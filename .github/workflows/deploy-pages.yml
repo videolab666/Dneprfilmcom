@@ -111,6 +111,39 @@ jobs:
           grep -q 'rel="canonical"' dist/galleries/index.html
           if grep -q 'name="robots" content="noindex' dist/videos/index.html; then echo '/videos is unexpectedly noindex'; exit 1; fi
           if grep -q 'name="robots" content="noindex' dist/galleries/index.html; then echo '/galleries is unexpectedly noindex'; exit 1; fi
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import html
+          import re
+          import sys
+
+          source = Path('dist/cases/index.html').read_text(encoding='utf-8')
+          prefix = '/Dneprfilmcom/cases/'
+          hrefs = {
+              html.unescape(match)
+              for match in re.findall(r'href="([^"]+)"', source)
+              if match.startswith(prefix)
+          }
+          missing = []
+          for href in sorted(hrefs):
+              clean = href.split('?', 1)[0].split('#', 1)[0]
+              slug = clean[len(prefix):].strip('/')
+              if not slug:
+                  continue
+              target = Path('dist/cases') / slug / 'index.html'
+              if not target.is_file():
+                  missing.append((href, str(target)))
+
+          if missing:
+              print('Case index contains links without matching prerendered pages:')
+              for href, target in missing:
+                  print(f'  - {href} -> missing {target}')
+              sys.exit(1)
+
+          print(f'Validated {len(hrefs)} case detail link(s) against prerender output.')
+          PY
+
           echo 'SEO artifacts and prerendered portfolio indexes look correct.'
 
       - name: Structured SEO audit
@@ -160,6 +193,7 @@ jobs:
             'galleries'
             'cases'
             'cases/case-ulka'
+            'cases/mizhnarodnyy-turnir-z-yedynoborstv-8-kamer-4k-translyatsiya-ta-live-replay-live-boxing'
             'media-center'
             'about'
             'contacts'
@@ -200,6 +234,11 @@ jobs:
 
             if ! grep -q 'id="root"' <<< "$html"; then
               echo "React root is missing for ${url}"
+              exit 1
+            fi
+
+            if [[ "$route" == cases/* ]] && grep -Eq 'Кейс не знайдено|Кейс не найден|Case not found' <<< "$html"; then
+              echo "Case route unexpectedly rendered the not-found state: ${url}"
               exit 1
             fi
           done
