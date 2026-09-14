@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, X, Video, Sparkles, ArrowRight, Globe } from 'lucide-react';
+import { Menu, X, Video, Sparkles, ArrowRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import { useSiteContent } from '../../context/SiteContentContext';
@@ -38,9 +38,9 @@ export function Navbar() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20 items-center">
-          <Link to="/" className="flex items-center space-x-2">
+      <div className="max-w-[1480px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-20 items-center gap-5 xl:gap-8">
+          <Link to="/" className="flex shrink-0 items-center space-x-2">
             <Video className="h-6 w-6 text-indigo-600" />
             <span className="font-bold text-xl tracking-tight text-slate-900">
               {settings.studioName || 'LIVE & VIDEO'}
@@ -48,7 +48,7 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex space-x-4 xl:space-x-6">
+          <nav className="hidden lg:flex flex-1 items-center justify-center gap-x-4 px-2 xl:gap-x-6 xl:px-4">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
@@ -68,7 +68,7 @@ export function Navbar() {
             )}
           </nav>
 
-          <div className="hidden lg:flex items-center space-x-4">
+          <div className="hidden lg:flex shrink-0 items-center gap-4 xl:gap-5">
             {/* Language Switcher */}
             <div className="flex items-center bg-slate-100 rounded-full p-1 border border-slate-200 text-xs font-bold">
               <button
@@ -114,14 +114,14 @@ export function Navbar() {
 
             <Link
               to="/contacts"
-              className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+              className="inline-flex min-h-12 min-w-[152px] items-center justify-center rounded-full border border-transparent bg-indigo-600 px-5 py-2.5 text-center text-sm font-medium leading-snug text-white shadow-sm transition-colors hover:bg-indigo-700"
             >
               {t('nav.discussProject')}
             </Link>
           </div>
 
           {/* Mobile Right Controls */}
-          <div className="flex items-center space-x-2 lg:hidden">
+          <div className="ml-auto flex items-center space-x-2 lg:hidden">
             {/* Mobile Language Switcher */}
             <div className="flex items-center bg-slate-100 rounded-full p-0.5 border border-slate-200 text-xs font-bold mr-1">
               <button
@@ -198,7 +198,7 @@ export function Navbar() {
             <Link
               to="/contacts"
               onClick={() => setIsOpen(false)}
-              className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+              className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 text-center"
             >
               {t('nav.discussProject')}
             </Link>
