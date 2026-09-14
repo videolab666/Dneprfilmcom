@@ -18,7 +18,7 @@ import { db } from '../lib/firebase';
 import { publishedCasesQuery } from '../lib/publicPortfolioQueries';
 import type { CaseStudy } from '../types';
 import { INITIAL_CASES } from '../data/initialCases';
-import { getCasePath, getMediaPreview, normalizedCaseMedia } from '../lib/caseMedia';
+import { getCasePath, getCaseSlug, getMediaPreview, normalizedCaseMedia } from '../lib/caseMedia';
 import { portfolioMatchesFilter, type PortfolioCategoryId } from '../lib/portfolioTaxonomy';
 import { useSiteContent } from '../context/SiteContentContext';
 import { ClientsMarquee } from '../components/ClientsMarquee';
@@ -69,7 +69,10 @@ export function Cases() {
     return () => unsubscribe();
   }, []);
 
-  const localizedCases = useMemo(() => cases.map(item => getLocalizedCase(item)), [cases, getLocalizedCase]);
+  const localizedCases = useMemo(
+    () => cases.map(item => ({ ...getLocalizedCase(item), slug: getCaseSlug(item) })),
+    [cases, getLocalizedCase],
+  );
 
   const filteredCases = useMemo(
     () => localizedCases.filter(item => portfolioMatchesFilter(item, category, tag, searchQuery)),
