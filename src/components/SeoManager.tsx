@@ -33,9 +33,11 @@ export function SeoManager() {
 
   useEffect(() => {
     const dynamicType = dynamicPortfolioTypeForPath(path);
+    const isArticleDetail = /^\/media-center\/[^/]+\/?$/.test(path);
+    const isDynamicDetail = Boolean(dynamicType) || isArticleDetail;
     const staticEntry = STATIC_SEO[path];
     const isKnownStatic = Boolean(staticEntry);
-    const isNotFound = !isAdmin && !isKnownStatic && !dynamicType;
+    const isNotFound = !isAdmin && !isKnownStatic && !isDynamicDetail;
 
     upsertMeta('meta[property="og:site_name"]', { property: 'og:site_name' }, 'Dneprfilm');
     upsertMeta('meta[property="og:locale"]', { property: 'og:locale' }, locale === 'uk' ? 'uk_UA' : locale === 'ru' ? 'ru_UA' : 'en_US');
@@ -52,11 +54,11 @@ export function SeoManager() {
       return;
     }
 
-    if (dynamicType) {
-      // Dynamic portfolio routes have one SEO owner: PortfolioDetailEnhancer.
-      // It immediately marks the route noindex while validating Firestore and
-      // then promotes an existing published entity to index/follow. Keeping
-      // robots/canonical out of this global manager prevents effect-order races.
+    if (isDynamicDetail) {
+      // Dynamic detail routes have one SEO owner: PortfolioDetailEnhancer or
+      // ArticleDetail. They mark the route noindex while validating Firestore
+      // and promote an existing published entity to index/follow afterwards.
+      // Keeping robots/canonical out of this global manager prevents races.
       removeJsonLd('static-breadcrumb-jsonld');
       return;
     }
