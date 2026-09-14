@@ -62,10 +62,13 @@ export function ArticleDetail() {
           article: normalizeArticle(item.id, item.data()),
           raw: item.data() as Record<string, unknown>,
         }));
-        const found = records.find(item => item.article.published && item.article.slug === decoded)
-          || DEFAULT_ARTICLES.map(article => ({ article, raw: article as unknown as Record<string, unknown> })).find(item => item.article.slug === decoded)
-          || null;
-        if (!cancelled) setLoaded(found);
+        const found = records.find(item => item.article.published && item.article.slug === decoded) || null;
+        const fallback = snapshot.empty
+          ? DEFAULT_ARTICLES
+              .map(article => ({ article, raw: article as unknown as Record<string, unknown> }))
+              .find(item => item.article.slug === decoded) || null
+          : null;
+        if (!cancelled) setLoaded(found || fallback);
       } catch (error) {
         console.warn('Could not resolve article detail:', error);
         if (!cancelled) setSeoState('error');
