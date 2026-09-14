@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 
 interface RouteEntry {
   path: string;
-  source: 'static' | 'case' | 'gallery' | 'video';
+  source: 'static' | 'case' | 'gallery' | 'video' | 'article';
 }
 
 const chrome = process.env.CHROME || '';
