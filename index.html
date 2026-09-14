@@ -18,6 +18,7 @@
     <script>
       (() => {
         const recoveryKey = 'dneprfilm_asset_reload';
+        const bootTimeoutMs = 30000;
 
         const showBootError = (details = '') => {
           const fallback = document.getElementById('boot-fallback');
@@ -97,9 +98,9 @@
 
         window.setTimeout(() => {
           if (document.getElementById('boot-fallback')) {
-            showBootError('JavaScript не завершив запуск протягом 10 секунд.');
+            showBootError(`JavaScript не завершив запуск протягом ${bootTimeoutMs / 1000} секунд.`);
           }
-        }, 10000);
+        }, bootTimeoutMs);
       })();
     </script>
   </head>

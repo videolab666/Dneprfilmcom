@@ -30,6 +30,7 @@ import {
   BACKSTAGE_TRANSLATIONS_EN
 } from '../locales/localizedContentEn';
 import { BACKSTAGE_SEED_EN } from '../locales/backstageSeedEn';
+import { localizeMigratedConstructionCase } from '../lib/legacyMigratedCaseEnglish';
 
 interface SiteContentContextType {
   locale: Locale;
@@ -305,7 +306,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
     if (locale === 'en') {
     const uk = CASE_TRANSLATIONS_UK[c.id];
     const en = CASE_TRANSLATIONS_EN[c.id];
-    return {
+    const localized = {
       ...c,
       client: en?.client || translateEnglishValue(c.client),
       title: c.title_en || en?.title || translateEnglishValue(c.title_uk || uk?.title || c.title),
@@ -317,6 +318,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
       result: c.result_en || en?.result || translateEnglishValue(c.result_uk || uk?.result || c.result),
       metrics: c.metrics_en || en?.metrics || translateEnglishValue(c.metrics_uk || uk?.metrics || c.metrics),
     };
+    return localizeMigratedConstructionCase(localized, locale);
   }
     if (locale === 'uk') {
       const uk = CASE_TRANSLATIONS_UK[c.id];

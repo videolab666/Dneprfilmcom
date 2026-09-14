@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ensureCmsSeedData } from '../lib/cmsMigration';
+import { ensureLegacyConstructionEnglishBackfill } from '../lib/legacyConstructionEnglishMigration';
 
 const ADMIN_EMAIL = 'dneprfilmcom@gmail.com';
 
@@ -20,10 +21,16 @@ export function ProtectedRoute() {
 
     setMigrationState('running');
     ensureCmsSeedData()
-      .then(result => {
-        const changed = Object.values(result).reduce((sum, count) => sum + count, 0);
+      .then(async seedResult => {
+        const englishResult = await ensureLegacyConstructionEnglishBackfill();
+        const changed = Object.values(seedResult).reduce((sum, count) => sum + count, 0)
+          + englishResult.casesBackfilled;
         if (changed > 0) {
-          console.info('CMS seed migration completed:', result);
+          console.info('CMS seed migration completed:', {
+            ...seedResult,
+            legacyConstructionEnglishBackfilled: englishResult.casesBackfilled,
+            portfolioMigrationVersion: englishResult.version,
+          });
         }
         setMigrationState('done');
       })
