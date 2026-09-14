@@ -23,6 +23,7 @@ const GalleryDetail = lazy(() => import('./pages/GalleryDetail').then((module) =
 const ConstructionMedia = lazy(() => import('./pages/ConstructionMedia').then((module) => ({ default: module.ConstructionMedia })));
 const PhotoProduction = lazy(() => import('./pages/PhotoProduction').then((module) => ({ default: module.PhotoProduction })));
 const MediaCenter = lazy(() => import('./pages/MediaCenter').then((module) => ({ default: module.MediaCenter })));
+const ArticleDetail = lazy(() => import('./pages/ArticleDetail').then((module) => ({ default: module.ArticleDetail })));
 const Contacts = lazy(() => import('./pages/Contacts').then((module) => ({ default: module.Contacts })));
 const About = lazy(() => import('./pages/About').then((module) => ({ default: module.About })));
 const AdminLogin = lazy(() => import('./pages/AdminLogin').then((module) => ({ default: module.AdminLogin })));
@@ -60,6 +61,7 @@ export default function App() {
                 <Route path="galleries" element={<Galleries />} />
                 <Route path="galleries/:slug" element={<PortfolioDetailEnhancer type="gallery"><GalleryDetail /></PortfolioDetailEnhancer>} />
                 <Route path="media-center" element={<MediaCenter />} />
+                <Route path="media-center/:slug" element={<ArticleDetail />} />
                 <Route path="about" element={<About />} />
                 <Route path="contacts" element={<Contacts />} />
 
