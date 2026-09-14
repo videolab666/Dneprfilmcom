@@ -4,6 +4,7 @@ import { onSnapshot } from 'firebase/firestore';
 import { ArrowRight, CalendarDays, Images, MapPin, Sparkles } from 'lucide-react';
 import { publishedGalleriesQuery } from '../lib/publicPortfolioQueries';
 import { ResponsiveImage } from '../components/ResponsiveImage';
+import { PortfolioFilterBar } from '../components/portfolio/PortfolioFilterBar';
 import {
   galleryCover,
   getGalleryPath,
@@ -12,6 +13,7 @@ import {
   sortGalleries,
   type PhotoGallery,
 } from '../lib/galleryContent';
+import { portfolioMatchesFilter, type PortfolioCategoryId } from '../lib/portfolioTaxonomy';
 import { useSiteContent } from '../context/SiteContentContext';
 
 function formatGalleryDate(value: string | undefined, locale: 'uk' | 'ru' | 'en'): string {
@@ -26,6 +28,9 @@ export function Galleries() {
   const { locale, l } = useSiteContent();
   const [galleries, setGalleries] = useState<PhotoGallery[]>([]);
   const [loading, setLoading] = useState(true);
+  const [category, setCategory] = useState<PortfolioCategoryId | 'all'>('all');
+  const [tag, setTag] = useState('all');
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     const unsubscribe = onSnapshot(publishedGalleriesQuery(), snapshot => {
@@ -46,6 +51,11 @@ export function Galleries() {
   const localizedGalleries = useMemo(
     () => galleries.map(gallery => localizeGallery(gallery, locale)),
     [galleries, locale],
+  );
+
+  const filteredGalleries = useMemo(
+    () => localizedGalleries.filter(gallery => portfolioMatchesFilter(gallery, category, tag, query)),
+    [localizedGalleries, category, tag, query],
   );
 
   useEffect(() => {
@@ -92,6 +102,17 @@ export function Galleries() {
         </div>
       </section>
 
+      <PortfolioFilterBar
+        items={localizedGalleries}
+        locale={locale}
+        category={category}
+        tag={tag}
+        query={query}
+        onCategoryChange={setCategory}
+        onTagChange={setTag}
+        onQueryChange={setQuery}
+      />
+
       <section className="py-14 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {loading ? (
@@ -121,9 +142,15 @@ export function Galleries() {
                 )}
               </p>
             </div>
+          ) : filteredGalleries.length === 0 ? (
+            <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+              <Images className="mx-auto h-12 w-12 text-slate-300" />
+              <h2 className="mt-4 text-xl font-black text-slate-950">{l('Нічого не знайдено', 'Ничего не найдено', 'Nothing found')}</h2>
+              <p className="mt-2 text-sm text-slate-500">{l('Змініть категорію, тег або пошуковий запит.', 'Измените категорию, тег или поисковый запрос.', 'Change the category, tag or search query.')}</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-3">
-              {localizedGalleries.map(gallery => {
+              {filteredGalleries.map(gallery => {
                 const cover = galleryCover(gallery);
                 const dateLabel = formatGalleryDate(gallery.date, locale);
                 return (
