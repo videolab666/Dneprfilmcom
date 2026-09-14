@@ -103,14 +103,21 @@ jobs:
           test -s dist/prerender-routes.json
           grep -q 'https://videolab666.github.io/Dneprfilmcom/videos' dist/sitemap.xml
           grep -q 'https://videolab666.github.io/Dneprfilmcom/galleries' dist/sitemap.xml
+          grep -q 'https://videolab666.github.io/Dneprfilmcom/media-center' dist/sitemap.xml
           grep -q 'Sitemap: https://videolab666.github.io/Dneprfilmcom/sitemap.xml' dist/robots.txt
           grep -q 'Sitemap: https://videolab666.github.io/Dneprfilmcom/sitemap-images.xml' dist/robots.txt
+          test -f dist/cases/index.html
           test -f dist/videos/index.html
           test -f dist/galleries/index.html
+          test -f dist/media-center/index.html
+          grep -q 'rel="canonical"' dist/cases/index.html
           grep -q 'rel="canonical"' dist/videos/index.html
           grep -q 'rel="canonical"' dist/galleries/index.html
+          grep -q 'rel="canonical"' dist/media-center/index.html
+          if grep -q 'name="robots" content="noindex' dist/cases/index.html; then echo '/cases is unexpectedly noindex'; exit 1; fi
           if grep -q 'name="robots" content="noindex' dist/videos/index.html; then echo '/videos is unexpectedly noindex'; exit 1; fi
           if grep -q 'name="robots" content="noindex' dist/galleries/index.html; then echo '/galleries is unexpectedly noindex'; exit 1; fi
+          if grep -q 'name="robots" content="noindex' dist/media-center/index.html; then echo '/media-center is unexpectedly noindex'; exit 1; fi
 
           python3 - <<'PY'
           from pathlib import Path
@@ -118,33 +125,50 @@ jobs:
           import re
           import sys
 
-          source = Path('dist/cases/index.html').read_text(encoding='utf-8')
-          prefix = '/Dneprfilmcom/cases/'
-          hrefs = {
-              html.unescape(match)
-              for match in re.findall(r'href="([^"]+)"', source)
-              if match.startswith(prefix)
-          }
-          missing = []
-          for href in sorted(hrefs):
-              clean = href.split('?', 1)[0].split('#', 1)[0]
-              slug = clean[len(prefix):].strip('/')
-              if not slug:
-                  continue
-              target = Path('dist/cases') / slug / 'index.html'
-              if not target.is_file():
-                  missing.append((href, str(target)))
+          SITE_PREFIX = '/Dneprfilmcom/'
+          sections = ('cases', 'galleries', 'videos', 'media-center')
+          failures = []
+          checked = 0
 
-          if missing:
-              print('Case index contains links without matching prerendered pages:')
-              for href, target in missing:
-                  print(f'  - {href} -> missing {target}')
+          for section in sections:
+              index_path = Path('dist') / section / 'index.html'
+              source = index_path.read_text(encoding='utf-8')
+              prefix = f'{SITE_PREFIX}{section}/'
+              hrefs = {
+                  html.unescape(match)
+                  for match in re.findall(r'href="([^"]+)"', source)
+                  if html.unescape(match).startswith(prefix)
+              }
+
+              for href in sorted(hrefs):
+                  clean = href.split('?', 1)[0].split('#', 1)[0]
+                  slug = clean[len(prefix):].strip('/')
+                  if not slug:
+                      continue
+                  checked += 1
+                  target = Path('dist') / section / slug / 'index.html'
+                  if not target.is_file():
+                      failures.append(f'{href} -> missing {target}')
+                      continue
+
+                  detail = target.read_text(encoding='utf-8')
+                  if 'rel="canonical"' not in detail:
+                      failures.append(f'{href} -> detail page has no canonical link')
+                  if re.search(r'name="robots"[^>]+content="[^"]*noindex', detail, re.I):
+                      failures.append(f'{href} -> prerendered detail page is unexpectedly noindex')
+
+              print(f'Validated {len(hrefs)} link(s) from /{section}.')
+
+          if failures:
+              print('Public index/detail URL integrity audit failed:')
+              for failure in failures:
+                  print(f'  - {failure}')
               sys.exit(1)
 
-          print(f'Validated {len(hrefs)} case detail link(s) against prerender output.')
+          print(f'Validated {checked} public detail link(s) against prerender output and SEO metadata.')
           PY
 
-          echo 'SEO artifacts and prerendered portfolio indexes look correct.'
+          echo 'SEO artifacts and prerendered public indexes look correct.'
 
       - name: Structured SEO audit
         run: bun scripts/audit-seo-structured.ts

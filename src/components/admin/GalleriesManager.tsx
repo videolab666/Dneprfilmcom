@@ -23,6 +23,7 @@ import { uploadGalleryImage } from '../../lib/mediaUpload';
 import { slugifyCase } from '../../lib/caseMedia';
 import { registerMediaAsset, type MediaLibraryAsset } from '../../lib/mediaLibrary';
 import { cleanupPortfolioRelations } from '../../lib/portfolioRelationsAdmin';
+import { requestPublishApproval } from '../../lib/publishQuality';
 import { MediaLibraryPicker } from './MediaLibraryPicker';
 import {
   PortfolioRelationsField,
@@ -291,6 +292,8 @@ export function GalleriesManager() {
         published: editing.published !== false,
         updatedAt: Date.now(),
       };
+
+      if (payload.published && !requestPublishApproval('gallery', payload).allowed) return;
 
       await setDoc(doc(db, GALLERY_COLLECTION, editing.id), payload);
       await relationsRef.current?.save();

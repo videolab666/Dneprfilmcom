@@ -31,6 +31,7 @@ import {
 import { uploadCaseImage } from '../../lib/mediaUpload';
 import type { MediaLibraryAsset } from '../../lib/mediaLibrary';
 import { cleanupPortfolioRelations } from '../../lib/portfolioRelationsAdmin';
+import { requestPublishApproval } from '../../lib/publishQuality';
 import { ResponsiveImage } from '../ResponsiveImage';
 import { MediaLibraryPicker } from './MediaLibraryPicker';
 import {
@@ -361,6 +362,8 @@ export function CasesManager() {
         published: editing.published !== false,
         updatedAt: Date.now(),
       };
+
+      if (payload.published && !requestPublishApproval('case', payload).allowed) return;
 
       await setDoc(doc(db, 'cases', editing.id), payload);
       await relationsRef.current?.save();
