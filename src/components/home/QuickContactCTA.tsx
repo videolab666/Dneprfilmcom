@@ -15,17 +15,25 @@ export function QuickContactCTA() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const normalizedName = name.trim();
+    const normalizedPhone = phone.trim();
+    if (!normalizedName || !normalizedPhone || isSubmitting) return;
+
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, 'leads'), {
-        name,
-        phone,
-        eventType: `${l("Головна", "Главная")}: ${l("Консультація", "Консультация")} (${direction})`,
-        cameraCount: l("За узгодженням", "По согласованию"),
-        location: l("Україна (уточнюється)", "Украина (уточняется)"),
+        source: 'home_quick_contact',
+        name: normalizedName,
+        phone: normalizedPhone,
+        service: direction,
+        eventType: `${l("Головна", "Главная", "Home")}: ${l("Консультація", "Консультация", "Consultation")} (${direction})`,
+        cameraCount: l("За узгодженням", "По согласованию", "To be confirmed"),
+        location: l("Україна (уточнюється)", "Украина (уточняется)", "Ukraine (to be confirmed)"),
+        preferredContact: 'phone',
         hasStarlink: false,
         additionalServices: [direction],
-        message: comment,
+        message: comment.trim(),
+        status: 'new',
         createdAt: Date.now()
       });
       setIsSuccess(true);
@@ -34,7 +42,7 @@ export function QuickContactCTA() {
       setComment('');
     } catch (err) {
       console.error('Error submitting quick lead:', err);
-      alert(l("Помилка під час відправки заявки. Будь ласка, зателефонуйте нам напряму.", "Ошибка при отправке заявки. Пожалуйста, позвоните нам напрямую."));
+      alert(l("Помилка під час відправки заявки. Будь ласка, зателефонуйте нам напряму.", "Ошибка при отправке заявки. Пожалуйста, позвоните нам напрямую.", "Failed to send the request. Please call us directly."));
     } finally {
       setIsSubmitting(false);
     }
