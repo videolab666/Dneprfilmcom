@@ -6,10 +6,8 @@ import {
   Building2,
   CheckCircle2,
   Image as ImageIcon,
-  Layers,
   Play,
   Radio,
-  Search,
   Send,
   Sparkles,
   Video,
@@ -21,8 +19,10 @@ import { publishedCasesQuery } from '../lib/publicPortfolioQueries';
 import type { CaseStudy } from '../types';
 import { INITIAL_CASES } from '../data/initialCases';
 import { getCasePath, getMediaPreview, normalizedCaseMedia } from '../lib/caseMedia';
+import { portfolioMatchesFilter, type PortfolioCategoryId } from '../lib/portfolioTaxonomy';
 import { useSiteContent } from '../context/SiteContentContext';
 import { ClientsMarquee } from '../components/ClientsMarquee';
+import { PortfolioFilterBar } from '../components/portfolio/PortfolioFilterBar';
 
 const FALLBACK_COVER = 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?auto=format&fit=crop&q=80';
 
@@ -39,9 +39,10 @@ function coverForCase(item: CaseStudy): string {
 }
 
 export function Cases() {
-  const { settings, getLocalizedCase, l } = useSiteContent();
+  const { settings, getLocalizedCase, l, locale } = useSiteContent();
   const [cases, setCases] = useState<CaseStudy[]>(INITIAL_CASES);
-  const [activeCategory, setActiveCategory] = useState<'ALL' | 'LIVE' | 'VIDEO' | 'CONSTRUCTION'>('ALL');
+  const [category, setCategory] = useState<PortfolioCategoryId | 'all'>('all');
+  const [tag, setTag] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [inquiryCase, setInquiryCase] = useState<CaseStudy | null>(null);
   const [clientName, setClientName] = useState('');
@@ -53,9 +54,13 @@ export function Cases() {
   useEffect(() => {
     const unsubscribe = onSnapshot(publishedCasesQuery(), snapshot => {
       const loaded = snapshot.empty
-        ? INITIAL_CASES
+        ? [...INITIAL_CASES]
         : snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as CaseStudy));
-      loaded.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      loaded.sort((a, b) => {
+        const orderDelta = (a.featuredOrder ?? 9999) - (b.featuredOrder ?? 9999);
+        if (orderDelta !== 0) return orderDelta;
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
       setCases(loaded.filter(item => item.published !== false));
     }, error => {
       console.warn('Could not subscribe to cases from Firestore, using initial cases:', error);
@@ -66,24 +71,10 @@ export function Cases() {
 
   const localizedCases = useMemo(() => cases.map(item => getLocalizedCase(item)), [cases, getLocalizedCase]);
 
-  const filteredCases = useMemo(() => {
-    return localizedCases.filter(item => {
-      const categoryMatch = activeCategory === 'ALL' || item.category === activeCategory;
-      const query = searchQuery.toLowerCase().trim();
-      if (!query) return categoryMatch;
-      const searchMatch = [item.title, item.client, item.description, item.categoryLabel, item.solution]
-        .filter(Boolean)
-        .some(value => String(value).toLowerCase().includes(query));
-      return categoryMatch && searchMatch;
-    });
-  }, [localizedCases, activeCategory, searchQuery]);
-
-  const categories = [
-    { id: 'ALL', label: l('Усі проєкти', 'Все проекты', 'All projects'), count: localizedCases.length, icon: <Layers className="h-4 w-4" /> },
-    { id: 'LIVE', label: l('Прямі трансляції', 'Прямые трансляции', 'Live production'), count: localizedCases.filter(item => item.category === 'LIVE').length, icon: <Radio className="h-4 w-4" /> },
-    { id: 'VIDEO', label: l('Реклама & продакшн', 'Реклама & продакшн', 'Video production'), count: localizedCases.filter(item => item.category === 'VIDEO').length, icon: <Video className="h-4 w-4" /> },
-    { id: 'CONSTRUCTION', label: l('Будівельний моніторинг', 'Строительный мониторинг', 'Construction media'), count: localizedCases.filter(item => item.category === 'CONSTRUCTION').length, icon: <Building2 className="h-4 w-4" /> },
-  ] as const;
+  const filteredCases = useMemo(
+    () => localizedCases.filter(item => portfolioMatchesFilter(item, category, tag, searchQuery)),
+    [localizedCases, category, tag, searchQuery],
+  );
 
   const sendInquiry = async (event: FormEvent) => {
     event.preventDefault();
@@ -157,36 +148,16 @@ export function Cases() {
         </div>
       </section>
 
-      <section className="sticky top-20 z-20 border-b border-slate-200 bg-white/95 py-4 shadow-sm backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
-            {categories.map(category => (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => setActiveCategory(category.id)}
-                className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-bold transition ${activeCategory === category.id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'}`}
-              >
-                {category.icon}
-                <span>{category.label}</span>
-                <span className={`rounded-full px-1.5 text-[10px] ${activeCategory === category.id ? 'bg-white/20' : 'bg-slate-200 text-slate-700'}`}>{category.count}</span>
-              </button>
-            ))}
-          </div>
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={searchQuery}
-              onChange={event => setSearchQuery(event.target.value)}
-              placeholder={l('Пошук за клієнтом або завданням…', 'Поиск по клиенту или задаче…', 'Search by client or project…')}
-              className="w-full rounded-xl border border-slate-200 bg-slate-100 py-2.5 pl-10 pr-9 text-xs outline-none transition focus:border-indigo-500 focus:bg-white"
-            />
-            {searchQuery && (
-              <button type="button" onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"><X className="h-4 w-4" /></button>
-            )}
-          </div>
-        </div>
-      </section>
+      <PortfolioFilterBar
+        items={localizedCases}
+        locale={locale}
+        category={category}
+        tag={tag}
+        query={searchQuery}
+        onCategoryChange={setCategory}
+        onTagChange={setTag}
+        onQueryChange={setSearchQuery}
+      />
 
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -194,7 +165,7 @@ export function Cases() {
             <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
               <Briefcase className="mx-auto h-12 w-12 text-slate-300" />
               <h2 className="mt-4 text-lg font-bold">{l('Проєкти не знайдено', 'Проекты не найдены', 'No projects found')}</h2>
-              <button type="button" onClick={() => { setSearchQuery(''); setActiveCategory('ALL'); }} className="mt-5 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-500">
+              <button type="button" onClick={() => { setSearchQuery(''); setCategory('all'); setTag('all'); }} className="mt-5 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-500">
                 {l('Скинути фільтри', 'Сбросить фильтры', 'Reset filters')}
               </button>
             </div>
