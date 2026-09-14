@@ -27,7 +27,7 @@ export const PORTFOLIO_CATEGORIES: ReadonlyArray<{
   { id: 'construction', uk: 'Будівництво', ru: 'Строительство', en: 'Construction' },
   { id: 'live', uk: 'Live', ru: 'Live', en: 'Live' },
   { id: 'sport', uk: 'Спорт', ru: 'Спорт', en: 'Sport' },
-  { id: 'events', uk: 'Події', ru: 'Events / мероприятия', en: 'Events' },
+  { id: 'events', uk: 'Події', ru: 'Мероприятия', en: 'Events' },
   { id: 'other', uk: 'Інше', ru: 'Другое', en: 'Other' },
 ];
 
@@ -110,14 +110,28 @@ export function getPortfolioCategoryLabel(category: PortfolioCategoryId, locale:
   return item?.[locale] || item?.ru || category;
 }
 
+function cleanTags(source: unknown): string[] {
+  return Array.isArray(source)
+    ? source.map(tag => String(tag).trim()).filter(Boolean)
+    : [];
+}
+
 export function getPortfolioTags(value: unknown): string[] {
   const record = asRecord(value);
   const taxonomy = asRecord(record.taxonomy);
-  const sources = [taxonomy.tags, record.tags, record.tags_uk, record.tags_en];
-  const tags = sources.flatMap(source => Array.isArray(source) ? source : [])
-    .map(tag => String(tag).trim())
-    .filter(Boolean);
-  return Array.from(new Set(tags));
+  const taxonomyTags = cleanTags(taxonomy.tags);
+
+  // Public pages pass already-localized portfolio records. Use their active `tags`
+  // array only, otherwise UK/RU/EN tag arrays would be mixed in one locale.
+  // Raw admin records still fall back to one available language when `tags` is absent.
+  const localizedTags = cleanTags(record.tags);
+  const fallbackTags = localizedTags.length
+    ? []
+    : cleanTags(record.tags_uk).length
+      ? cleanTags(record.tags_uk)
+      : cleanTags(record.tags_en);
+
+  return Array.from(new Set([...taxonomyTags, ...localizedTags, ...fallbackTags]));
 }
 
 export function portfolioSearchText(value: unknown): string {
