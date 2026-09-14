@@ -22,6 +22,7 @@ import { slugifyCase } from '../../lib/caseMedia';
 import { uploadPortfolioImage, uploadPortfolioVideo } from '../../lib/mediaUpload';
 import type { MediaLibraryAsset } from '../../lib/mediaLibrary';
 import { cleanupPortfolioRelations } from '../../lib/portfolioRelationsAdmin';
+import { requestPublishApproval } from '../../lib/publishQuality';
 import { ResponsiveImage } from '../ResponsiveImage';
 import { MediaLibraryPicker } from './MediaLibraryPicker';
 import {
@@ -193,6 +194,9 @@ export function VideosManager() {
         videos: (editing.videos || []).filter(item => item.url.trim()),
         updatedAt: Date.now(),
       };
+
+      if (payload.published !== false && !requestPublishApproval('video', payload).allowed) return;
+
       await setDoc(doc(db, VIDEO_PROJECT_COLLECTION, payload.id), cleanForFirestore(payload));
       await relationsRef.current?.save();
       setEditing(null);
