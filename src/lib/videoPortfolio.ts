@@ -1,4 +1,6 @@
 import type { Locale } from '../types';
+import { PAGE_ITEM_EN_BY_ID } from '../locales/pageEnglish';
+import { translateEnglishValue } from '../locales/legacyEnglish';
 import {
   extractVimeoId,
   extractYouTubeId,
@@ -63,6 +65,63 @@ export interface VideoProject {
   updatedAt?: number;
 }
 
+const CYRILLIC_RE = /[А-Яа-яЁёІіЇїЄєҐґ]/;
+
+function cleanEnglish(value: string | undefined): string | undefined {
+  const text = String(value || '').trim();
+  return text && !CYRILLIC_RE.test(text) ? text : undefined;
+}
+
+function cleanEnglishList(value: string[] | undefined): string[] | undefined {
+  if (!value?.length) return undefined;
+  const cleaned = value.map(item => item.trim()).filter(item => item && !CYRILLIC_RE.test(item));
+  return cleaned.length === value.length ? cleaned : undefined;
+}
+
+function translatedEnglish(value: string | undefined): string | undefined {
+  const source = String(value || '').trim();
+  if (!source) return undefined;
+  const translated = String(translateEnglishValue(source) || '').trim();
+  return translated && !CYRILLIC_RE.test(translated) ? translated : undefined;
+}
+
+function legacyPageKey(project: VideoProject): string | undefined {
+  if (project.id.startsWith('legacy-video-')) return project.id.slice('legacy-video-'.length);
+
+  const haystack = `${project.id} ${project.title} ${project.title_uk || ''}`.toLowerCase();
+  if (haystack.includes('girtech')) return 'girtech';
+  if (haystack.includes('ministry') || haystack.includes('міністер') || haystack.includes('министер')) return 'ministry-doors';
+  if (haystack.includes('ulka')) return 'ulka-dubai';
+  if (haystack.includes('helios') || haystack.includes('геліос') || haystack.includes('гелиос')) return 'helios-medical';
+  if (haystack.includes('hyamax')) return 'hyamax-conf';
+  if (haystack.includes('fit4you')) return 'fit4you';
+  return undefined;
+}
+
+function englishProjectValue(
+  explicit: string | undefined,
+  curated: string | undefined,
+  source: string | undefined,
+  generic = '',
+): string {
+  return cleanEnglish(explicit)
+    || cleanEnglish(curated)
+    || translatedEnglish(source)
+    || generic;
+}
+
+function englishProjectList(
+  explicit: string[] | undefined,
+  curated: string[] | undefined,
+  source: string[] | undefined,
+): string[] {
+  const direct = cleanEnglishList(explicit) || cleanEnglishList(curated);
+  if (direct) return direct;
+  return (source || [])
+    .map(item => translatedEnglish(item))
+    .filter((item): item is string => Boolean(item));
+}
+
 export function isVideoProject(value: unknown): value is VideoProject & Record<string, unknown> {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<VideoProject>;
@@ -95,6 +154,14 @@ function localizedList(locale: Locale, base?: string[], uk?: string[], en?: stri
 }
 
 export function localizeVideoMedia(media: VideoProjectMedia, locale: Locale): VideoProjectMedia {
+  if (locale === 'en') {
+    return {
+      ...media,
+      title: englishProjectValue(media.title_en, undefined, media.title_uk || media.title),
+      caption: englishProjectValue(media.caption_en, undefined, media.caption_uk || media.caption),
+    };
+  }
+
   return {
     ...media,
     title: localizedValue(locale, media.title, media.title_uk, media.title_en),
@@ -103,6 +170,23 @@ export function localizeVideoMedia(media: VideoProjectMedia, locale: Locale): Vi
 }
 
 export function localizeVideoProject(project: VideoProject, locale: Locale): VideoProject {
+  if (locale === 'en') {
+    const pageKey = legacyPageKey(project);
+    const curated = pageKey ? PAGE_ITEM_EN_BY_ID[pageKey] : undefined;
+
+    return {
+      ...project,
+      title: englishProjectValue(project.title_en, curated?.title, project.title_uk || project.title, 'Video project'),
+      client: englishProjectValue(project.client_en, curated?.meta1, project.client_uk || project.client),
+      category: englishProjectValue(project.category_en, curated?.meta2, project.category_uk || project.category, 'Video production'),
+      description: englishProjectValue(project.description_en, curated?.description, project.description_uk || project.description),
+      result: englishProjectValue(project.result_en, curated?.result, project.result_uk || project.result),
+      location: englishProjectValue(project.location_en, undefined, project.location_uk || project.location),
+      tags: englishProjectList(project.tags_en, curated?.items, project.tags_uk || project.tags),
+      videos: (project.videos || []).map(media => localizeVideoMedia(media, locale)),
+    };
+  }
+
   return {
     ...project,
     title: localizedValue(locale, project.title, project.title_uk, project.title_en),
