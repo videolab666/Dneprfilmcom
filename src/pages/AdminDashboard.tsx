@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useNavigate, Link } from 'react-router-dom';
@@ -18,22 +18,24 @@ import {
   ShieldCheck,
   Link2,
   Activity,
+  Loader2,
 } from 'lucide-react';
-import { BlocksManager } from '../components/admin/BlocksManager';
-import { SiteSettingsEditor } from '../components/admin/SiteSettingsEditor';
-import { CasesManager } from '../components/admin/CasesManager';
-import { GalleriesManager } from '../components/admin/GalleriesManager';
-import { VideosManager } from '../components/admin/VideosManager';
-import { MediaLibraryManager } from '../components/admin/MediaLibraryManager';
-import { TestimonialsManager } from '../components/admin/TestimonialsManager';
-import { BackstageManager } from '../components/admin/BackstageManager';
-import { LeadsCRM } from '../components/admin/LeadsCRM';
-import { ArticlesManager } from '../components/admin/ArticlesManager';
-import { PageContentManager } from '../components/admin/PageContentManager';
-import { PageCopyManager } from '../components/admin/PageCopyManager';
-import { RelationsManager } from '../components/admin/RelationsManager';
-import { CmsDiagnostics } from '../components/admin/CmsDiagnostics';
 import { useSiteContent } from '../context/SiteContentContext';
+
+const BlocksManager = lazy(() => import('../components/admin/BlocksManager').then(module => ({ default: module.BlocksManager })));
+const SiteSettingsEditor = lazy(() => import('../components/admin/SiteSettingsEditor').then(module => ({ default: module.SiteSettingsEditor })));
+const CasesManager = lazy(() => import('../components/admin/CasesManager').then(module => ({ default: module.CasesManager })));
+const GalleriesManager = lazy(() => import('../components/admin/GalleriesManager').then(module => ({ default: module.GalleriesManager })));
+const VideosManager = lazy(() => import('../components/admin/VideosManager').then(module => ({ default: module.VideosManager })));
+const MediaLibraryManager = lazy(() => import('../components/admin/MediaLibraryManager').then(module => ({ default: module.MediaLibraryManager })));
+const TestimonialsManager = lazy(() => import('../components/admin/TestimonialsManager').then(module => ({ default: module.TestimonialsManager })));
+const BackstageManager = lazy(() => import('../components/admin/BackstageManager').then(module => ({ default: module.BackstageManager })));
+const LeadsCRM = lazy(() => import('../components/admin/LeadsCRM').then(module => ({ default: module.LeadsCRM })));
+const ArticlesManager = lazy(() => import('../components/admin/ArticlesManager').then(module => ({ default: module.ArticlesManager })));
+const PageContentManager = lazy(() => import('../components/admin/PageContentManager').then(module => ({ default: module.PageContentManager })));
+const PageCopyManager = lazy(() => import('../components/admin/PageCopyManager').then(module => ({ default: module.PageCopyManager })));
+const RelationsManager = lazy(() => import('../components/admin/RelationsManager').then(module => ({ default: module.RelationsManager })));
+const CmsDiagnostics = lazy(() => import('../components/admin/CmsDiagnostics').then(module => ({ default: module.CmsDiagnostics })));
 
 type AdminTab = 'blocks' | 'settings' | 'pages' | 'page-copy' | 'cases' | 'galleries' | 'videos' | 'relations' | 'media' | 'diagnostics' | 'testimonials' | 'backstage' | 'leads' | 'articles';
 
@@ -42,6 +44,17 @@ interface NavItem {
   label: string;
   icon: React.ReactNode;
   badge?: string;
+}
+
+function AdminPanelFallback() {
+  return (
+    <div className="flex min-h-64 items-center justify-center rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-3 text-sm font-semibold text-slate-500">
+        <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+        Загрузка раздела…
+      </div>
+    </div>
+  );
 }
 
 export function AdminDashboard() {
@@ -109,20 +122,22 @@ export function AdminDashboard() {
           ))}
         </div>
 
-        {activeTab === 'blocks' && <BlocksManager />}
-        {activeTab === 'settings' && <SiteSettingsEditor />}
-        {activeTab === 'pages' && <PageContentManager />}
-        {activeTab === 'page-copy' && <PageCopyManager />}
-        {activeTab === 'cases' && <CasesManager />}
-        {activeTab === 'galleries' && <GalleriesManager />}
-        {activeTab === 'videos' && <VideosManager />}
-        {activeTab === 'relations' && <RelationsManager />}
-        {activeTab === 'media' && <MediaLibraryManager />}
-        {activeTab === 'diagnostics' && <CmsDiagnostics />}
-        {activeTab === 'testimonials' && <TestimonialsManager />}
-        {activeTab === 'backstage' && <BackstageManager />}
-        {activeTab === 'leads' && <LeadsCRM />}
-        {activeTab === 'articles' && <ArticlesManager />}
+        <Suspense fallback={<AdminPanelFallback />}>
+          {activeTab === 'blocks' && <BlocksManager />}
+          {activeTab === 'settings' && <SiteSettingsEditor />}
+          {activeTab === 'pages' && <PageContentManager />}
+          {activeTab === 'page-copy' && <PageCopyManager />}
+          {activeTab === 'cases' && <CasesManager />}
+          {activeTab === 'galleries' && <GalleriesManager />}
+          {activeTab === 'videos' && <VideosManager />}
+          {activeTab === 'relations' && <RelationsManager />}
+          {activeTab === 'media' && <MediaLibraryManager />}
+          {activeTab === 'diagnostics' && <CmsDiagnostics />}
+          {activeTab === 'testimonials' && <TestimonialsManager />}
+          {activeTab === 'backstage' && <BackstageManager />}
+          {activeTab === 'leads' && <LeadsCRM />}
+          {activeTab === 'articles' && <ArticlesManager />}
+        </Suspense>
       </div>
     </div>
   );

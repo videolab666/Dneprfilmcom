@@ -8,9 +8,9 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { SiteContentProvider } from './context/SiteContentContext';
 import { Layout } from './components/layout/Layout';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { PortfolioDetailEnhancer } from './components/portfolio/PortfolioDetailEnhancer';
 
+const ProtectedRoute = lazy(() => import('./components/ProtectedRoute').then((module) => ({ default: module.ProtectedRoute })));
+const PortfolioDetailEnhancer = lazy(() => import('./components/portfolio/PortfolioDetailEnhancer').then((module) => ({ default: module.PortfolioDetailEnhancer })));
 const Home = lazy(() => import('./pages/Home').then((module) => ({ default: module.Home })));
 const LiveProduction = lazy(() => import('./pages/LiveProduction').then((module) => ({ default: module.LiveProduction })));
 const VideoProduction = lazy(() => import('./pages/VideoProduction').then((module) => ({ default: module.VideoProduction })));
