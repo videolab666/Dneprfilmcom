@@ -1,44 +1,14 @@
 import { getApps, initializeApp } from 'firebase/app';
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  getFirestore,
-  query,
-  where,
-} from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, getFirestore, query, where } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { db } from './firebase';
-import { getCaseSlug, normalizedCaseMedia } from './caseMedia';
+import { getCaseSlug } from './caseMedia';
 import { normalizeArticle } from './articleCms';
-import {
-  GALLERY_KIND,
-  getGallerySlug,
-  isPhotoGallery,
-  type PhotoGallery,
-} from './galleryContent';
-import {
-  VIDEO_PROJECT_KIND,
-  getVideoProjectSlug,
-  isVideoProject,
-  type VideoProject,
-} from './videoPortfolio';
-import {
-  PROJECT_RELATION_KIND,
-  isProjectRelation,
-  type ProjectRelation,
-} from './projectRelations';
-import {
-  MEDIA_ASSET_KIND,
-  loadMediaLibrary,
-  type MediaLibraryAsset,
-} from './mediaLibrary';
-import {
-  evaluateContentHealth,
-  type ContentHealthGrade,
-  type ContentHealthIssue,
-} from './contentHealth';
+import { getGallerySlug, isPhotoGallery, type PhotoGallery } from './galleryContent';
+import { getVideoProjectSlug, isVideoProject, type VideoProject } from './videoPortfolio';
+import { isProjectRelation, type ProjectRelation } from './projectRelations';
+import { MEDIA_ASSET_KIND, loadMediaLibrary, type MediaLibraryAsset } from './mediaLibrary';
+import { evaluateContentHealth, type ContentHealthGrade, type ContentHealthIssue } from './contentHealth';
 import type { PublishQualityType } from './publishQuality';
 import type { Article, CaseStudy } from '../types';
 
@@ -156,8 +126,7 @@ interface HealthSource {
 }
 
 const PUBLIC_PROBE_APP_NAME = 'cms-diagnostics-public-probe';
-const FIRESTORE_DATABASE_ID = firebaseConfig.firestoreDatabaseId
-  || 'ai-studio-2b172e30-4fd3-4131-ba5b-61712d198b9e';
+const FIRESTORE_DATABASE_ID = firebaseConfig.firestoreDatabaseId || 'ai-studio-2b172e30-4fd3-4131-ba5b-61712d198b9e';
 
 function getPublicProbeDb() {
   const existing = getApps().find(app => app.name === PUBLIC_PROBE_APP_NAME);
@@ -166,23 +135,15 @@ function getPublicProbeDb() {
 }
 
 function errorCode(error: unknown): string {
-  if (error && typeof error === 'object' && 'code' in error) {
-    return String((error as { code?: unknown }).code || '');
-  }
+  if (error && typeof error === 'object' && 'code' in error) return String((error as { code?: unknown }).code || '');
   return '';
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
+  return error instanceof Error ? error.message : String(error);
 }
 
-async function probe(
-  id: string,
-  label: string,
-  expected: 'allow' | 'deny',
-  action: () => Promise<unknown>,
-): Promise<SecurityProbeCheck> {
+async function probe(id: string, label: string, expected: 'allow' | 'deny', action: () => Promise<unknown>): Promise<SecurityProbeCheck> {
   try {
     await action();
     return {
@@ -190,9 +151,7 @@ async function probe(
       label,
       expected,
       passed: expected === 'allow',
-      detail: expected === 'allow'
-        ? 'Запрос разрешён как ожидалось.'
-        : 'Запрос неожиданно разрешён анонимному клиенту.',
+      detail: expected === 'allow' ? 'Запрос разрешён как ожидалось.' : 'Запрос неожиданно разрешён анонимному клиенту.',
     };
   } catch (error) {
     const code = errorCode(error);
@@ -202,15 +161,9 @@ async function probe(
       label,
       expected,
       passed: expected === 'deny' && denied,
-      detail: expected === 'deny' && denied
-        ? 'Firestore вернул permission-denied как ожидалось.'
-        : `${code || 'error'}: ${errorMessage(error)}`,
+      detail: expected === 'deny' && denied ? 'Firestore вернул permission-denied как ожидалось.' : `${code || 'error'}: ${errorMessage(error)}`,
     };
   }
-}
-
-function text(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
 }
 
 function numberLike(value: unknown): number | undefined {
@@ -244,10 +197,16 @@ function articleTitle(article: Article): string {
 }
 
 function normalizeTitle(value: string): string {
-  return value
-    .toLocaleLowerCase('uk-UA')
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
+  return value.toLocaleLowerCase('uk-UA').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
+function stringIds(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String).map(item => item.trim()).filter(Boolean) : [];
+}
+
+function entityCount(items: Array<{ published?: boolean }>): EntityCount {
+  const published = items.filter(item => item.published === true).length;
+  return { total: items.length, published, draft: items.length - published };
 }
 
 function duplicateIssuesFor(
@@ -261,9 +220,9 @@ function duplicateIssuesFor(
 
   for (const entity of entities) {
     const slug = entity.slug.trim().toLowerCase();
+    const normalizedTitle = normalizeTitle(entity.title);
     if (slug) bySlug.set(slug, [...(bySlug.get(slug) || []), { id: entity.id, publicPath: entity.publicPath }]);
-    const title = normalizeTitle(entity.title);
-    if (title) byTitle.set(title, [...(byTitle.get(title) || []), { id: entity.id, publicPath: entity.publicPath }]);
+    if (normalizedTitle) byTitle.set(normalizedTitle, [...(byTitle.get(normalizedTitle) || []), { id: entity.id, publicPath: entity.publicPath }]);
   }
 
   for (const [slug, entries] of bySlug) {
@@ -279,13 +238,13 @@ function duplicateIssuesFor(
     });
   }
 
-  for (const [title, entries] of byTitle) {
+  for (const [normalizedTitle, entries] of byTitle) {
     if (entries.length < 2) continue;
     issues.push({
-      id: `${entityLabel}-title-${title}`,
+      id: `${entityLabel}-title-${normalizedTitle}`,
       severity: 'warning',
       title: `Похожие записи по названию в ${entityLabel}`,
-      detail: `${title}: ${entries.map(item => item.id).join(', ')}`,
+      detail: `${normalizedTitle}: ${entries.map(item => item.id).join(', ')}`,
       entityType: type,
       entityId: entries[0]?.id,
       publicPath: entries[0]?.publicPath,
@@ -293,33 +252,6 @@ function duplicateIssuesFor(
   }
 
   return issues;
-}
-
-function duplicateIdSet(items: HealthSource[]): Set<string> {
-  const bySlug = new Map<string, HealthSource[]>();
-  for (const item of items) {
-    const slug = item.slug.trim().toLowerCase();
-    if (!slug) continue;
-    bySlug.set(slug, [...(bySlug.get(slug) || []), item]);
-  }
-  return new Set(
-    Array.from(bySlug.values())
-      .filter(group => group.length > 1)
-      .flatMap(group => group.map(item => item.key ?? `${item.type}:${item.id}`)),
-  );
-}
-
-function entityCount(items: Array<{ published?: boolean }>): EntityCount {
-  const published = items.filter(item => item.published === true).length;
-  return {
-    total: items.length,
-    published,
-    draft: items.length - published,
-  };
-}
-
-function stringIds(value: unknown): string[] {
-  return Array.isArray(value) ? value.map(String).map(item => item.trim()).filter(Boolean) : [];
 }
 
 function relationDiagnostics(
@@ -337,153 +269,53 @@ function relationDiagnostics(
 
   for (const relation of relations) {
     relationsByCase.set(relation.caseId, [...(relationsByCase.get(relation.caseId) || []), relation]);
-    const linkedCase = caseById.get(relation.caseId);
-    if (!linkedCase) {
-      issues.push({
-        id: `${relation.id}-case-missing`,
-        severity: 'error',
-        title: 'Связь ссылается на отсутствующий кейс',
-        detail: `${relation.id} → ${relation.caseId}`,
-        entityType: 'case',
-        entityId: relation.caseId,
-      });
+    if (!caseById.has(relation.caseId)) {
+      issues.push({ id: `${relation.id}-case-missing`, severity: 'error', title: 'Связь ссылается на отсутствующий кейс', detail: `${relation.id} → ${relation.caseId}`, entityType: 'case', entityId: relation.caseId });
     }
-
     if (!relation.galleryIds.length && !relation.videoProjectIds.length) {
-      issues.push({
-        id: `${relation.id}-empty`,
-        severity: 'warning',
-        title: 'Пустая связь портфолио',
-        detail: `${relation.id} не содержит gallery/video ссылок.`,
-        entityType: 'case',
-        entityId: relation.caseId,
-      });
+      issues.push({ id: `${relation.id}-empty`, severity: 'warning', title: 'Пустая связь портфолио', detail: `${relation.id} не содержит gallery/video ссылок.`, entityType: 'case', entityId: relation.caseId });
     }
 
     for (const galleryId of new Set(relation.galleryIds)) {
       const gallery = galleryById.get(galleryId);
       if (!gallery) {
-        issues.push({
-          id: `${relation.id}-gallery-${galleryId}`,
-          severity: 'error',
-          title: 'Связь ссылается на отсутствующую галерею',
-          detail: `${relation.id} → ${galleryId}`,
-          entityType: 'case',
-          entityId: relation.caseId,
-        });
+        issues.push({ id: `${relation.id}-gallery-${galleryId}`, severity: 'error', title: 'Связь ссылается на отсутствующую галерею', detail: `${relation.id} → ${galleryId}`, entityType: 'case', entityId: relation.caseId });
       } else if (gallery.published !== true) {
-        issues.push({
-          id: `${relation.id}-gallery-draft-${galleryId}`,
-          severity: 'warning',
-          title: 'Связь ведёт на draft-галерею',
-          detail: `${titleValue(gallery)} (${galleryId}) не показывается публично.`,
-          entityType: 'gallery',
-          entityId: galleryId,
-          publicPath: `/galleries/${encodeURIComponent(getGallerySlug(gallery))}`,
-        });
+        issues.push({ id: `${relation.id}-gallery-draft-${galleryId}`, severity: 'warning', title: 'Связь ведёт на draft-галерею', detail: `${titleValue(gallery)} (${galleryId}) не показывается публично.`, entityType: 'gallery', entityId: galleryId, publicPath: `/galleries/${encodeURIComponent(getGallerySlug(gallery))}` });
       }
     }
 
     for (const videoId of new Set(relation.videoProjectIds)) {
       const video = videoById.get(videoId);
       if (!video) {
-        issues.push({
-          id: `${relation.id}-video-${videoId}`,
-          severity: 'error',
-          title: 'Связь ссылается на отсутствующий видеопроект',
-          detail: `${relation.id} → ${videoId}`,
-          entityType: 'case',
-          entityId: relation.caseId,
-        });
+        issues.push({ id: `${relation.id}-video-${videoId}`, severity: 'error', title: 'Связь ссылается на отсутствующий видеопроект', detail: `${relation.id} → ${videoId}`, entityType: 'case', entityId: relation.caseId });
       } else if (video.published !== true) {
-        issues.push({
-          id: `${relation.id}-video-draft-${videoId}`,
-          severity: 'warning',
-          title: 'Связь ведёт на draft-видеопроект',
-          detail: `${titleValue(video)} (${videoId}) не показывается публично.`,
-          entityType: 'video',
-          entityId: videoId,
-          publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(video))}`,
-        });
+        issues.push({ id: `${relation.id}-video-draft-${videoId}`, severity: 'warning', title: 'Связь ведёт на draft-видеопроект', detail: `${titleValue(video)} (${videoId}) не показывается публично.`, entityType: 'video', entityId: videoId, publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(video))}` });
       }
     }
 
-    if (new Set(relation.galleryIds).size !== relation.galleryIds.length) {
-      issues.push({
-        id: `${relation.id}-gallery-duplicates`,
-        severity: 'warning',
-        title: 'Повторяющиеся gallery ID в связи',
-        detail: relation.id,
-        entityType: 'case',
-        entityId: relation.caseId,
-      });
-    }
-    if (new Set(relation.videoProjectIds).size !== relation.videoProjectIds.length) {
-      issues.push({
-        id: `${relation.id}-video-duplicates`,
-        severity: 'warning',
-        title: 'Повторяющиеся video ID в связи',
-        detail: relation.id,
-        entityType: 'case',
-        entityId: relation.caseId,
-      });
-    }
+    if (new Set(relation.galleryIds).size !== relation.galleryIds.length) issues.push({ id: `${relation.id}-gallery-duplicates`, severity: 'warning', title: 'Повторяющиеся gallery ID в связи', detail: relation.id, entityType: 'case', entityId: relation.caseId });
+    if (new Set(relation.videoProjectIds).size !== relation.videoProjectIds.length) issues.push({ id: `${relation.id}-video-duplicates`, severity: 'warning', title: 'Повторяющиеся video ID в связи', detail: relation.id, entityType: 'case', entityId: relation.caseId });
   }
 
   for (const [caseId, items] of relationsByCase) {
-    if (items.length < 2) continue;
-    issues.push({
-      id: `duplicate-relations-${caseId}`,
-      severity: 'error',
-      title: 'Несколько relation-документов для одного кейса',
-      detail: `${caseId}: ${items.map(item => item.id).join(', ')}`,
-      entityType: 'case',
-      entityId: caseId,
-    });
+    if (items.length > 1) issues.push({ id: `duplicate-relations-${caseId}`, severity: 'error', title: 'Несколько relation-документов для одного кейса', detail: `${caseId}: ${items.map(item => item.id).join(', ')}`, entityType: 'case', entityId: caseId });
   }
 
   for (const article of articles) {
-    const articlePath = `/media-center/${encodeURIComponent(article.slug)}`;
-    const groups: Array<[string, string[], Map<string, { published?: boolean }>]> = [
-      ['кейс', stringIds(article.relatedCaseIds), caseById],
-      ['галерею', stringIds(article.relatedGalleryIds), galleryById],
-      ['видеопроект', stringIds(article.relatedVideoProjectIds), videoById],
+    const publicPath = `/media-center/${encodeURIComponent(article.slug)}`;
+    const groups: Array<{ label: string; ids: string[]; lookup: Map<string, { published?: boolean }> }> = [
+      { label: 'кейс', ids: stringIds(article.relatedCaseIds), lookup: caseById },
+      { label: 'галерею', ids: stringIds(article.relatedGalleryIds), lookup: galleryById },
+      { label: 'видеопроект', ids: stringIds(article.relatedVideoProjectIds), lookup: videoById },
     ];
-    for (const [label, ids, lookup] of groups) {
-      if (new Set(ids).size !== ids.length) {
-        issues.push({
-          id: `article-${article.id}-${label}-duplicates`,
-          severity: 'warning',
-          title: 'Повторяющиеся ID в связях статьи',
-          detail: `${articleTitle(article)}: ${label}`,
-          entityType: 'article',
-          entityId: article.id,
-          publicPath: articlePath,
-        });
-      }
-      for (const id of new Set(ids)) {
-        const linked = lookup.get(id);
-        if (!linked) {
-          issues.push({
-            id: `article-${article.id}-${label}-${id}-missing`,
-            severity: 'error',
-            title: `Статья ссылается на отсутствующую ${label}`,
-            detail: `${articleTitle(article)} → ${id}`,
-            entityType: 'article',
-            entityId: article.id,
-            publicPath: articlePath,
-          });
-        } else if (linked.published !== true) {
-          issues.push({
-            id: `article-${article.id}-${label}-${id}-draft`,
-            severity: 'warning',
-            title: 'Связанный материал статьи находится в draft',
-            detail: `${articleTitle(article)} → ${id}`,
-            entityType: 'article',
-            entityId: article.id,
-            publicPath: articlePath,
-          });
-        }
+
+    for (const group of groups) {
+      if (new Set(group.ids).size !== group.ids.length) issues.push({ id: `article-${article.id}-${group.label}-duplicates`, severity: 'warning', title: 'Повторяющиеся ID в связях статьи', detail: `${articleTitle(article)}: ${group.label}`, entityType: 'article', entityId: article.id, publicPath });
+      for (const id of new Set(group.ids)) {
+        const linked = group.lookup.get(id);
+        if (!linked) issues.push({ id: `article-${article.id}-${group.label}-${id}-missing`, severity: 'error', title: `Статья ссылается на отсутствующую ${group.label}`, detail: `${articleTitle(article)} → ${id}`, entityType: 'article', entityId: article.id, publicPath });
+        else if (linked.published !== true) issues.push({ id: `article-${article.id}-${group.label}-${id}-draft`, severity: 'warning', title: 'Связанный материал статьи находится в draft', detail: `${articleTitle(article)} → ${id}`, entityType: 'article', entityId: article.id, publicPath });
       }
     }
   }
@@ -491,58 +323,20 @@ function relationDiagnostics(
   return issues;
 }
 
-function contentDiagnostics(
-  cases: CaseStudy[],
-  galleries: PhotoGallery[],
-  videos: VideoProject[],
-): DiagnosticIssue[] {
+function contentDiagnostics(cases: CaseStudy[], galleries: PhotoGallery[], videos: VideoProject[]): DiagnosticIssue[] {
   const issues: DiagnosticIssue[] = [];
-
   for (const item of cases) {
-    const empty = (item.media || []).filter(mediaItem => !mediaItem.url?.trim()).length;
-    if (empty > 0) {
-      issues.push({
-        id: `case-empty-media-${item.id}`,
-        severity: 'warning',
-        title: 'Пустые media-элементы в кейсе',
-        detail: `${titleValue(item)}: ${empty}`,
-        entityType: 'case',
-        entityId: item.id,
-        publicPath: `/cases/${encodeURIComponent(getCaseSlug(item))}`,
-      });
-    }
+    const empty = (item.media || []).filter(media => !media.url?.trim()).length;
+    if (empty) issues.push({ id: `case-empty-media-${item.id}`, severity: 'warning', title: 'Пустые media-элементы в кейсе', detail: `${titleValue(item)}: ${empty}`, entityType: 'case', entityId: item.id, publicPath: `/cases/${encodeURIComponent(getCaseSlug(item))}` });
   }
-
-  for (const gallery of galleries) {
-    const empty = (gallery.images || []).filter(image => !image.url?.trim()).length;
-    if (empty > 0) {
-      issues.push({
-        id: `gallery-empty-images-${gallery.id}`,
-        severity: 'warning',
-        title: 'Пустые изображения в галерее',
-        detail: `${titleValue(gallery)}: ${empty}`,
-        entityType: 'gallery',
-        entityId: gallery.id,
-        publicPath: `/galleries/${encodeURIComponent(getGallerySlug(gallery))}`,
-      });
-    }
+  for (const item of galleries) {
+    const empty = (item.images || []).filter(media => !media.url?.trim()).length;
+    if (empty) issues.push({ id: `gallery-empty-images-${item.id}`, severity: 'warning', title: 'Пустые изображения в галерее', detail: `${titleValue(item)}: ${empty}`, entityType: 'gallery', entityId: item.id, publicPath: `/galleries/${encodeURIComponent(getGallerySlug(item))}` });
   }
-
-  for (const video of videos) {
-    const empty = (video.videos || []).filter(media => !media.url?.trim()).length;
-    if (empty > 0) {
-      issues.push({
-        id: `video-empty-media-${video.id}`,
-        severity: 'warning',
-        title: 'Пустые video-элементы в проекте',
-        detail: `${titleValue(video)}: ${empty}`,
-        entityType: 'video',
-        entityId: video.id,
-        publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(video))}`,
-      });
-    }
+  for (const item of videos) {
+    const empty = (item.videos || []).filter(media => !media.url?.trim()).length;
+    if (empty) issues.push({ id: `video-empty-media-${item.id}`, severity: 'warning', title: 'Пустые video-элементы в проекте', detail: `${titleValue(item)}: ${empty}`, entityType: 'video', entityId: item.id, publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(item))}` });
   }
-
   return issues;
 }
 
@@ -555,54 +349,34 @@ function duplicateRegistryUrlCount(records: GenericRecord[]): number {
   return Array.from(counts.values()).filter(count => count > 1).length;
 }
 
-function buildHealthReport(
-  sources: HealthSource[],
-  relations: ProjectRelation[],
-): CmsDiagnosticsReport['health'] {
+function buildHealthReport(sources: HealthSource[], relations: ProjectRelation[]): CmsDiagnosticsReport['health'] {
   const duplicateKeys = new Set<string>();
   for (const type of ['case', 'gallery', 'video', 'article'] as PublishQualityType[]) {
-    const typeSources = sources.filter(item => item.type === type);
     const bySlug = new Map<string, HealthSource[]>();
-    for (const item of typeSources) {
+    for (const item of sources.filter(source => source.type === type)) {
       const slug = item.slug.trim().toLowerCase();
-      if (!slug) continue;
-      bySlug.set(slug, [...(bySlug.get(slug) || []), item]);
+      if (slug) bySlug.set(slug, [...(bySlug.get(slug) || []), item]);
     }
-    for (const group of bySlug.values()) {
-      if (group.length < 2) continue;
-      group.forEach(item => duplicateKeys.add(`${item.type}:${item.id}`));
-    }
+    for (const group of bySlug.values()) if (group.length > 1) group.forEach(item => duplicateKeys.add(`${item.type}:${item.id}`));
   }
 
-  const sourceByType = {
-    case: new Map(sources.filter(item => item.type === 'case').map(item => [item.id, item])),
-    gallery: new Map(sources.filter(item => item.type === 'gallery').map(item => [item.id, item])),
-    video: new Map(sources.filter(item => item.type === 'video').map(item => [item.id, item])),
-    article: new Map(sources.filter(item => item.type === 'article').map(item => [item.id, item])),
-  };
+  const caseMap = new Map(sources.filter(item => item.type === 'case').map(item => [item.id, item]));
+  const galleryMap = new Map(sources.filter(item => item.type === 'gallery').map(item => [item.id, item]));
+  const videoMap = new Map(sources.filter(item => item.type === 'video').map(item => [item.id, item]));
   const relationByCase = new Map(relations.map(item => [item.caseId, item]));
 
-  const items = sources.map(source => {
+  const items: ContentHealthEntity[] = sources.map(source => {
     let brokenRelation = false;
     if (source.type === 'case') {
       const relation = relationByCase.get(source.id);
-      if (relation) {
-        brokenRelation = relation.galleryIds.some(id => !sourceByType.gallery.has(id))
-          || relation.videoProjectIds.some(id => !sourceByType.video.has(id));
-      }
+      brokenRelation = Boolean(relation && (relation.galleryIds.some(id => !galleryMap.has(id)) || relation.videoProjectIds.some(id => !videoMap.has(id))));
     } else if (source.type === 'article') {
-      brokenRelation = stringIds(source.data.relatedCaseIds).some(id => !sourceByType.case.has(id))
-        || stringIds(source.data.relatedGalleryIds).some(id => !sourceByType.gallery.has(id))
-        || stringIds(source.data.relatedVideoProjectIds).some(id => !sourceByType.video.has(id));
+      brokenRelation = stringIds(source.data.relatedCaseIds).some(id => !caseMap.has(id))
+        || stringIds(source.data.relatedGalleryIds).some(id => !galleryMap.has(id))
+        || stringIds(source.data.relatedVideoProjectIds).some(id => !videoMap.has(id));
     }
 
-    const health = evaluateContentHealth(source.type, source.data, {
-      duplicateSlug: duplicateKeys.has(`${source.type}:${source.id}`),
-      brokenRelation,
-    });
-    const errors = health.issues.filter(issue => issue.severity === 'error').length;
-    const warnings = health.issues.filter(issue => issue.severity === 'warning').length;
-    const infos = health.issues.filter(issue => issue.severity === 'info').length;
+    const health = evaluateContentHealth(source.type, source.data, { duplicateSlug: duplicateKeys.has(`${source.type}:${source.id}`), brokenRelation });
     return {
       key: `${source.type}:${source.id}`,
       type: source.type,
@@ -613,24 +387,24 @@ function buildHealthReport(
       published: source.published,
       score: health.score,
       grade: health.grade,
-      errors,
-      warnings,
-      infos,
+      errors: health.issues.filter(issue => issue.severity === 'error').length,
+      warnings: health.issues.filter(issue => issue.severity === 'warning').length,
+      infos: health.issues.filter(issue => issue.severity === 'info').length,
       issues: health.issues,
-    } satisfies ContentHealthEntity;
+    };
   }).sort((a, b) => a.score - b.score || b.errors - a.errors || b.warnings - a.warnings || a.title.localeCompare(b.title));
 
   const summarize = (type: PublishQualityType): ContentHealthTypeSummary => {
-    const typeItems = items.filter(item => item.type === type);
-    const published = typeItems.filter(item => item.published).length;
+    const subset = items.filter(item => item.type === type);
+    const published = subset.filter(item => item.published).length;
     return {
-      total: typeItems.length,
+      total: subset.length,
       published,
-      draft: typeItems.length - published,
-      score: typeItems.length ? Math.round(typeItems.reduce((sum, item) => sum + item.score, 0) / typeItems.length) : 100,
-      errors: typeItems.reduce((sum, item) => sum + item.errors, 0),
-      warnings: typeItems.reduce((sum, item) => sum + item.warnings, 0),
-      infos: typeItems.reduce((sum, item) => sum + item.infos, 0),
+      draft: subset.length - published,
+      score: subset.length ? Math.round(subset.reduce((sum, item) => sum + item.score, 0) / subset.length) : 100,
+      errors: subset.reduce((sum, item) => sum + item.errors, 0),
+      warnings: subset.reduce((sum, item) => sum + item.warnings, 0),
+      infos: subset.reduce((sum, item) => sum + item.infos, 0),
     };
   };
 
@@ -644,12 +418,7 @@ function buildHealthReport(
     errors: items.reduce((sum, item) => sum + item.errors, 0),
     warnings: items.reduce((sum, item) => sum + item.warnings, 0),
     infos: items.reduce((sum, item) => sum + item.infos, 0),
-    byType: {
-      case: summarize('case'),
-      gallery: summarize('gallery'),
-      video: summarize('video'),
-      article: summarize('article'),
-    },
+    byType: { case: summarize('case'), gallery: summarize('gallery'), video: summarize('video'), article: summarize('article') },
     items,
   };
 }
@@ -664,223 +433,68 @@ async function runSecurityProbe(
   const publicDb = getPublicProbeDb();
   const checks: SecurityProbeCheck[] = [];
 
-  checks.push(await probe(
-    'global-public',
-    'Анонимное чтение site_settings/global',
-    'allow',
-    () => getDoc(doc(publicDb, 'site_settings', 'global')),
-  ));
-  checks.push(await probe(
-    'published-cases-query',
-    'Публичный query cases: published == true',
-    'allow',
-    () => getDocs(query(collection(publicDb, 'cases'), where('published', '==', true))),
-  ));
-  checks.push(await probe(
-    'published-articles-query',
-    'Публичный query articles: published == true',
-    'allow',
-    () => getDocs(query(collection(publicDb, 'articles'), where('published', '==', true))),
-  ));
-  checks.push(await probe(
-    'unfiltered-cases-denied',
-    'Анонимный unfiltered query cases',
-    'deny',
-    () => getDocs(collection(publicDb, 'cases')),
-  ));
-  checks.push(await probe(
-    'unfiltered-settings-denied',
-    'Анонимный unfiltered query site_settings',
-    'deny',
-    () => getDocs(collection(publicDb, 'site_settings')),
-  ));
+  checks.push(await probe('global-public', 'Анонимное чтение site_settings/global', 'allow', () => getDoc(doc(publicDb, 'site_settings', 'global'))));
+  checks.push(await probe('published-cases-query', 'Публичный query cases: published == true', 'allow', () => getDocs(query(collection(publicDb, 'cases'), where('published', '==', true)))));
+  checks.push(await probe('published-articles-query', 'Публичный query articles: published == true', 'allow', () => getDocs(query(collection(publicDb, 'articles'), where('published', '==', true)))));
+  checks.push(await probe('unfiltered-cases-denied', 'Анонимный unfiltered query cases', 'deny', () => getDocs(collection(publicDb, 'cases'))));
+  checks.push(await probe('unfiltered-settings-denied', 'Анонимный unfiltered query site_settings', 'deny', () => getDocs(collection(publicDb, 'site_settings'))));
 
   const publishedGallery = galleries.find(item => item.published === true);
-  if (publishedGallery) {
-    checks.push(await probe(
-      'published-gallery-direct',
-      'Прямое чтение опубликованной gallery',
-      'allow',
-      () => getDoc(doc(publicDb, 'site_settings', publishedGallery.id)),
-    ));
-  }
-
+  if (publishedGallery) checks.push(await probe('published-gallery-direct', 'Прямое чтение опубликованной gallery', 'allow', () => getDoc(doc(publicDb, 'site_settings', publishedGallery.id))));
   const publishedVideo = videos.find(item => item.published === true);
-  if (publishedVideo) {
-    checks.push(await probe(
-      'published-video-direct',
-      'Прямое чтение опубликованного video_project',
-      'allow',
-      () => getDoc(doc(publicDb, 'site_settings', publishedVideo.id)),
-    ));
-  }
+  if (publishedVideo) checks.push(await probe('published-video-direct', 'Прямое чтение опубликованного video_project', 'allow', () => getDoc(doc(publicDb, 'site_settings', publishedVideo.id))));
 
   const draftCase = cases.find(item => item.published !== true);
-  if (draftCase) {
-    checks.push(await probe(
-      'draft-case-direct',
-      'Прямое чтение draft-case',
-      'deny',
-      () => getDoc(doc(publicDb, 'cases', draftCase.id)),
-    ));
-  }
-
+  if (draftCase) checks.push(await probe('draft-case-direct', 'Прямое чтение draft-case', 'deny', () => getDoc(doc(publicDb, 'cases', draftCase.id))));
   const draftGallery = galleries.find(item => item.published !== true);
-  if (draftGallery) {
-    checks.push(await probe(
-      'draft-gallery-direct',
-      'Прямое чтение draft-gallery',
-      'deny',
-      () => getDoc(doc(publicDb, 'site_settings', draftGallery.id)),
-    ));
-  }
-
+  if (draftGallery) checks.push(await probe('draft-gallery-direct', 'Прямое чтение draft-gallery', 'deny', () => getDoc(doc(publicDb, 'site_settings', draftGallery.id))));
   const draftVideo = videos.find(item => item.published !== true);
-  if (draftVideo) {
-    checks.push(await probe(
-      'draft-video-direct',
-      'Прямое чтение draft-video_project',
-      'deny',
-      () => getDoc(doc(publicDb, 'site_settings', draftVideo.id)),
-    ));
-  }
-
+  if (draftVideo) checks.push(await probe('draft-video-direct', 'Прямое чтение draft-video_project', 'deny', () => getDoc(doc(publicDb, 'site_settings', draftVideo.id))));
   const draftArticle = articles.find(item => item.published !== true);
-  if (draftArticle) {
-    checks.push(await probe(
-      'draft-article-direct',
-      'Прямое чтение draft-article',
-      'deny',
-      () => getDoc(doc(publicDb, 'articles', draftArticle.id)),
-    ));
-  }
+  if (draftArticle) checks.push(await probe('draft-article-direct', 'Прямое чтение draft-article', 'deny', () => getDoc(doc(publicDb, 'articles', draftArticle.id))));
 
   const mediaAsset = settingsRecords.find(item => item.kind === MEDIA_ASSET_KIND);
-  if (mediaAsset) {
-    checks.push(await probe(
-      'media-asset-direct',
-      'Прямое анонимное чтение media_asset',
-      'deny',
-      () => getDoc(doc(publicDb, 'site_settings', mediaAsset.id)),
-    ));
-  }
+  if (mediaAsset) checks.push(await probe('media-asset-direct', 'Прямое анонимное чтение media_asset', 'deny', () => getDoc(doc(publicDb, 'site_settings', mediaAsset.id))));
 
   const failed = checks.filter(check => !check.passed);
   const networkLike = failed.some(check => !/permission-denied|unexpectedly|неожиданно/i.test(check.detail));
-  return {
-    status: failed.length === 0 ? 'ok' : networkLike ? 'warning' : 'error',
-    checks,
-  };
+  return { status: failed.length === 0 ? 'ok' : networkLike ? 'warning' : 'error', checks };
 }
 
 export async function loadCmsDiagnostics(): Promise<CmsDiagnosticsReport> {
-  const [casesSnapshot, settingsSnapshot, articleSnapshot, mediaAssets] = await Promise.all([
+  const [casesSnapshot, settingsSnapshot, articlesSnapshot, mediaAssets] = await Promise.all([
     getDocs(collection(db, 'cases')),
     getDocs(collection(db, 'site_settings')),
     getDocs(collection(db, 'articles')),
     loadMediaLibrary(),
   ]);
 
-  const cases = casesSnapshot.docs.map(snapshot => ({
-    id: snapshot.id,
-    ...snapshot.data(),
-  } as CaseStudy));
-  const settingsRecords = settingsSnapshot.docs.map(snapshot => ({
-    id: snapshot.id,
-    ...snapshot.data(),
-  } as GenericRecord));
-  const articleRecords = articleSnapshot.docs.map(snapshot => ({
-    id: snapshot.id,
-    ...snapshot.data(),
-  } as GenericRecord));
+  const cases = casesSnapshot.docs.map(snapshot => ({ id: snapshot.id, ...snapshot.data() } as CaseStudy));
+  const settingsRecords = settingsSnapshot.docs.map(snapshot => ({ id: snapshot.id, ...snapshot.data() } as GenericRecord));
+  const articleRecords = articlesSnapshot.docs.map(snapshot => ({ id: snapshot.id, ...snapshot.data() } as GenericRecord));
   const articles = articleRecords.map(record => normalizeArticle(record.id, record) as Article & Record<string, unknown>);
-
   const galleries = settingsRecords.filter(isPhotoGallery) as PhotoGallery[];
   const videos = settingsRecords.filter(isVideoProject) as VideoProject[];
   const relations = settingsRecords.filter(isProjectRelation) as ProjectRelation[];
   const global = settingsRecords.find(item => item.id === 'global') || ({ id: 'global' } as GenericRecord);
 
-  const caseEntities = cases.map(item => ({
-    id: item.id,
-    title: titleValue(item),
-    slug: getCaseSlug(item),
-    publicPath: `/cases/${encodeURIComponent(getCaseSlug(item))}`,
-  }));
-  const galleryEntities = galleries.map(item => ({
-    id: item.id,
-    title: titleValue(item),
-    slug: getGallerySlug(item),
-    publicPath: `/galleries/${encodeURIComponent(getGallerySlug(item))}`,
-  }));
-  const videoEntities = videos.map(item => ({
-    id: item.id,
-    title: titleValue(item),
-    slug: getVideoProjectSlug(item),
-    publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(item))}`,
-  }));
-  const articleEntities = articles.map(item => ({
-    id: item.id,
-    title: articleTitle(item),
-    slug: item.slug,
-    publicPath: `/media-center/${encodeURIComponent(item.slug)}`,
-  }));
-
-  const duplicateIssues = [
-    ...duplicateIssuesFor('Cases', 'case', caseEntities),
-    ...duplicateIssuesFor('Galleries', 'gallery', galleryEntities),
-    ...duplicateIssuesFor('Videos', 'video', videoEntities),
-    ...duplicateIssuesFor('Articles', 'article', articleEntities),
-  ];
-  const relationIssues = relationDiagnostics(relations, cases, galleries, videos, articles);
-  const contentIssues = contentDiagnostics(cases, galleries, videos);
+  const caseEntities = cases.map(item => ({ id: item.id, title: titleValue(item), slug: getCaseSlug(item), publicPath: `/cases/${encodeURIComponent(getCaseSlug(item))}` }));
+  const galleryEntities = galleries.map(item => ({ id: item.id, title: titleValue(item), slug: getGallerySlug(item), publicPath: `/galleries/${encodeURIComponent(getGallerySlug(item))}` }));
+  const videoEntities = videos.map(item => ({ id: item.id, title: titleValue(item), slug: getVideoProjectSlug(item), publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(item))}` }));
+  const articleEntities = articles.map(item => ({ id: item.id, title: articleTitle(item), slug: item.slug, publicPath: `/media-center/${encodeURIComponent(item.slug)}` }));
 
   const healthSources: HealthSource[] = [
-    ...cases.map(item => ({
-      type: 'case' as const,
-      id: item.id,
-      title: titleValue(item),
-      slug: getCaseSlug(item),
-      publicPath: `/cases/${encodeURIComponent(getCaseSlug(item))}`,
-      published: item.published === true,
-      data: item as unknown as Record<string, unknown>,
-    })),
-    ...galleries.map(item => ({
-      type: 'gallery' as const,
-      id: item.id,
-      title: titleValue(item),
-      slug: getGallerySlug(item),
-      publicPath: `/galleries/${encodeURIComponent(getGallerySlug(item))}`,
-      published: item.published === true,
-      data: item as unknown as Record<string, unknown>,
-    })),
-    ...videos.map(item => ({
-      type: 'video' as const,
-      id: item.id,
-      title: titleValue(item),
-      slug: getVideoProjectSlug(item),
-      publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(item))}`,
-      published: item.published === true,
-      data: item as unknown as Record<string, unknown>,
-    })),
-    ...articles.map(item => ({
-      type: 'article' as const,
-      id: item.id,
-      title: articleTitle(item),
-      slug: item.slug,
-      publicPath: `/media-center/${encodeURIComponent(item.slug)}`,
-      published: item.published === true,
-      data: item as unknown as Record<string, unknown>,
-    })),
+    ...cases.map(item => ({ type: 'case' as const, id: item.id, title: titleValue(item), slug: getCaseSlug(item), publicPath: `/cases/${encodeURIComponent(getCaseSlug(item))}`, published: item.published === true, data: item as unknown as Record<string, unknown> })),
+    ...galleries.map(item => ({ type: 'gallery' as const, id: item.id, title: titleValue(item), slug: getGallerySlug(item), publicPath: `/galleries/${encodeURIComponent(getGallerySlug(item))}`, published: item.published === true, data: item as unknown as Record<string, unknown> })),
+    ...videos.map(item => ({ type: 'video' as const, id: item.id, title: titleValue(item), slug: getVideoProjectSlug(item), publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(item))}`, published: item.published === true, data: item as unknown as Record<string, unknown> })),
+    ...articles.map(item => ({ type: 'article' as const, id: item.id, title: articleTitle(item), slug: item.slug, publicPath: `/media-center/${encodeURIComponent(item.slug)}`, published: item.published === true, data: item as unknown as Record<string, unknown> })),
   ];
-  const health = buildHealthReport(healthSources, relations);
 
   const orphanAssets = mediaAssets.filter(asset => asset.registered && asset.useCount === 0);
   const unregisteredAssets = mediaAssets.filter(asset => !asset.registered && asset.useCount > 0);
   const registered = mediaAssets.filter(asset => asset.registered).length;
   const used = mediaAssets.filter(asset => asset.useCount > 0).length;
   const mediaRegistry = settingsRecords.filter(item => item.kind === MEDIA_ASSET_KIND).length;
-
-  const security = await runSecurityProbe(cases, galleries, videos, articles, settingsRecords);
 
   return {
     generatedAt: Date.now(),
@@ -899,10 +513,15 @@ export async function loadCmsDiagnostics(): Promise<CmsDiagnosticsReport> {
       relations: relations.length,
       mediaRegistry,
     },
-    health,
-    duplicateIssues,
-    relationIssues,
-    contentIssues,
+    health: buildHealthReport(healthSources, relations),
+    duplicateIssues: [
+      ...duplicateIssuesFor('Cases', 'case', caseEntities),
+      ...duplicateIssuesFor('Galleries', 'gallery', galleryEntities),
+      ...duplicateIssuesFor('Videos', 'video', videoEntities),
+      ...duplicateIssuesFor('Articles', 'article', articleEntities),
+    ],
+    relationIssues: relationDiagnostics(relations, cases, galleries, videos, articles),
+    contentIssues: contentDiagnostics(cases, galleries, videos),
     media: {
       total: mediaAssets.length,
       registered,
@@ -913,6 +532,6 @@ export async function loadCmsDiagnostics(): Promise<CmsDiagnosticsReport> {
       orphanAssets,
       unregisteredAssets,
     },
-    security,
+    security: await runSecurityProbe(cases, galleries, videos, articles, settingsRecords),
   };
 }
