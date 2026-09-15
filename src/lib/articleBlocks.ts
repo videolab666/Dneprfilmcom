@@ -139,13 +139,14 @@ export function articleBlocksPlainText(blocks: ArticleBlock[]): string {
     if (block.type === 'image' || block.type === 'video') return [block.caption || '', block.type === 'image' ? block.alt || '' : ''];
     if (block.type === 'cta') return [block.title, block.text || '', block.label];
     if (block.type === 'table') return [...block.headers, ...block.rows.flat()];
-    return block.items.flatMap(item => [item.question, item.answer]);
+    if ('items' in block) return block.items.flatMap(item => [item.question, item.answer]);
+    return [];
   }).filter(Boolean).join(' ');
 }
 
 export function articleFaqItems(blocks: ArticleBlock[]): Array<{ question: string; answer: string }> {
   return blocks
-    .filter((block): block is ArticleFaqBlock => block.type === 'faq')
+    .filter((block): block is ArticleFaqBlock => 'items' in block && block.type === 'faq')
     .flatMap(block => block.items)
     .filter(item => item.question.trim() && item.answer.trim());
 }
