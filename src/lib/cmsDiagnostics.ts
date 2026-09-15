@@ -11,6 +11,7 @@ import {
 import firebaseConfig from '../../firebase-applet-config.json';
 import { db } from './firebase';
 import { getCaseSlug, normalizedCaseMedia } from './caseMedia';
+import { normalizeArticle } from './articleCms';
 import {
   GALLERY_KIND,
   getGallerySlug,
@@ -33,7 +34,13 @@ import {
   loadMediaLibrary,
   type MediaLibraryAsset,
 } from './mediaLibrary';
-import type { CaseStudy } from '../types';
+import {
+  evaluateContentHealth,
+  type ContentHealthGrade,
+  type ContentHealthIssue,
+} from './contentHealth';
+import type { PublishQualityType } from './publishQuality';
+import type { Article, CaseStudy } from '../types';
 
 export type DiagnosticSeverity = 'info' | 'warning' | 'error';
 export type SecurityProbeStatus = 'ok' | 'warning' | 'error';
@@ -43,6 +50,9 @@ export interface DiagnosticIssue {
   severity: DiagnosticSeverity;
   title: string;
   detail: string;
+  entityType?: PublishQualityType;
+  entityId?: string;
+  publicPath?: string;
 }
 
 export interface SecurityProbeCheck {
@@ -59,6 +69,29 @@ export interface EntityCount {
   draft: number;
 }
 
+export interface ContentHealthEntity {
+  key: string;
+  type: PublishQualityType;
+  id: string;
+  title: string;
+  slug: string;
+  publicPath: string;
+  published: boolean;
+  score: number;
+  grade: ContentHealthGrade;
+  errors: number;
+  warnings: number;
+  infos: number;
+  issues: ContentHealthIssue[];
+}
+
+export interface ContentHealthTypeSummary extends EntityCount {
+  score: number;
+  errors: number;
+  warnings: number;
+  infos: number;
+}
+
 export interface CmsDiagnosticsReport {
   generatedAt: number;
   migration: {
@@ -72,8 +105,22 @@ export interface CmsDiagnosticsReport {
     cases: EntityCount;
     galleries: EntityCount;
     videos: EntityCount;
+    articles: EntityCount;
     relations: number;
     mediaRegistry: number;
+  };
+  health: {
+    score: number;
+    total: number;
+    excellent: number;
+    good: number;
+    needsWork: number;
+    critical: number;
+    errors: number;
+    warnings: number;
+    infos: number;
+    byType: Record<PublishQualityType, ContentHealthTypeSummary>;
+    items: ContentHealthEntity[];
   };
   duplicateIssues: DiagnosticIssue[];
   relationIssues: DiagnosticIssue[];
@@ -96,6 +143,16 @@ export interface CmsDiagnosticsReport {
 
 interface GenericRecord extends Record<string, unknown> {
   id: string;
+}
+
+interface HealthSource {
+  type: PublishQualityType;
+  id: string;
+  title: string;
+  slug: string;
+  publicPath: string;
+  published: boolean;
+  data: Record<string, unknown>;
 }
 
 const PUBLIC_PROBE_APP_NAME = 'cms-diagnostics-public-probe';
@@ -152,6 +209,10 @@ async function probe(
   }
 }
 
+function text(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 function numberLike(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (value && typeof value === 'object') {
@@ -178,6 +239,10 @@ function titleValue(value: { title?: string; title_uk?: string; title_en?: strin
   return value.title_uk?.trim() || value.title?.trim() || value.title_en?.trim() || value.id;
 }
 
+function articleTitle(article: Article): string {
+  return article.uk?.title?.trim() || article.ru?.title?.trim() || article.en?.title?.trim() || article.id;
+}
+
 function normalizeTitle(value: string): string {
   return value
     .toLocaleLowerCase('uk-UA')
@@ -187,40 +252,61 @@ function normalizeTitle(value: string): string {
 
 function duplicateIssuesFor(
   entityLabel: string,
-  entities: Array<{ id: string; title: string; slug: string }>,
+  type: PublishQualityType,
+  entities: Array<{ id: string; title: string; slug: string; publicPath: string }>,
 ): DiagnosticIssue[] {
   const issues: DiagnosticIssue[] = [];
-  const bySlug = new Map<string, string[]>();
-  const byTitle = new Map<string, string[]>();
+  const bySlug = new Map<string, Array<{ id: string; publicPath: string }>>();
+  const byTitle = new Map<string, Array<{ id: string; publicPath: string }>>();
 
   for (const entity of entities) {
     const slug = entity.slug.trim().toLowerCase();
-    if (slug) bySlug.set(slug, [...(bySlug.get(slug) || []), entity.id]);
+    if (slug) bySlug.set(slug, [...(bySlug.get(slug) || []), { id: entity.id, publicPath: entity.publicPath }]);
     const title = normalizeTitle(entity.title);
-    if (title) byTitle.set(title, [...(byTitle.get(title) || []), entity.id]);
+    if (title) byTitle.set(title, [...(byTitle.get(title) || []), { id: entity.id, publicPath: entity.publicPath }]);
   }
 
-  for (const [slug, ids] of bySlug) {
-    if (ids.length < 2) continue;
+  for (const [slug, entries] of bySlug) {
+    if (entries.length < 2) continue;
     issues.push({
       id: `${entityLabel}-slug-${slug}`,
       severity: 'error',
       title: `Дублирующий slug в ${entityLabel}`,
-      detail: `${slug}: ${ids.join(', ')}`,
+      detail: `${slug}: ${entries.map(item => item.id).join(', ')}`,
+      entityType: type,
+      entityId: entries[0]?.id,
+      publicPath: entries[0]?.publicPath,
     });
   }
 
-  for (const [title, ids] of byTitle) {
-    if (ids.length < 2) continue;
+  for (const [title, entries] of byTitle) {
+    if (entries.length < 2) continue;
     issues.push({
       id: `${entityLabel}-title-${title}`,
       severity: 'warning',
       title: `Похожие записи по названию в ${entityLabel}`,
-      detail: `${title}: ${ids.join(', ')}`,
+      detail: `${title}: ${entries.map(item => item.id).join(', ')}`,
+      entityType: type,
+      entityId: entries[0]?.id,
+      publicPath: entries[0]?.publicPath,
     });
   }
 
   return issues;
+}
+
+function duplicateIdSet(items: HealthSource[]): Set<string> {
+  const bySlug = new Map<string, HealthSource[]>();
+  for (const item of items) {
+    const slug = item.slug.trim().toLowerCase();
+    if (!slug) continue;
+    bySlug.set(slug, [...(bySlug.get(slug) || []), item]);
+  }
+  return new Set(
+    Array.from(bySlug.values())
+      .filter(group => group.length > 1)
+      .flatMap(group => group.map(item => item.key ?? `${item.type}:${item.id}`)),
+  );
 }
 
 function entityCount(items: Array<{ published?: boolean }>): EntityCount {
@@ -232,11 +318,16 @@ function entityCount(items: Array<{ published?: boolean }>): EntityCount {
   };
 }
 
+function stringIds(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String).map(item => item.trim()).filter(Boolean) : [];
+}
+
 function relationDiagnostics(
   relations: ProjectRelation[],
   cases: CaseStudy[],
   galleries: PhotoGallery[],
   videos: VideoProject[],
+  articles: Array<Article & Record<string, unknown>>,
 ): DiagnosticIssue[] {
   const issues: DiagnosticIssue[] = [];
   const caseById = new Map(cases.map(item => [item.id, item]));
@@ -253,6 +344,8 @@ function relationDiagnostics(
         severity: 'error',
         title: 'Связь ссылается на отсутствующий кейс',
         detail: `${relation.id} → ${relation.caseId}`,
+        entityType: 'case',
+        entityId: relation.caseId,
       });
     }
 
@@ -262,6 +355,8 @@ function relationDiagnostics(
         severity: 'warning',
         title: 'Пустая связь портфолио',
         detail: `${relation.id} не содержит gallery/video ссылок.`,
+        entityType: 'case',
+        entityId: relation.caseId,
       });
     }
 
@@ -273,6 +368,8 @@ function relationDiagnostics(
           severity: 'error',
           title: 'Связь ссылается на отсутствующую галерею',
           detail: `${relation.id} → ${galleryId}`,
+          entityType: 'case',
+          entityId: relation.caseId,
         });
       } else if (gallery.published !== true) {
         issues.push({
@@ -280,6 +377,9 @@ function relationDiagnostics(
           severity: 'warning',
           title: 'Связь ведёт на draft-галерею',
           detail: `${titleValue(gallery)} (${galleryId}) не показывается публично.`,
+          entityType: 'gallery',
+          entityId: galleryId,
+          publicPath: `/galleries/${encodeURIComponent(getGallerySlug(gallery))}`,
         });
       }
     }
@@ -292,6 +392,8 @@ function relationDiagnostics(
           severity: 'error',
           title: 'Связь ссылается на отсутствующий видеопроект',
           detail: `${relation.id} → ${videoId}`,
+          entityType: 'case',
+          entityId: relation.caseId,
         });
       } else if (video.published !== true) {
         issues.push({
@@ -299,6 +401,9 @@ function relationDiagnostics(
           severity: 'warning',
           title: 'Связь ведёт на draft-видеопроект',
           detail: `${titleValue(video)} (${videoId}) не показывается публично.`,
+          entityType: 'video',
+          entityId: videoId,
+          publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(video))}`,
         });
       }
     }
@@ -309,6 +414,8 @@ function relationDiagnostics(
         severity: 'warning',
         title: 'Повторяющиеся gallery ID в связи',
         detail: relation.id,
+        entityType: 'case',
+        entityId: relation.caseId,
       });
     }
     if (new Set(relation.videoProjectIds).size !== relation.videoProjectIds.length) {
@@ -317,6 +424,8 @@ function relationDiagnostics(
         severity: 'warning',
         title: 'Повторяющиеся video ID в связи',
         detail: relation.id,
+        entityType: 'case',
+        entityId: relation.caseId,
       });
     }
   }
@@ -328,7 +437,55 @@ function relationDiagnostics(
       severity: 'error',
       title: 'Несколько relation-документов для одного кейса',
       detail: `${caseId}: ${items.map(item => item.id).join(', ')}`,
+      entityType: 'case',
+      entityId: caseId,
     });
+  }
+
+  for (const article of articles) {
+    const articlePath = `/media-center/${encodeURIComponent(article.slug)}`;
+    const groups: Array<[string, string[], Map<string, { published?: boolean }>]> = [
+      ['кейс', stringIds(article.relatedCaseIds), caseById],
+      ['галерею', stringIds(article.relatedGalleryIds), galleryById],
+      ['видеопроект', stringIds(article.relatedVideoProjectIds), videoById],
+    ];
+    for (const [label, ids, lookup] of groups) {
+      if (new Set(ids).size !== ids.length) {
+        issues.push({
+          id: `article-${article.id}-${label}-duplicates`,
+          severity: 'warning',
+          title: 'Повторяющиеся ID в связях статьи',
+          detail: `${articleTitle(article)}: ${label}`,
+          entityType: 'article',
+          entityId: article.id,
+          publicPath: articlePath,
+        });
+      }
+      for (const id of new Set(ids)) {
+        const linked = lookup.get(id);
+        if (!linked) {
+          issues.push({
+            id: `article-${article.id}-${label}-${id}-missing`,
+            severity: 'error',
+            title: `Статья ссылается на отсутствующую ${label}`,
+            detail: `${articleTitle(article)} → ${id}`,
+            entityType: 'article',
+            entityId: article.id,
+            publicPath: articlePath,
+          });
+        } else if (linked.published !== true) {
+          issues.push({
+            id: `article-${article.id}-${label}-${id}-draft`,
+            severity: 'warning',
+            title: 'Связанный материал статьи находится в draft',
+            detail: `${articleTitle(article)} → ${id}`,
+            entityType: 'article',
+            entityId: article.id,
+            publicPath: articlePath,
+          });
+        }
+      }
+    }
   }
 
   return issues;
@@ -342,15 +499,6 @@ function contentDiagnostics(
   const issues: DiagnosticIssue[] = [];
 
   for (const item of cases) {
-    const media = normalizedCaseMedia(item);
-    if (item.published === true && media.length === 0) {
-      issues.push({
-        id: `case-no-media-${item.id}`,
-        severity: 'warning',
-        title: 'Опубликованный кейс без media',
-        detail: `${titleValue(item)} (${item.id})`,
-      });
-    }
     const empty = (item.media || []).filter(mediaItem => !mediaItem.url?.trim()).length;
     if (empty > 0) {
       issues.push({
@@ -358,19 +506,14 @@ function contentDiagnostics(
         severity: 'warning',
         title: 'Пустые media-элементы в кейсе',
         detail: `${titleValue(item)}: ${empty}`,
+        entityType: 'case',
+        entityId: item.id,
+        publicPath: `/cases/${encodeURIComponent(getCaseSlug(item))}`,
       });
     }
   }
 
   for (const gallery of galleries) {
-    if (gallery.published === true && !(gallery.images || []).some(image => image.url?.trim())) {
-      issues.push({
-        id: `gallery-no-images-${gallery.id}`,
-        severity: 'warning',
-        title: 'Опубликованная галерея без фотографий',
-        detail: `${titleValue(gallery)} (${gallery.id})`,
-      });
-    }
     const empty = (gallery.images || []).filter(image => !image.url?.trim()).length;
     if (empty > 0) {
       issues.push({
@@ -378,19 +521,14 @@ function contentDiagnostics(
         severity: 'warning',
         title: 'Пустые изображения в галерее',
         detail: `${titleValue(gallery)}: ${empty}`,
+        entityType: 'gallery',
+        entityId: gallery.id,
+        publicPath: `/galleries/${encodeURIComponent(getGallerySlug(gallery))}`,
       });
     }
   }
 
   for (const video of videos) {
-    if (video.published === true && !(video.videos || []).some(media => media.url?.trim())) {
-      issues.push({
-        id: `video-no-media-${video.id}`,
-        severity: 'warning',
-        title: 'Опубликованный видеопроект без видео',
-        detail: `${titleValue(video)} (${video.id})`,
-      });
-    }
     const empty = (video.videos || []).filter(media => !media.url?.trim()).length;
     if (empty > 0) {
       issues.push({
@@ -398,6 +536,9 @@ function contentDiagnostics(
         severity: 'warning',
         title: 'Пустые video-элементы в проекте',
         detail: `${titleValue(video)}: ${empty}`,
+        entityType: 'video',
+        entityId: video.id,
+        publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(video))}`,
       });
     }
   }
@@ -414,10 +555,110 @@ function duplicateRegistryUrlCount(records: GenericRecord[]): number {
   return Array.from(counts.values()).filter(count => count > 1).length;
 }
 
+function buildHealthReport(
+  sources: HealthSource[],
+  relations: ProjectRelation[],
+): CmsDiagnosticsReport['health'] {
+  const duplicateKeys = new Set<string>();
+  for (const type of ['case', 'gallery', 'video', 'article'] as PublishQualityType[]) {
+    const typeSources = sources.filter(item => item.type === type);
+    const bySlug = new Map<string, HealthSource[]>();
+    for (const item of typeSources) {
+      const slug = item.slug.trim().toLowerCase();
+      if (!slug) continue;
+      bySlug.set(slug, [...(bySlug.get(slug) || []), item]);
+    }
+    for (const group of bySlug.values()) {
+      if (group.length < 2) continue;
+      group.forEach(item => duplicateKeys.add(`${item.type}:${item.id}`));
+    }
+  }
+
+  const sourceByType = {
+    case: new Map(sources.filter(item => item.type === 'case').map(item => [item.id, item])),
+    gallery: new Map(sources.filter(item => item.type === 'gallery').map(item => [item.id, item])),
+    video: new Map(sources.filter(item => item.type === 'video').map(item => [item.id, item])),
+    article: new Map(sources.filter(item => item.type === 'article').map(item => [item.id, item])),
+  };
+  const relationByCase = new Map(relations.map(item => [item.caseId, item]));
+
+  const items = sources.map(source => {
+    let brokenRelation = false;
+    if (source.type === 'case') {
+      const relation = relationByCase.get(source.id);
+      if (relation) {
+        brokenRelation = relation.galleryIds.some(id => !sourceByType.gallery.has(id))
+          || relation.videoProjectIds.some(id => !sourceByType.video.has(id));
+      }
+    } else if (source.type === 'article') {
+      brokenRelation = stringIds(source.data.relatedCaseIds).some(id => !sourceByType.case.has(id))
+        || stringIds(source.data.relatedGalleryIds).some(id => !sourceByType.gallery.has(id))
+        || stringIds(source.data.relatedVideoProjectIds).some(id => !sourceByType.video.has(id));
+    }
+
+    const health = evaluateContentHealth(source.type, source.data, {
+      duplicateSlug: duplicateKeys.has(`${source.type}:${source.id}`),
+      brokenRelation,
+    });
+    const errors = health.issues.filter(issue => issue.severity === 'error').length;
+    const warnings = health.issues.filter(issue => issue.severity === 'warning').length;
+    const infos = health.issues.filter(issue => issue.severity === 'info').length;
+    return {
+      key: `${source.type}:${source.id}`,
+      type: source.type,
+      id: source.id,
+      title: source.title,
+      slug: source.slug,
+      publicPath: source.publicPath,
+      published: source.published,
+      score: health.score,
+      grade: health.grade,
+      errors,
+      warnings,
+      infos,
+      issues: health.issues,
+    } satisfies ContentHealthEntity;
+  }).sort((a, b) => a.score - b.score || b.errors - a.errors || b.warnings - a.warnings || a.title.localeCompare(b.title));
+
+  const summarize = (type: PublishQualityType): ContentHealthTypeSummary => {
+    const typeItems = items.filter(item => item.type === type);
+    const published = typeItems.filter(item => item.published).length;
+    return {
+      total: typeItems.length,
+      published,
+      draft: typeItems.length - published,
+      score: typeItems.length ? Math.round(typeItems.reduce((sum, item) => sum + item.score, 0) / typeItems.length) : 100,
+      errors: typeItems.reduce((sum, item) => sum + item.errors, 0),
+      warnings: typeItems.reduce((sum, item) => sum + item.warnings, 0),
+      infos: typeItems.reduce((sum, item) => sum + item.infos, 0),
+    };
+  };
+
+  return {
+    score: items.length ? Math.round(items.reduce((sum, item) => sum + item.score, 0) / items.length) : 100,
+    total: items.length,
+    excellent: items.filter(item => item.grade === 'excellent').length,
+    good: items.filter(item => item.grade === 'good').length,
+    needsWork: items.filter(item => item.grade === 'needs-work').length,
+    critical: items.filter(item => item.grade === 'critical').length,
+    errors: items.reduce((sum, item) => sum + item.errors, 0),
+    warnings: items.reduce((sum, item) => sum + item.warnings, 0),
+    infos: items.reduce((sum, item) => sum + item.infos, 0),
+    byType: {
+      case: summarize('case'),
+      gallery: summarize('gallery'),
+      video: summarize('video'),
+      article: summarize('article'),
+    },
+    items,
+  };
+}
+
 async function runSecurityProbe(
   cases: CaseStudy[],
   galleries: PhotoGallery[],
   videos: VideoProject[],
+  articles: Array<Article & Record<string, unknown>>,
   settingsRecords: GenericRecord[],
 ): Promise<CmsDiagnosticsReport['security']> {
   const publicDb = getPublicProbeDb();
@@ -434,6 +675,12 @@ async function runSecurityProbe(
     'Публичный query cases: published == true',
     'allow',
     () => getDocs(query(collection(publicDb, 'cases'), where('published', '==', true))),
+  ));
+  checks.push(await probe(
+    'published-articles-query',
+    'Публичный query articles: published == true',
+    'allow',
+    () => getDocs(query(collection(publicDb, 'articles'), where('published', '==', true))),
   ));
   checks.push(await probe(
     'unfiltered-cases-denied',
@@ -498,6 +745,16 @@ async function runSecurityProbe(
     ));
   }
 
+  const draftArticle = articles.find(item => item.published !== true);
+  if (draftArticle) {
+    checks.push(await probe(
+      'draft-article-direct',
+      'Прямое чтение draft-article',
+      'deny',
+      () => getDoc(doc(publicDb, 'articles', draftArticle.id)),
+    ));
+  }
+
   const mediaAsset = settingsRecords.find(item => item.kind === MEDIA_ASSET_KIND);
   if (mediaAsset) {
     checks.push(await probe(
@@ -517,9 +774,10 @@ async function runSecurityProbe(
 }
 
 export async function loadCmsDiagnostics(): Promise<CmsDiagnosticsReport> {
-  const [casesSnapshot, settingsSnapshot, mediaAssets] = await Promise.all([
+  const [casesSnapshot, settingsSnapshot, articleSnapshot, mediaAssets] = await Promise.all([
     getDocs(collection(db, 'cases')),
     getDocs(collection(db, 'site_settings')),
+    getDocs(collection(db, 'articles')),
     loadMediaLibrary(),
   ]);
 
@@ -531,6 +789,11 @@ export async function loadCmsDiagnostics(): Promise<CmsDiagnosticsReport> {
     id: snapshot.id,
     ...snapshot.data(),
   } as GenericRecord));
+  const articleRecords = articleSnapshot.docs.map(snapshot => ({
+    id: snapshot.id,
+    ...snapshot.data(),
+  } as GenericRecord));
+  const articles = articleRecords.map(record => normalizeArticle(record.id, record) as Article & Record<string, unknown>);
 
   const galleries = settingsRecords.filter(isPhotoGallery) as PhotoGallery[];
   const videos = settingsRecords.filter(isVideoProject) as VideoProject[];
@@ -541,25 +804,75 @@ export async function loadCmsDiagnostics(): Promise<CmsDiagnosticsReport> {
     id: item.id,
     title: titleValue(item),
     slug: getCaseSlug(item),
+    publicPath: `/cases/${encodeURIComponent(getCaseSlug(item))}`,
   }));
   const galleryEntities = galleries.map(item => ({
     id: item.id,
     title: titleValue(item),
     slug: getGallerySlug(item),
+    publicPath: `/galleries/${encodeURIComponent(getGallerySlug(item))}`,
   }));
   const videoEntities = videos.map(item => ({
     id: item.id,
     title: titleValue(item),
     slug: getVideoProjectSlug(item),
+    publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(item))}`,
+  }));
+  const articleEntities = articles.map(item => ({
+    id: item.id,
+    title: articleTitle(item),
+    slug: item.slug,
+    publicPath: `/media-center/${encodeURIComponent(item.slug)}`,
   }));
 
   const duplicateIssues = [
-    ...duplicateIssuesFor('Cases', caseEntities),
-    ...duplicateIssuesFor('Galleries', galleryEntities),
-    ...duplicateIssuesFor('Videos', videoEntities),
+    ...duplicateIssuesFor('Cases', 'case', caseEntities),
+    ...duplicateIssuesFor('Galleries', 'gallery', galleryEntities),
+    ...duplicateIssuesFor('Videos', 'video', videoEntities),
+    ...duplicateIssuesFor('Articles', 'article', articleEntities),
   ];
-  const relationIssues = relationDiagnostics(relations, cases, galleries, videos);
+  const relationIssues = relationDiagnostics(relations, cases, galleries, videos, articles);
   const contentIssues = contentDiagnostics(cases, galleries, videos);
+
+  const healthSources: HealthSource[] = [
+    ...cases.map(item => ({
+      type: 'case' as const,
+      id: item.id,
+      title: titleValue(item),
+      slug: getCaseSlug(item),
+      publicPath: `/cases/${encodeURIComponent(getCaseSlug(item))}`,
+      published: item.published === true,
+      data: item as unknown as Record<string, unknown>,
+    })),
+    ...galleries.map(item => ({
+      type: 'gallery' as const,
+      id: item.id,
+      title: titleValue(item),
+      slug: getGallerySlug(item),
+      publicPath: `/galleries/${encodeURIComponent(getGallerySlug(item))}`,
+      published: item.published === true,
+      data: item as unknown as Record<string, unknown>,
+    })),
+    ...videos.map(item => ({
+      type: 'video' as const,
+      id: item.id,
+      title: titleValue(item),
+      slug: getVideoProjectSlug(item),
+      publicPath: `/videos/${encodeURIComponent(getVideoProjectSlug(item))}`,
+      published: item.published === true,
+      data: item as unknown as Record<string, unknown>,
+    })),
+    ...articles.map(item => ({
+      type: 'article' as const,
+      id: item.id,
+      title: articleTitle(item),
+      slug: item.slug,
+      publicPath: `/media-center/${encodeURIComponent(item.slug)}`,
+      published: item.published === true,
+      data: item as unknown as Record<string, unknown>,
+    })),
+  ];
+  const health = buildHealthReport(healthSources, relations);
 
   const orphanAssets = mediaAssets.filter(asset => asset.registered && asset.useCount === 0);
   const unregisteredAssets = mediaAssets.filter(asset => !asset.registered && asset.useCount > 0);
@@ -567,7 +880,7 @@ export async function loadCmsDiagnostics(): Promise<CmsDiagnosticsReport> {
   const used = mediaAssets.filter(asset => asset.useCount > 0).length;
   const mediaRegistry = settingsRecords.filter(item => item.kind === MEDIA_ASSET_KIND).length;
 
-  const security = await runSecurityProbe(cases, galleries, videos, settingsRecords);
+  const security = await runSecurityProbe(cases, galleries, videos, articles, settingsRecords);
 
   return {
     generatedAt: Date.now(),
@@ -582,9 +895,11 @@ export async function loadCmsDiagnostics(): Promise<CmsDiagnosticsReport> {
       cases: entityCount(cases),
       galleries: entityCount(galleries),
       videos: entityCount(videos),
+      articles: entityCount(articles),
       relations: relations.length,
       mediaRegistry,
     },
+    health,
     duplicateIssues,
     relationIssues,
     contentIssues,
