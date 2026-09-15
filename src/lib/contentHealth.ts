@@ -62,9 +62,24 @@ function localizedDescription(type: PublishQualityType, record: Record<string, u
   return portfolioField(record, 'description', locale);
 }
 
+function richValueTextLength(value: unknown, depth = 0): number {
+  if (depth > 10 || value == null) return 0;
+  if (typeof value === 'string') return value.trim().length;
+  if (Array.isArray(value)) return value.reduce((sum, item) => sum + richValueTextLength(item, depth + 1), 0);
+  if (typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => !['id', 'type', 'url'].includes(key))
+      .reduce((sum, [, child]) => sum + richValueTextLength(child, depth + 1), 0);
+  }
+  return 0;
+}
+
 function articleContentLength(record: Record<string, unknown>, locale: Locale): number {
   const content = articleTranslation(record, locale).content;
-  return Array.isArray(content) ? content.map(String).join(' ').trim().length : 0;
+  const legacyLength = Array.isArray(content) ? content.map(String).join(' ').trim().length : 0;
+  const blocksField = locale === 'ru' ? 'contentBlocks' : `contentBlocks_${locale}`;
+  const richLength = richValueTextLength(record[blocksField]);
+  return Math.max(legacyLength, richLength);
 }
 
 function coverValue(type: PublishQualityType, record: Record<string, unknown>): string {
