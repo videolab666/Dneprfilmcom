@@ -28,9 +28,14 @@ function arrayOf(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
+function articleBlocks(record: Record<string, unknown>, locale: 'uk' | 'en'): unknown[] {
+  return arrayOf(record[`contentBlocks_${locale}`]);
+}
+
 function hasArticleLocale(record: Record<string, unknown>, locale: 'uk' | 'en'): boolean {
   const translation = recordOf(record[locale]);
-  return Boolean(text(translation, 'title') && text(translation, 'summary') && arrayOf(translation.content).length);
+  const hasContent = arrayOf(translation.content).length > 0 || articleBlocks(record, locale).length > 0;
+  return Boolean(text(translation, 'title') && text(translation, 'summary') && hasContent);
 }
 
 function hasPortfolioLocale(record: Record<string, unknown>, locale: 'uk' | 'en'): boolean {
@@ -64,6 +69,15 @@ function imageAltMissing(type: PublishQualityType, record: Record<string, unknow
   });
 }
 
+function articleBlockImageAltMissing(record: Record<string, unknown>): boolean {
+  return ['contentBlocks', 'contentBlocks_uk', 'contentBlocks_en'].some(field =>
+    arrayOf(record[field]).some(item => {
+      const block = recordOf(item);
+      return text(block, 'type') === 'image' && Boolean(text(block, 'url')) && !text(block, 'alt');
+    }),
+  );
+}
+
 function videoPosterMissing(type: PublishQualityType, record: Record<string, unknown>): boolean {
   const videos = type === 'video' ? arrayOf(record.videos) : type === 'case' ? arrayOf(record.media) : [];
   return videos.some(item => {
@@ -72,6 +86,14 @@ function videoPosterMissing(type: PublishQualityType, record: Record<string, unk
     if (!text(video, 'url')) return false;
     return !(text(video, 'posterUrl') || text(video, 'thumbnailUrl') || text(record, 'coverUrl') || text(record, 'imageUrl'));
   });
+}
+
+function invalidSlug(record: Record<string, unknown>): boolean {
+  const slug = text(record, 'slug');
+  if (!slug) return true;
+  return slug !== slug.toLowerCase()
+    || /^\/+|\/+$/g.test(slug)
+    || /[?#%\s]/.test(slug);
 }
 
 export function evaluatePublishQuality(
@@ -90,9 +112,12 @@ export function evaluatePublishQuality(
   }
   if (!hasCover(type, record)) issues.push({ code: 'missing-cover', label: 'Нет обложки / poster', severity: 'warning' });
   if (!hasDescription(type, record)) issues.push({ code: 'missing-description', label: 'Пустое описание', severity: 'warning' });
+  if (invalidSlug(record)) issues.push({ code: 'invalid-slug', label: 'Slug пустой или содержит недопустимые символы', severity: 'error' });
   if (options?.duplicateSlug) issues.push({ code: 'duplicate-slug', label: 'Дублирующийся slug', severity: 'error' });
   if (options?.brokenRelation) issues.push({ code: 'broken-relation', label: 'Есть битая связь с другим материалом', severity: 'warning' });
-  if (imageAltMissing(type, record)) issues.push({ code: 'missing-alt', label: 'У одного или нескольких изображений нет alt', severity: 'warning' });
+  if (imageAltMissing(type, record) || (type === 'article' && articleBlockImageAltMissing(record))) {
+    issues.push({ code: 'missing-alt', label: 'У одного или нескольких изображений нет alt', severity: 'warning' });
+  }
   if ((type === 'video' || type === 'case') && videoPosterMissing(type, record)) issues.push({ code: 'missing-video-poster', label: 'У видео нет poster/thumbnail', severity: 'warning' });
 
   return issues;
