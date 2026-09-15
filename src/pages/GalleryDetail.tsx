@@ -6,6 +6,7 @@ import { publishedGalleriesQuery } from '../lib/publicPortfolioQueries';
 import { loadPrerenderPortfolioEntry } from '../lib/prerenderContent';
 import {
   galleryCover,
+  galleryDisplaySettings,
   getGallerySlug,
   isPhotoGallery,
   localizeGallery,
@@ -127,20 +128,9 @@ export function GalleryDetail() {
       <section className="min-h-[70vh] bg-slate-50 px-4 py-24">
         <div className="mx-auto max-w-2xl rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
           <Images className="mx-auto h-12 w-12 text-slate-300" />
-          <h1 className="mt-4 text-3xl font-black text-slate-950">
-            {l('Галерею не знайдено', 'Галерея не найдена', 'Gallery not found')}
-          </h1>
-          <p className="mt-3 text-sm text-slate-500">
-            {l(
-              'Можливо, посилання застаріло або галерею ще не опубліковано.',
-              'Возможно, ссылка устарела или галерея ещё не опубликована.',
-              'The link may be outdated or the gallery has not been published yet.',
-            )}
-          </p>
-          <Link to="/galleries" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-500">
-            <ArrowLeft className="h-4 w-4" />
-            {l('До всіх галерей', 'Ко всем галереям', 'Back to galleries')}
-          </Link>
+          <h1 className="mt-4 text-3xl font-black text-slate-950">{l('Галерею не знайдено', 'Галерея не найдена', 'Gallery not found')}</h1>
+          <p className="mt-3 text-sm text-slate-500">{l('Можливо, посилання застаріло або галерею ще не опубліковано.', 'Возможно, ссылка устарела или галерея ещё не опубликована.', 'The link may be outdated or the gallery has not been published yet.')}</p>
+          <Link to="/galleries" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-500"><ArrowLeft className="h-4 w-4" />{l('До всіх галерей', 'Ко всем галереям', 'Back to galleries')}</Link>
         </div>
       </section>
     );
@@ -157,19 +147,11 @@ export function GalleryDetail() {
           </div>
         )}
         <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-          <Link to="/galleries" className="mb-9 inline-flex items-center gap-2 text-sm font-semibold text-slate-300 transition hover:text-white">
-            <ArrowLeft className="h-4 w-4" />
-            {l('Усі фотогалереї', 'Все фотогалереи', 'All photo galleries')}
-          </Link>
-
+          <Link to="/galleries" className="mb-9 inline-flex items-center gap-2 text-sm font-semibold text-slate-300 transition hover:text-white"><ArrowLeft className="h-4 w-4" />{l('Усі фотогалереї', 'Все фотогалереи', 'All photo galleries')}</Link>
           <div className="max-w-4xl">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold backdrop-blur">
-              <Images className="h-4 w-4" />
-              {gallery.images.length} {l('фото', 'фото', 'photos')}
-            </div>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold backdrop-blur"><Images className="h-4 w-4" />{gallery.images.length} {l('фото', 'фото', 'photos')}</div>
             <h1 className="text-4xl font-black leading-tight tracking-tight sm:text-5xl lg:text-6xl">{gallery.title}</h1>
             {gallery.description && <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-300 sm:text-xl">{gallery.description}</p>}
-
             {(gallery.location || dateLabel) && (
               <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-300">
                 {dateLabel && <span className="inline-flex items-center gap-2"><CalendarDays className="h-4 w-4" />{dateLabel}</span>}
@@ -182,11 +164,9 @@ export function GalleryDetail() {
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         {gallery.images.length > 0 ? (
-          <GalleryGrid images={gallery.images} galleryTitle={gallery.title} />
+          <GalleryGrid images={gallery.images} galleryTitle={gallery.title} settings={galleryDisplaySettings(gallery)} />
         ) : (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-400">
-            {l('У цій галереї поки немає фотографій.', 'В этой галерее пока нет фотографий.', 'There are no photos in this gallery yet.')}
-          </div>
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-400">{l('У цій галереї поки немає фотографій.', 'В этой галерее пока нет фотографий.', 'There are no photos in this gallery yet.')}</div>
         )}
       </section>
     </div>

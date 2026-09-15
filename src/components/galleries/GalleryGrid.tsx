@@ -1,12 +1,17 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
-import type { GalleryImage } from '../../lib/galleryContent';
+import {
+  imageFocalPoint,
+  type GalleryDisplaySettings,
+  type GalleryImage,
+} from '../../lib/galleryContent';
 import { useSiteContent } from '../../context/SiteContentContext';
 import { ResponsiveImage } from '../ResponsiveImage';
 
 interface GalleryGridProps {
   images: GalleryImage[];
   galleryTitle: string;
+  settings?: Partial<GalleryDisplaySettings>;
 }
 
 type Point = { x: number; y: number };
@@ -15,9 +20,35 @@ function distance(a: Point, b: Point) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
+function aspectClass(aspect: GalleryDisplaySettings['aspect']): string {
+  if (aspect === '1:1') return 'aspect-square';
+  if (aspect === '3:2') return 'aspect-[3/2]';
+  if (aspect === '4:3') return 'aspect-[4/3]';
+  return '';
+}
+
+function gapClass(gap: GalleryDisplaySettings['gap']): string {
+  if (gap === 'small') return 'gap-2';
+  if (gap === 'large') return 'gap-7';
+  return 'gap-4';
+}
+
+function gridColumnsClass(columns: GalleryDisplaySettings['columns']): string {
+  if (columns === 2) return 'sm:grid-cols-2';
+  if (columns === 4) return 'sm:grid-cols-2 lg:grid-cols-4';
+  return 'sm:grid-cols-2 lg:grid-cols-3';
+}
+
+export function GalleryGrid({ images, galleryTitle, settings }: GalleryGridProps) {
   const { l } = useSiteContent();
   const visibleImages = useMemo(() => images.filter(image => Boolean(image.url)), [images]);
+  const display: GalleryDisplaySettings = {
+    layout: settings?.layout || 'masonry',
+    columns: settings?.columns === 2 || settings?.columns === 4 ? settings.columns : 3,
+    gap: settings?.gap || 'medium',
+    aspect: settings?.aspect || 'original',
+    captionMode: settings?.captionMode || 'always',
+  };
   const [activeId, setActiveId] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
@@ -50,10 +81,8 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
 
   useEffect(() => {
     if (!activeImage) return;
-
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setActiveId(null);
       if (event.key === 'ArrowLeft' && visibleImages.length > 1) showRelative(-1);
@@ -62,7 +91,6 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
       if (event.key === '-') setZoom(scale - 0.5);
       if (event.key === '0') resetZoom();
     };
-
     window.addEventListener('keydown', onKeyDown);
     return () => {
       document.body.style.overflow = oldOverflow;
@@ -92,18 +120,13 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const point = pointerPoint(event);
     pointersRef.current.set(event.pointerId, point);
-
     if (pointersRef.current.size === 1) {
       gestureRef.current = { start: point, offset };
     } else if (pointersRef.current.size === 2) {
       const points: Point[] = Array.from(pointersRef.current.values());
       const [a, b] = points;
-      gestureRef.current = {
-        start: point,
-        offset,
-        pinchDistance: distance(a, b),
-        pinchScale: scale,
-      };
+      if (!a || !b) return;
+      gestureRef.current = { start: point, offset, pinchDistance: distance(a, b), pinchScale: scale };
     }
   };
 
@@ -113,20 +136,15 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
     pointersRef.current.set(event.pointerId, point);
     const gesture = gestureRef.current;
     if (!gesture) return;
-
     if (pointersRef.current.size >= 2 && gesture.pinchDistance && gesture.pinchScale) {
       const points: Point[] = Array.from(pointersRef.current.values());
       const [a, b] = points;
-      const ratio = distance(a, b) / Math.max(1, gesture.pinchDistance);
-      setZoom(gesture.pinchScale * ratio);
+      if (!a || !b) return;
+      setZoom(gesture.pinchScale * (distance(a, b) / Math.max(1, gesture.pinchDistance)));
       return;
     }
-
     if (scale > 1 && pointersRef.current.size === 1) {
-      setOffset({
-        x: gesture.offset.x + point.x - gesture.start.x,
-        y: gesture.offset.y + point.y - gesture.start.y,
-      });
+      setOffset({ x: gesture.offset.x + point.x - gesture.start.x, y: gesture.offset.y + point.y - gesture.start.y });
     }
   };
 
@@ -135,7 +153,6 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
     const gesture = gestureRef.current;
     const wasSinglePointer = pointersRef.current.size === 1;
     pointersRef.current.delete(event.pointerId);
-
     if (wasSinglePointer && gesture && scale <= 1.05) {
       const dx = point.x - gesture.start.x;
       const dy = point.y - gesture.start.y;
@@ -143,7 +160,6 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
         showRelative(dx > 0 ? -1 : 1);
         return;
       }
-
       if (event.pointerType === 'touch' && Math.hypot(dx, dy) < 16) {
         const now = Date.now();
         const last = lastTapRef.current;
@@ -155,7 +171,6 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
         lastTapRef.current = { time: now, point };
       }
     }
-
     if (pointersRef.current.size === 1) {
       const remaining = Array.from(pointersRef.current.values())[0];
       if (remaining) gestureRef.current = { start: remaining, offset };
@@ -166,40 +181,66 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
 
   if (visibleImages.length === 0) return null;
 
+  const imageFrame = (image: GalleryImage, index: number, frameClass = ''): ReactNode => {
+    const aspect = aspectClass(display.aspect);
+    const captionOverlay = display.captionMode === 'hover' && image.caption;
+    return (
+      <figure key={image.id} className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ${frameClass}`}>
+        <button type="button" onClick={() => setActiveId(image.id)} className={`relative block w-full cursor-zoom-in overflow-hidden bg-slate-100 text-left ${aspect}`} aria-label={image.alt || `${galleryTitle} — ${index + 1}`}>
+          <ResponsiveImage
+            src={image.url}
+            alt={image.alt || `${galleryTitle} — ${index + 1}`}
+            displayWidth={image.featured ? 1800 : 1200}
+            sizes={image.featured ? '(max-width: 1024px) 100vw, 66vw' : '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'}
+            className={`${aspect ? 'h-full' : 'h-auto'} w-full object-cover transition duration-500 group-hover:scale-[1.015]`}
+            style={{ objectPosition: imageFocalPoint(image) }}
+          />
+          {captionOverlay && <span className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/80 via-black/55 to-transparent px-4 pb-3 pt-10 text-xs leading-relaxed text-white transition-transform duration-300 group-hover:translate-y-0">{image.caption}</span>}
+          {image.featured && <span className="absolute left-2 top-2 rounded-full bg-amber-300 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-slate-950">Featured</span>}
+        </button>
+        {display.captionMode === 'always' && image.caption && <figcaption className="px-4 py-3 text-xs leading-relaxed text-slate-500">{image.caption}</figcaption>}
+      </figure>
+    );
+  };
+
+  let galleryBody: ReactNode;
+  if (display.layout === 'grid') {
+    galleryBody = (
+      <div className={`grid grid-cols-1 ${gridColumnsClass(display.columns)} ${gapClass(display.gap)} [grid-auto-flow:dense]`}>
+        {visibleImages.map((image, index) => imageFrame(image, index, image.featured ? 'sm:col-span-2 sm:row-span-2' : ''))}
+      </div>
+    );
+  } else if (display.layout === 'justified') {
+    galleryBody = (
+      <div className={`flex flex-wrap ${gapClass(display.gap)}`}>
+        {visibleImages.map((image, index) => imageFrame(image, index, image.featured ? 'basis-full' : 'min-w-[220px] flex-[1_1_300px]'))}
+      </div>
+    );
+  } else if (display.layout === 'cinematic') {
+    galleryBody = (
+      <div className={`grid grid-cols-1 lg:grid-cols-12 ${gapClass(display.gap)}`}>
+        {visibleImages.map((image, index) => {
+          const wide = image.featured || index % 5 === 0;
+          return imageFrame(image, index, wide ? 'lg:col-span-12' : 'lg:col-span-6');
+        })}
+      </div>
+    );
+  } else {
+    const columns = display.columns === 2 ? 'sm:columns-2' : display.columns === 4 ? 'sm:columns-2 lg:columns-4' : 'sm:columns-2 lg:columns-3';
+    const spacing = display.gap === 'small' ? 'mb-2' : display.gap === 'large' ? 'mb-7' : 'mb-4';
+    galleryBody = (
+      <div className={`columns-1 ${columns} ${gapClass(display.gap)}`}>
+        {visibleImages.map((image, index) => imageFrame(image, index, `break-inside-avoid ${spacing} ${image.featured ? 'sm:[column-span:all]' : ''}`))}
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
-        {visibleImages.map((image, index) => (
-          <figure key={image.id} className="mb-4 break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <button
-              type="button"
-              onClick={() => setActiveId(image.id)}
-              className="group block w-full cursor-zoom-in overflow-hidden bg-slate-100 text-left"
-              aria-label={image.alt || `${galleryTitle} — ${index + 1}`}
-            >
-              <ResponsiveImage
-                src={image.url}
-                alt={image.alt || `${galleryTitle} — ${index + 1}`}
-                displayWidth={1200}
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="h-auto w-full object-cover transition duration-500 group-hover:scale-[1.015]"
-              />
-            </button>
-            {image.caption && <figcaption className="px-4 py-3 text-xs leading-relaxed text-slate-500">{image.caption}</figcaption>}
-          </figure>
-        ))}
-      </div>
+      {galleryBody}
 
       {activeImage && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/97 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-label={l('Перегляд фотографії', 'Просмотр фотографии', 'Photo viewer')}
-          onClick={event => {
-            if (event.currentTarget === event.target && scale === 1) setActiveId(null);
-          }}
-        >
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/97 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={l('Перегляд фотографії', 'Просмотр фотографии', 'Photo viewer')} onClick={event => { if (event.currentTarget === event.target && scale === 1) setActiveId(null); }}>
           <div className="absolute left-3 top-3 z-30 flex items-center gap-1 rounded-full bg-black/35 p-1.5 text-white backdrop-blur sm:left-5 sm:top-5">
             <button type="button" onClick={() => setZoom(scale - 0.5)} disabled={scale <= 1} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/15 disabled:opacity-35" aria-label={l('Зменшити', 'Уменьшить', 'Zoom out')}><ZoomOut className="h-4 w-4" /></button>
             <span className="min-w-12 text-center text-[11px] font-bold">{Math.round(scale * 100)}%</span>
@@ -217,20 +258,9 @@ export function GalleryGrid({ images, galleryTitle }: GalleryGridProps) {
           )}
 
           <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden px-2 pb-16 pt-14 sm:px-16 sm:pb-20 sm:pt-16">
-            <div
-              className={`flex h-full w-full items-center justify-center select-none ${scale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
-              style={{ touchAction: 'none' }}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
-              onDoubleClick={() => setZoom(scale > 1 ? 1 : 2.5)}
-            >
-              <div
-                className="flex max-h-full max-w-full items-center justify-center transition-transform duration-75"
-                style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})` }}
-              >
-                <ResponsiveImage src={activeImage.url} alt={activeImage.alt || galleryTitle} displayWidth={2400} sizes="100vw" loading="eager" className="max-h-[82vh] max-w-[96vw] rounded-xl object-contain shadow-2xl sm:max-w-[90vw]" />
+            <div className={`flex h-full w-full items-center justify-center select-none ${scale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`} style={{ touchAction: 'none' }} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp} onDoubleClick={() => setZoom(scale > 1 ? 1 : 2.5)}>
+              <div className="flex max-h-full max-w-full items-center justify-center transition-transform duration-75" style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})` }}>
+                <ResponsiveImage src={activeImage.url} alt={activeImage.alt || galleryTitle} displayWidth={2400} sizes="100vw" loading="eager" className="max-h-[82vh] max-w-[96vw] rounded-xl object-contain shadow-2xl sm:max-w-[90vw]" style={{ objectPosition: imageFocalPoint(activeImage) }} />
               </div>
             </div>
           </div>
