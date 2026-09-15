@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { useSiteContent } from '../../context/SiteContentContext';
 import {
+  blockMatchesPage,
   blockPlacement,
+  localizedBuilderBlock,
   pageBlocks,
   type PageBuilderPage,
   type PageBuilderPlacement,
@@ -14,8 +16,8 @@ interface PageBuilderSlotProps {
 }
 
 export function PageBuilderSlot({ page, placement }: PageBuilderSlotProps) {
-  const { blocks } = useSiteContent();
-  const items = pageBlocks(blocks, page, placement);
+  const { blocks, locale } = useSiteContent();
+  const items = pageBlocks(blocks, page, placement).map(block => localizedBuilderBlock(block, locale));
   if (!items.length) return null;
   return (
     <div data-page-builder-slot={`${page}:${placement}`}>
@@ -31,7 +33,7 @@ interface PageBuilderSurfaceProps {
 
 export function PageBuilderSurface({ page, children }: PageBuilderSurfaceProps) {
   const { blocks } = useSiteContent();
-  const hasInline = blocks.some(block => block.isActive && blockPlacement(block, page) === 'inline');
+  const hasInline = blocks.some(block => block.isActive && blockMatchesPage(block, page) && blockPlacement(block, page) === 'inline');
   return (
     <>
       <PageBuilderSlot page={page} placement="before" />
