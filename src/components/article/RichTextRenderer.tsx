@@ -7,6 +7,7 @@ import {
 } from '../../lib/richText';
 
 interface RichTextRendererProps {
+  key?: string;
   value: RichTextValue;
   className?: string;
   paragraphClassName?: string;
