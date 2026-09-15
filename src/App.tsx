@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { SiteContentProvider } from './context/SiteContentContext';
 import { Layout } from './components/layout/Layout';
+import { PageBuilderSurface } from './components/page-builder/PageBuilderSlot';
 
 const ProtectedRoute = lazy(() => import('./components/ProtectedRoute').then((module) => ({ default: module.ProtectedRoute })));
 const PortfolioDetailEnhancer = lazy(() => import('./components/portfolio/PortfolioDetailEnhancer').then((module) => ({ default: module.PortfolioDetailEnhancer })));
@@ -48,22 +49,22 @@ export default function App() {
           <Suspense fallback={<RouteFallback />}>
             <Routes>
               <Route path="/" element={<Layout />}>
-                <Route index element={<Home />} />
+                <Route index element={<PageBuilderSurface page="home"><Home /></PageBuilderSurface>} />
 
-                <Route path="live" element={<LiveProduction />} />
-                <Route path="video" element={<VideoProduction />} />
+                <Route path="live" element={<PageBuilderSurface page="live"><LiveProduction /></PageBuilderSurface>} />
+                <Route path="video" element={<PageBuilderSurface page="video"><VideoProduction /></PageBuilderSurface>} />
                 <Route path="videos" element={<Videos />} />
                 <Route path="videos/:slug" element={<PortfolioDetailEnhancer type="video"><VideoDetail /></PortfolioDetailEnhancer>} />
-                <Route path="construction" element={<ConstructionMedia />} />
-                <Route path="photo" element={<PhotoProduction />} />
+                <Route path="construction" element={<PageBuilderSurface page="construction"><ConstructionMedia /></PageBuilderSurface>} />
+                <Route path="photo" element={<PageBuilderSurface page="photo"><PhotoProduction /></PageBuilderSurface>} />
                 <Route path="cases" element={<Cases />} />
                 <Route path="cases/:slug" element={<PortfolioDetailEnhancer type="case"><CaseDetail /></PortfolioDetailEnhancer>} />
                 <Route path="galleries" element={<Galleries />} />
                 <Route path="galleries/:slug" element={<PortfolioDetailEnhancer type="gallery"><GalleryDetail /></PortfolioDetailEnhancer>} />
                 <Route path="media-center" element={<MediaCenter />} />
                 <Route path="media-center/:slug" element={<ArticleDetail />} />
-                <Route path="about" element={<About />} />
-                <Route path="contacts" element={<Contacts />} />
+                <Route path="about" element={<PageBuilderSurface page="about"><About /></PageBuilderSurface>} />
+                <Route path="contacts" element={<PageBuilderSurface page="contacts"><Contacts /></PageBuilderSurface>} />
 
                 <Route path="admin/login" element={<AdminLogin />} />
 

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Camera, Radio, Building2, Video, Play, ArrowRight } from 'lucide-react';
 import { useSiteContent } from '../context/SiteContentContext';
-import { DynamicBlockRenderer } from '../components/home/DynamicBlockRenderer';
+import { PageBuilderSlot } from '../components/page-builder/PageBuilderSlot';
 import { FeaturedCases } from '../components/home/FeaturedCases';
 import { SynergyBenefits } from '../components/home/SynergyBenefits';
 import { HowWeWork } from '../components/home/HowWeWork';
@@ -12,8 +12,7 @@ import { ClientsMarquee } from '../components/ClientsMarquee';
 import { HeroSlider } from '../components/home/HeroSlider';
 
 export function Home() {
-  const { settings, blocks, t, l } = useSiteContent();
-  const activeBlocks = blocks.filter(b => b.isActive);
+  const { settings, t, l } = useSiteContent();
 
   return (
     <div className="w-full">
@@ -34,7 +33,6 @@ export function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* LIVE */}
             <div className="group bg-slate-50 rounded-3xl p-7 hover:bg-indigo-50 transition-colors duration-300 flex flex-col justify-between">
               <div>
                 <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 mb-5 group-hover:scale-110 transition-transform">
@@ -52,7 +50,6 @@ export function Home() {
               </Link>
             </div>
 
-            {/* VIDEO */}
             <div className="group bg-slate-50 rounded-3xl p-7 hover:bg-purple-50 transition-colors duration-300 flex flex-col justify-between">
               <div>
                 <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600 mb-5 group-hover:scale-110 transition-transform">
@@ -70,7 +67,6 @@ export function Home() {
               </Link>
             </div>
 
-            {/* CONSTRUCTION */}
             <div className="group bg-slate-50 rounded-3xl p-7 hover:bg-amber-50 transition-colors duration-300 flex flex-col justify-between">
               <div>
                 <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 mb-5 group-hover:scale-110 transition-transform">
@@ -88,7 +84,6 @@ export function Home() {
               </Link>
             </div>
 
-            {/* PHOTO PRODUCTION */}
             <div className="group bg-slate-50 rounded-3xl p-7 hover:bg-emerald-50 transition-colors duration-300 flex flex-col justify-between">
               <div>
                 <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 mb-5 group-hover:scale-110 transition-transform">
@@ -109,14 +104,13 @@ export function Home() {
         </div>
       </section>
 
-      {/* Founder Section */}
       <section className="py-24 bg-slate-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative rounded-3xl overflow-hidden aspect-[4/5] lg:aspect-square">
-              <img 
-                src={settings.founderPhoto || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?auto=format&fit=crop&q=80"} 
-                alt={settings.founderName || l("Олександр Пітель", "Александр Питель")} 
+              <img
+                src={settings.founderPhoto || "https://images.unsplash.com/photo-1556761175-5973dc0f32d7?auto=format&fit=crop&q=80"}
+                alt={settings.founderName || l("Олександр Пітель", "Александр Питель")}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -125,49 +119,27 @@ export function Home() {
                 <span>{settings.founderRole || l("Засновник студії", "Основатель студии", "Studio founder")}</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">{settings.founderName || l("Олександр Пітель", "Александр Питель")}</h2>
-              <p className="text-xl text-slate-300 mb-8 font-light leading-relaxed">
-                "{settings.founderQuote}"
-              </p>
-              <div className="space-y-4 text-slate-400 mb-10 text-sm sm:text-base leading-relaxed">
-                <p>{settings.founderBio}</p>
-              </div>
+              <p className="text-xl text-slate-300 mb-8 font-light leading-relaxed">"{settings.founderQuote}"</p>
+              <div className="space-y-4 text-slate-400 mb-10 text-sm sm:text-base leading-relaxed"><p>{settings.founderBio}</p></div>
               <div className="flex flex-wrap gap-4">
-                <Link to="/about" className="inline-flex items-center justify-center px-6 py-3 border border-white/20 rounded-full text-base font-medium text-white hover:bg-white/10 transition-colors">
-                  {t('home.aboutFounderBtn')}
-                </Link>
-                <a href="#contact-cta" className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-full text-base font-medium text-white transition-colors">
-                  {t('home.discussPersonally')}
-                </a>
+                <Link to="/about" className="inline-flex items-center justify-center px-6 py-3 border border-white/20 rounded-full text-base font-medium text-white hover:bg-white/10 transition-colors">{t('home.aboutFounderBtn')}</Link>
+                <a href="#contact-cta" className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-full text-base font-medium text-white transition-colors">{t('home.discussPersonally')}</a>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Screen 4: Featured Cases */}
       <FeaturedCases />
-
-      {/* Screen 5: Synergy Benefits */}
       <SynergyBenefits />
-
-      {/* Screen 6: How We Work */}
       <HowWeWork />
 
-      {/* Dynamic custom blocks */}
-      {activeBlocks.map(block => (
-        <DynamicBlockRenderer key={block.id} block={block} />
-      ))}
+      {/* Unified Page Builder preserves the historical Home insertion point. */}
+      <PageBuilderSlot page="home" placement="inline" />
 
-      {/* Screen 7: Backstage Gallery */}
       <BackstageGallery />
-
-      {/* Screen 8: Testimonials */}
       <Testimonials />
-
-      {/* Screen 9: Final Quick Contact CTA */}
       <QuickContactCTA />
     </div>
   );
 }
-
-
