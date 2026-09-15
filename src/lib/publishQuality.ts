@@ -88,14 +88,6 @@ function videoPosterMissing(type: PublishQualityType, record: Record<string, unk
   });
 }
 
-function invalidSlug(record: Record<string, unknown>): boolean {
-  const slug = text(record, 'slug');
-  if (!slug) return true;
-  return slug !== slug.toLowerCase()
-    || /^\/+|\/+$/g.test(slug)
-    || /[?#%\s]/.test(slug);
-}
-
 export function evaluatePublishQuality(
   type: PublishQualityType,
   value: unknown,
@@ -112,7 +104,6 @@ export function evaluatePublishQuality(
   }
   if (!hasCover(type, record)) issues.push({ code: 'missing-cover', label: 'Нет обложки / poster', severity: 'warning' });
   if (!hasDescription(type, record)) issues.push({ code: 'missing-description', label: 'Пустое описание', severity: 'warning' });
-  if (invalidSlug(record)) issues.push({ code: 'invalid-slug', label: 'Slug пустой или содержит недопустимые символы', severity: 'error' });
   if (options?.duplicateSlug) issues.push({ code: 'duplicate-slug', label: 'Дублирующийся slug', severity: 'error' });
   if (options?.brokenRelation) issues.push({ code: 'broken-relation', label: 'Есть битая связь с другим материалом', severity: 'warning' });
   if (imageAltMissing(type, record) || (type === 'article' && articleBlockImageAltMissing(record))) {
