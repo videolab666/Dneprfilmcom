@@ -344,8 +344,7 @@ export function UnifiedContentManager() {
       ];
       next.sort((a, b) => b.updatedAt - a.updatedAt || a.title.localeCompare(b.title));
       setItems(next);
-      const validKeys = new Set<string>(next.map(item => item.key));
-      setSelected(current => new Set<string>(Array.from(current).filter((key: string) => validKeys.has(key))));
+      setSelected(new Set<string>());
     } catch (reason) {
       console.error(reason);
       setError(reason instanceof Error ? reason.message : String(reason));
