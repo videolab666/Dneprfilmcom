@@ -6,9 +6,6 @@ import {
   LogOut,
   Layers,
   Sliders,
-  Briefcase,
-  Film,
-  Images,
   FolderOpen,
   MessageSquare,
   Radio,
@@ -26,22 +23,19 @@ import { useSiteContent } from '../context/SiteContentContext';
 
 const BlocksManager = lazy(() => import('../components/admin/BlocksManager').then(module => ({ default: module.BlocksManager })));
 const SiteSettingsEditor = lazy(() => import('../components/admin/SiteSettingsEditor').then(module => ({ default: module.SiteSettingsEditor })));
-const CasesManager = lazy(() => import('../components/admin/CasesManager').then(module => ({ default: module.CasesManager })));
-const GalleriesManager = lazy(() => import('../components/admin/GalleriesManager').then(module => ({ default: module.GalleriesManager })));
-const VideosManager = lazy(() => import('../components/admin/VideosManager').then(module => ({ default: module.VideosManager })));
+const UnifiedContentManager = lazy(() => import('../components/admin/UnifiedContentManager').then(module => ({ default: module.UnifiedContentManager })));
 const PortfolioOrganizer = lazy(() => import('../components/admin/PortfolioOrganizer').then(module => ({ default: module.PortfolioOrganizer })));
 const SeoQualityManager = lazy(() => import('../components/admin/SeoQualityManager').then(module => ({ default: module.SeoQualityManager })));
 const MediaLibraryManager = lazy(() => import('../components/admin/MediaLibraryManager').then(module => ({ default: module.MediaLibraryManager })));
 const TestimonialsManager = lazy(() => import('../components/admin/TestimonialsManager').then(module => ({ default: module.TestimonialsManager })));
 const BackstageManager = lazy(() => import('../components/admin/BackstageManager').then(module => ({ default: module.BackstageManager })));
 const LeadsCRM = lazy(() => import('../components/admin/LeadsCRM').then(module => ({ default: module.LeadsCRM })));
-const ArticlesManager = lazy(() => import('../components/admin/ArticlesManager').then(module => ({ default: module.ArticlesManager })));
 const PageContentManager = lazy(() => import('../components/admin/PageContentManager').then(module => ({ default: module.PageContentManager })));
 const PageCopyManager = lazy(() => import('../components/admin/PageCopyManager').then(module => ({ default: module.PageCopyManager })));
 const RelationsManager = lazy(() => import('../components/admin/RelationsManager').then(module => ({ default: module.RelationsManager })));
 const CmsDiagnostics = lazy(() => import('../components/admin/CmsDiagnostics').then(module => ({ default: module.CmsDiagnostics })));
 
-type AdminTab = 'blocks' | 'settings' | 'pages' | 'page-copy' | 'organizer' | 'seo-quality' | 'cases' | 'galleries' | 'videos' | 'relations' | 'media' | 'diagnostics' | 'testimonials' | 'backstage' | 'leads' | 'articles';
+type AdminTab = 'blocks' | 'settings' | 'pages' | 'page-copy' | 'content' | 'organizer' | 'seo-quality' | 'relations' | 'media' | 'diagnostics' | 'testimonials' | 'backstage' | 'leads';
 
 interface NavItem {
   id: AdminTab;
@@ -76,18 +70,15 @@ export function AdminDashboard() {
     { id: 'settings', label: isUk ? 'Головна & Засновник' : 'Главная & Основатель', icon: <Sliders className="w-4 h-4" /> },
     { id: 'pages', label: isUk ? 'Контент сторінок' : 'Контент страниц', icon: <Layers className="w-4 h-4" /> },
     { id: 'page-copy', label: isUk ? 'Тексти & FAQ' : 'Тексты & FAQ', icon: <FileText className="w-4 h-4" />, badge: 'CMS' },
-    { id: 'organizer', label: isUk ? 'Організатор портфоліо' : 'Организатор портфолио', icon: <LayoutGrid className="w-4 h-4" />, badge: 'NEW' },
+    { id: 'content', label: isUk ? 'Єдиний контент' : 'Единый контент', icon: <LayoutGrid className="w-4 h-4" />, badge: 'NEW' },
+    { id: 'organizer', label: isUk ? 'Організатор портфоліо' : 'Организатор портфолио', icon: <LayoutGrid className="w-4 h-4" /> },
     { id: 'seo-quality', label: 'SEO & Quality', icon: <FileSearch className="w-4 h-4" />, badge: '3.0' },
-    { id: 'cases', label: isUk ? 'Кейси студії' : 'Кейсы студии', icon: <Briefcase className="w-4 h-4" /> },
-    { id: 'galleries', label: isUk ? 'Фотогалереї' : 'Фотогалереи', icon: <Images className="w-4 h-4" /> },
-    { id: 'videos', label: isUk ? 'Відеопортфоліо' : 'Видеопортфолио', icon: <Film className="w-4 h-4" /> },
     { id: 'relations', label: isUk ? 'Зв’язки портфоліо' : 'Связи портфолио', icon: <Link2 className="w-4 h-4" /> },
     { id: 'media', label: isUk ? 'Медіатека' : 'Медиатека', icon: <FolderOpen className="w-4 h-4" /> },
     { id: 'diagnostics', label: isUk ? 'Діагностика CMS' : 'Диагностика CMS', icon: <Activity className="w-4 h-4" /> },
     { id: 'testimonials', label: isUk ? 'Відгуки клієнтів' : 'Отзывы клиентов', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'backstage', label: isUk ? 'ПТС та Бекстейдж' : 'ПТС и Бэкстейдж', icon: <Radio className="w-4 h-4" /> },
     { id: 'leads', label: 'Заявки / CRM', icon: <Inbox className="w-4 h-4" /> },
-    { id: 'articles', label: isUk ? 'Статті' : 'Статьи', icon: <FileText className="w-4 h-4" /> },
   ];
 
   return (
@@ -133,18 +124,15 @@ export function AdminDashboard() {
           {activeTab === 'settings' && <SiteSettingsEditor />}
           {activeTab === 'pages' && <PageContentManager />}
           {activeTab === 'page-copy' && <PageCopyManager />}
+          {activeTab === 'content' && <UnifiedContentManager />}
           {activeTab === 'organizer' && <PortfolioOrganizer />}
           {activeTab === 'seo-quality' && <SeoQualityManager />}
-          {activeTab === 'cases' && <CasesManager />}
-          {activeTab === 'galleries' && <GalleriesManager />}
-          {activeTab === 'videos' && <VideosManager />}
           {activeTab === 'relations' && <RelationsManager />}
           {activeTab === 'media' && <MediaLibraryManager />}
           {activeTab === 'diagnostics' && <CmsDiagnostics />}
           {activeTab === 'testimonials' && <TestimonialsManager />}
           {activeTab === 'backstage' && <BackstageManager />}
           {activeTab === 'leads' && <LeadsCRM />}
-          {activeTab === 'articles' && <ArticlesManager />}
         </Suspense>
       </div>
     </div>
