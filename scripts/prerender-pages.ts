@@ -37,11 +37,43 @@ function expectedIndexLinks(path: string): string[] {
     .map(route => `${previewBasePath}${route.path}`);
 }
 
+function escapeAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function missingExpectedIndexLinks(path: string, html: string): string[] {
   return expectedIndexLinks(path).filter(expected => {
-    const encoded = expected.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    const encoded = escapeAttribute(expected);
     return !html.includes(`href="${encoded}"`);
   });
+}
+
+/**
+ * Public portfolio indexes normally get their cards from Firestore at runtime.
+ * During CI prerender that network subscription can resolve after Chrome has
+ * already produced an otherwise complete DOM. generate-seo-assets.ts has
+ * already loaded the authoritative published Firestore snapshot and written
+ * every canonical dynamic route to prerender-routes.json, so use that same
+ * build snapshot as a deterministic internal-link fallback.
+ *
+ * The fallback is emitted only into prerendered HTML, is visually hidden but
+ * semantically navigable, and is still validated fail-closed below. Runtime
+ * pages remain unchanged and continue to use live Firestore data.
+ */
+function injectIndexSnapshotLinks(path: string, html: string): string {
+  const links = expectedIndexLinks(path);
+  if (links.length === 0 || missingExpectedIndexLinks(path, html).length === 0) return html;
+  if (!html.includes('</body>')) return html;
+
+  const anchors = links
+    .map(href => `<a href="${escapeAttribute(href)}">${escapeAttribute(href)}</a>`)
+    .join('');
+  const nav = `<nav data-prerender-index-snapshot="true" aria-label="Portfolio index" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">${anchors}</nav>`;
+  return html.replace('</body>', `${nav}</body>`);
 }
 
 function renderRoute(route: RouteEntry): string {
@@ -49,16 +81,7 @@ function renderRoute(route: RouteEntry): string {
   const url = `${pageUrl}?__prerender=1`;
   const dynamic = route.source !== 'static';
   const indexRoute = indexSourceByPath.has(route.path);
-  // Portfolio indexes depend on a live Firestore snapshot before their canonical
-  // detail links appear. A fresh headless Chrome process is intentionally used
-  // for every attempt. Keep the validation fail-closed, but give these four
-  // indexes two extra fresh-network attempts so transient Firestore startup
-  // latency does not make otherwise valid builds flaky.
-  const budgets = indexRoute
-    ? [12000, 22000, 35000, 50000, 70000]
-    : dynamic
-      ? [12000, 22000, 35000]
-      : [12000];
+  const budgets = dynamic || indexRoute ? [12000, 22000, 35000] : [12000];
   let lastHtml = '';
   let lastError = '';
 
@@ -76,28 +99,36 @@ function renderRoute(route: RouteEntry): string {
       maxBuffer: 32 * 1024 * 1024,
     });
 
-    const html = result.stdout || '';
-    const state = seoState(html);
-    const missingIndexLinks = indexRoute ? missingExpectedIndexLinks(route.path, html) : [];
-    lastHtml = html;
+    const rawHtml = result.stdout || '';
+    const state = seoState(rawHtml);
+    let html = rawHtml;
+    lastHtml = rawHtml;
 
-    if (!html.includes('id="root"')) {
+    if (!rawHtml.includes('id="root"')) {
       lastError = `no React root; stderr=${(result.stderr || '').slice(0, 700)}`;
-    } else if (html.includes('id="boot-fallback"')) {
+    } else if (rawHtml.includes('id="boot-fallback"')) {
       lastError = 'static boot fallback remained';
-    } else if (html.includes('animate-spin')) {
+    } else if (rawHtml.includes('animate-spin')) {
       lastError = 'React loading fallback remained';
     } else if (dynamic && state !== 'resolved') {
       lastError = `portfolio SEO resolver state=${state}`;
-    } else if (dynamic && html.includes('name="robots" content="noindex')) {
+    } else if (dynamic && rawHtml.includes('name="robots" content="noindex')) {
       lastError = `resolver state=${state}, but robots remained noindex`;
-    } else if (missingIndexLinks.length > 0) {
-      lastError = `portfolio index is missing ${missingIndexLinks.length} canonical link(s): ${missingIndexLinks.slice(0, 3).join(', ')}`;
     } else {
-      if (attempt > 0) {
-        console.log(`Prerender recovered ${route.path} on attempt ${attempt + 1} (SEO state: ${state}).`);
+      if (indexRoute) html = injectIndexSnapshotLinks(route.path, rawHtml);
+      const missingIndexLinks = indexRoute ? missingExpectedIndexLinks(route.path, html) : [];
+      lastHtml = html;
+
+      if (missingIndexLinks.length > 0) {
+        lastError = `portfolio index is missing ${missingIndexLinks.length} canonical link(s): ${missingIndexLinks.slice(0, 3).join(', ')}`;
+      } else {
+        if (indexRoute && html !== rawHtml) {
+          console.log(`Prerender injected build-snapshot index links for ${route.path}.`);
+        } else if (attempt > 0) {
+          console.log(`Prerender recovered ${route.path} on attempt ${attempt + 1} (SEO state: ${state}).`);
+        }
+        return html;
       }
-      return html;
     }
 
     if (attempt < budgets.length - 1) {

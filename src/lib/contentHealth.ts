@@ -4,6 +4,7 @@ import { seoFieldName } from './seoOverrides';
 
 export type ContentHealthArea = 'publish' | 'localization' | 'seo' | 'media' | 'taxonomy' | 'relations';
 export type ContentHealthSeverity = 'error' | 'warning' | 'info';
+export type ContentHealthGrade = 'excellent' | 'good' | 'needs-work' | 'critical';
 
 export interface ContentHealthIssue {
   id: string;
@@ -22,7 +23,7 @@ export interface ContentHealthCheck {
 
 export interface ContentHealthReport {
   score: number;
-  grade: 'excellent' | 'good' | 'needs-work' | 'critical';
+  grade: ContentHealthGrade;
   issues: ContentHealthIssue[];
   checks: ContentHealthCheck[];
   publishIssues: PublishQualityIssue[];
@@ -182,7 +183,7 @@ export function evaluateContentHealth(
   const uniqueIssues = Array.from(new Map(issues.map(issue => [issue.id, issue])).values());
   const penalty = uniqueIssues.reduce((sum, issue) => sum + (issue.severity === 'error' ? 30 : issue.severity === 'warning' ? 10 : 3), 0);
   const score = Math.max(0, Math.min(100, 100 - penalty));
-  const grade: ContentHealthReport['grade'] = score >= 90 ? 'excellent' : score >= 75 ? 'good' : score >= 50 ? 'needs-work' : 'critical';
+  const grade: ContentHealthGrade = score >= 90 ? 'excellent' : score >= 75 ? 'good' : score >= 50 ? 'needs-work' : 'critical';
 
   return { score, grade, issues: uniqueIssues, checks, publishIssues };
 }
