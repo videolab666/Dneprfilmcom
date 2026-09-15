@@ -20,6 +20,7 @@ import {
   FileSearch,
 } from 'lucide-react';
 import { useSiteContent } from '../context/SiteContentContext';
+import type { PublishQualityType } from '../lib/publishQuality';
 
 const BlocksManager = lazy(() => import('../components/admin/BlocksManager').then(module => ({ default: module.BlocksManager })));
 const SiteSettingsEditor = lazy(() => import('../components/admin/SiteSettingsEditor').then(module => ({ default: module.SiteSettingsEditor })));
@@ -44,6 +45,12 @@ interface NavItem {
   badge?: string;
 }
 
+interface ContentFocusTarget {
+  type: PublishQualityType;
+  id: string;
+  requestKey: number;
+}
+
 function AdminPanelFallback() {
   return (
     <div className="flex min-h-64 items-center justify-center rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -59,10 +66,16 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const { settings, isUk } = useSiteContent();
   const [activeTab, setActiveTab] = useState<AdminTab>('blocks');
+  const [contentFocus, setContentFocus] = useState<ContentFocusTarget | null>(null);
 
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/admin/login', { replace: true });
+  };
+
+  const openUnifiedContent = (target?: { type: PublishQualityType; id: string }) => {
+    setContentFocus(target ? { ...target, requestKey: Date.now() } : null);
+    setActiveTab('content');
   };
 
   const navItems: NavItem[] = [
@@ -70,12 +83,12 @@ export function AdminDashboard() {
     { id: 'settings', label: isUk ? 'Головна & Засновник' : 'Главная & Основатель', icon: <Sliders className="w-4 h-4" /> },
     { id: 'pages', label: isUk ? 'Контент сторінок' : 'Контент страниц', icon: <Layers className="w-4 h-4" /> },
     { id: 'page-copy', label: isUk ? 'Тексти & FAQ' : 'Тексты & FAQ', icon: <FileText className="w-4 h-4" />, badge: 'CMS' },
-    { id: 'content', label: isUk ? 'Єдиний контент' : 'Единый контент', icon: <LayoutGrid className="w-4 h-4" />, badge: '2.0' },
+    { id: 'content', label: isUk ? 'Єдиний контент' : 'Единый контент', icon: <LayoutGrid className="w-4 h-4" />, badge: '2.1' },
     { id: 'organizer', label: isUk ? 'Організатор портфоліо' : 'Организатор портфолио', icon: <LayoutGrid className="w-4 h-4" /> },
     { id: 'seo-quality', label: 'SEO & Quality', icon: <FileSearch className="w-4 h-4" />, badge: '3.0' },
     { id: 'relations', label: isUk ? 'Зв’язки портфоліо' : 'Связи портфолио', icon: <Link2 className="w-4 h-4" /> },
     { id: 'media', label: isUk ? 'Медіатека' : 'Медиатека', icon: <FolderOpen className="w-4 h-4" /> },
-    { id: 'diagnostics', label: isUk ? 'Здоров’я CMS' : 'Здоровье CMS', icon: <Activity className="w-4 h-4" />, badge: '2.0' },
+    { id: 'diagnostics', label: isUk ? 'Здоров’я CMS' : 'Здоровье CMS', icon: <Activity className="w-4 h-4" />, badge: '2.1' },
     { id: 'testimonials', label: isUk ? 'Відгуки клієнтів' : 'Отзывы клиентов', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'backstage', label: isUk ? 'ПТС та Бекстейдж' : 'ПТС и Бэкстейдж', icon: <Radio className="w-4 h-4" /> },
     { id: 'leads', label: 'Заявки / CRM', icon: <Inbox className="w-4 h-4" /> },
@@ -124,12 +137,12 @@ export function AdminDashboard() {
           {activeTab === 'settings' && <SiteSettingsEditor />}
           {activeTab === 'pages' && <PageContentManager />}
           {activeTab === 'page-copy' && <PageCopyManager />}
-          {activeTab === 'content' && <UnifiedContentManager />}
+          {activeTab === 'content' && <UnifiedContentManager focusTarget={contentFocus} onFocusHandled={() => setContentFocus(null)} />}
           {activeTab === 'organizer' && <PortfolioOrganizer />}
           {activeTab === 'seo-quality' && <SeoQualityManager />}
           {activeTab === 'relations' && <RelationsManager />}
           {activeTab === 'media' && <MediaLibraryManager />}
-          {activeTab === 'diagnostics' && <CmsDiagnostics onOpenContent={() => setActiveTab('content')} />}
+          {activeTab === 'diagnostics' && <CmsDiagnostics onOpenContent={openUnifiedContent} />}
           {activeTab === 'testimonials' && <TestimonialsManager />}
           {activeTab === 'backstage' && <BackstageManager />}
           {activeTab === 'leads' && <LeadsCRM />}

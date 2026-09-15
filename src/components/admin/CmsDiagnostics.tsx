@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   ShieldX,
   TriangleAlert,
+  Wrench,
   XCircle,
 } from 'lucide-react';
 import {
@@ -26,11 +27,18 @@ import {
   type DiagnosticIssue,
   type SecurityProbeCheck,
 } from '../../lib/cmsDiagnostics';
+import {
+  applyDiagnosticSafeFix,
+  diagnosticSafeFix,
+} from '../../lib/cmsDiagnosticFixes';
 import type { ContentHealthIssue } from '../../lib/contentHealth';
 import type { PublishQualityType } from '../../lib/publishQuality';
 
+type ContentTarget = { type: PublishQualityType; id: string };
+type OpenContentHandler = (target?: ContentTarget) => void;
+
 interface CmsDiagnosticsProps {
-  onOpenContent?: () => void;
+  onOpenContent?: OpenContentHandler;
 }
 
 type SeverityFilter = 'all' | 'error' | 'warning' | 'info';
@@ -111,8 +119,23 @@ function SecurityCheck({ check }: { check: SecurityProbeCheck; key?: string }) {
   );
 }
 
-function DiagnosticIssueRow({ issue, onOpenContent }: { issue: DiagnosticIssue; onOpenContent?: () => void; key?: string }) {
+function DiagnosticIssueRow({
+  issue,
+  onOpenContent,
+  onSafeFix,
+  fixingIssueId,
+}: {
+  issue: DiagnosticIssue;
+  onOpenContent?: OpenContentHandler;
+  onSafeFix?: (issue: DiagnosticIssue) => void;
+  fixingIssueId?: string | null;
+  key?: string;
+}) {
   const Icon = issue.severity === 'error' ? XCircle : issue.severity === 'warning' ? AlertTriangle : Activity;
+  const safeFix = diagnosticSafeFix(issue);
+  const exactTarget = issue.entityType && issue.entityId ? { type: issue.entityType, id: issue.entityId } : null;
+  const fixing = fixingIssueId === issue.id;
+
   return (
     <div className={`rounded-xl border px-4 py-3 ${severityTone(issue.severity)}`}>
       <div className="flex items-start gap-3">
@@ -120,11 +143,20 @@ function DiagnosticIssueRow({ issue, onOpenContent }: { issue: DiagnosticIssue; 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold">{issue.title}</p>
           <p className="mt-1 break-words text-xs opacity-80">{issue.detail}</p>
-          {(issue.entityId || issue.publicPath) && (
+          {(issue.entityId || issue.publicPath || safeFix) && (
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold">
               {issue.entityId && <span className="rounded-md bg-white/70 px-2 py-1">ID: {issue.entityId}</span>}
               {issue.publicPath && <Link to={issue.publicPath} target="_blank" className="inline-flex items-center gap-1 rounded-md bg-white/70 px-2 py-1 hover:bg-white"><ExternalLink className="h-3 w-3" />Public</Link>}
-              {issue.entityType && onOpenContent && <button type="button" onClick={onOpenContent} className="inline-flex items-center gap-1 rounded-md bg-white/70 px-2 py-1 hover:bg-white">Unified Editor <ArrowRight className="h-3 w-3" /></button>}
+              {exactTarget && onOpenContent && (
+                <button type="button" onClick={() => onOpenContent(exactTarget)} className="inline-flex items-center gap-1 rounded-md bg-white/70 px-2 py-1 hover:bg-white">
+                  Unified Editor <ArrowRight className="h-3 w-3" />
+                </button>
+              )}
+              {safeFix && onSafeFix && (
+                <button type="button" disabled={Boolean(fixingIssueId)} onClick={() => onSafeFix(issue)} className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-white hover:bg-emerald-700 disabled:opacity-50">
+                  <Wrench className={`h-3 w-3 ${fixing ? 'animate-pulse' : ''}`} />{fixing ? 'Исправление…' : safeFix.label}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -133,11 +165,20 @@ function DiagnosticIssueRow({ issue, onOpenContent }: { issue: DiagnosticIssue; 
   );
 }
 
-function IssuesSection({ title, items, emptyText, onOpenContent }: {
+function IssuesSection({
+  title,
+  items,
+  emptyText,
+  onOpenContent,
+  onSafeFix,
+  fixingIssueId,
+}: {
   title: string;
   items: DiagnosticIssue[];
   emptyText: string;
-  onOpenContent?: () => void;
+  onOpenContent?: OpenContentHandler;
+  onSafeFix?: (issue: DiagnosticIssue) => void;
+  fixingIssueId?: string | null;
 }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -148,7 +189,9 @@ function IssuesSection({ title, items, emptyText, onOpenContent }: {
       {items.length === 0 ? (
         <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"><CheckCircle2 className="h-4 w-4" />{emptyText}</div>
       ) : (
-        <div className="max-h-[34rem] space-y-2 overflow-auto pr-1">{items.map(issue => <DiagnosticIssueRow key={issue.id} issue={issue} onOpenContent={onOpenContent} />)}</div>
+        <div className="max-h-[34rem] space-y-2 overflow-auto pr-1">
+          {items.map(issue => <DiagnosticIssueRow key={issue.id} issue={issue} onOpenContent={onOpenContent} onSafeFix={onSafeFix} fixingIssueId={fixingIssueId} />)}
+        </div>
       )}
     </section>
   );
@@ -169,7 +212,7 @@ function HealthIssueRow({ issue }: { issue: ContentHealthIssue; key?: string }) 
   );
 }
 
-function HealthEntityCard({ item, onOpenContent }: { item: ContentHealthEntity; onOpenContent?: () => void; key?: string }) {
+function HealthEntityCard({ item, onOpenContent }: { item: ContentHealthEntity; onOpenContent?: OpenContentHandler; key?: string }) {
   const Icon = TYPE_META[item.type].icon;
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -193,7 +236,7 @@ function HealthEntityCard({ item, onOpenContent }: { item: ContentHealthEntity; 
       {item.issues.length > 0 && <div className="mt-3 space-y-1.5">{item.issues.slice(0, 4).map(issue => <HealthIssueRow key={issue.id} issue={issue} />)}{item.issues.length > 4 && <div className="px-1 text-[10px] font-bold text-slate-400">Ещё замечаний: {item.issues.length - 4}</div>}</div>}
 
       <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-3">
-        {onOpenContent && <button type="button" onClick={onOpenContent} className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3 py-2 text-[11px] font-black text-white hover:bg-indigo-600">Unified Editor <ArrowRight className="h-3.5 w-3.5" /></button>}
+        {onOpenContent && <button type="button" onClick={() => onOpenContent({ type: item.type, id: item.id })} className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3 py-2 text-[11px] font-black text-white hover:bg-indigo-600">Открыть в редакторе <ArrowRight className="h-3.5 w-3.5" /></button>}
         {item.published && <Link to={item.publicPath} target="_blank" className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-600 hover:border-indigo-200 hover:text-indigo-700"><ExternalLink className="h-3.5 w-3.5" />Public</Link>}
         <span className="ml-auto truncate text-[10px] text-slate-400" title={item.id}>{item.id}</span>
       </div>
@@ -205,6 +248,8 @@ export function CmsDiagnostics({ onOpenContent }: CmsDiagnosticsProps = {}) {
   const [report, setReport] = useState<CmsDiagnosticsReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [fixMessage, setFixMessage] = useState('');
+  const [fixingIssueId, setFixingIssueId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<'all' | PublishQualityType>('all');
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -224,6 +269,25 @@ export function CmsDiagnostics({ onOpenContent }: CmsDiagnosticsProps = {}) {
   };
 
   useEffect(() => { void load(); }, []);
+
+  const applySafeFix = async (issue: DiagnosticIssue) => {
+    const fix = diagnosticSafeFix(issue);
+    if (!fix || fixingIssueId) return;
+    if (!window.confirm(fix.confirm)) return;
+    setFixingIssueId(issue.id);
+    setFixMessage('');
+    setError('');
+    try {
+      const message = await applyDiagnosticSafeFix(issue);
+      setFixMessage(message);
+      await load();
+    } catch (fixError) {
+      console.error('CMS safe fix failed:', fixError);
+      setError(fixError instanceof Error ? fixError.message : String(fixError));
+    } finally {
+      setFixingIssueId(null);
+    }
+  };
 
   const filteredHealth = useMemo(() => {
     if (!report) return [];
@@ -256,16 +320,17 @@ export function CmsDiagnostics({ onOpenContent }: CmsDiagnosticsProps = {}) {
     <div className="space-y-6">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-start">
-          <div><div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-indigo-700"><CircleGauge className="h-3.5 w-3.5" />Content Health Dashboard 2.0</div><h2 className="mt-2 text-2xl font-black text-slate-950">Состояние CMS</h2><p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500">Единая проверка Cases / Galleries / Videos / Articles теми же health и Publish Quality валидаторами, которые используются внутри Unified Content Editor.</p><p className="mt-2 text-xs text-slate-400">Последняя проверка: {formatDate(report.generatedAt)}</p></div>
-          <div className="flex flex-wrap gap-2">{onOpenContent && <button type="button" onClick={onOpenContent} className="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-black text-indigo-700 hover:bg-indigo-100">Unified Editor <ArrowRight className="h-4 w-4" /></button>}<button onClick={() => void load()} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />Проверить заново</button></div>
+          <div><div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-indigo-700"><CircleGauge className="h-3.5 w-3.5" />Content Health Dashboard 2.1</div><h2 className="mt-2 text-2xl font-black text-slate-950">Состояние CMS</h2><p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500">Единая проверка Cases / Galleries / Videos / Articles с точным переходом в Unified Editor и безопасными механическими исправлениями.</p><p className="mt-2 text-xs text-slate-400">Последняя проверка: {formatDate(report.generatedAt)}</p></div>
+          <div className="flex flex-wrap gap-2">{onOpenContent && <button type="button" onClick={() => onOpenContent()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-black text-indigo-700 hover:bg-indigo-100">Unified Editor <ArrowRight className="h-4 w-4" /></button>}<button onClick={() => void load()} disabled={loading || Boolean(fixingIssueId)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />Проверить заново</button></div>
         </div>
       </section>
 
-      {error && <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Последнее обновление завершилось с ошибкой: {error}. Ниже показан предыдущий успешный отчёт.</div>}
+      {fixMessage && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{fixMessage}</div>}
+      {error && <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Последняя операция завершилась с ошибкой: {error}. Ниже показан последний успешный отчёт.</div>}
 
       <section className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
         <div className={`rounded-3xl border p-6 shadow-sm ${scoreTone(report.health.score)}`}><div className="text-xs font-black uppercase tracking-[0.16em] opacity-70">Overall health</div><div className="mt-3 flex items-end gap-2"><span className="text-6xl font-black leading-none">{report.health.score}</span><span className="pb-1 text-sm font-black opacity-60">/100</span></div><div className="mt-2 text-sm font-black">{scoreLabel(report.health.score)}</div><div className="mt-5 grid grid-cols-2 gap-2 text-center text-xs font-bold"><div className="rounded-xl bg-white/60 p-2"><div className="text-lg font-black text-red-700">{report.health.errors}</div><div className="opacity-60">errors</div></div><div className="rounded-xl bg-white/60 p-2"><div className="text-lg font-black text-amber-700">{report.health.warnings}</div><div className="opacity-60">warnings</div></div><div className="rounded-xl bg-white/60 p-2"><div className="text-lg font-black text-emerald-700">{report.health.excellent}</div><div className="opacity-60">excellent</div></div><div className="rounded-xl bg-white/60 p-2"><div className="text-lg font-black">{report.health.critical}</div><div className="opacity-60">critical</div></div></div></div>
-        <div className={`rounded-3xl border p-6 ${problemCount === 0 ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}><div className="flex items-start gap-3">{problemCount === 0 ? <CheckCircle2 className="mt-0.5 h-6 w-6 text-emerald-600" /> : <TriangleAlert className="mt-0.5 h-6 w-6 text-amber-600" />}<div><p className="font-black text-slate-900">{problemCount === 0 ? 'Контент и инфраструктура без критических замечаний' : `Требуют внимания: ${problemCount} сигналов`}</p><p className="mt-1 text-sm text-slate-600">Health-score учитывает localization, SEO, media, taxonomy, relations и Publish Quality. Orphan-файлы показаны отдельно и не считаются автоматической ошибкой.</p></div></div><div className="mt-5 grid gap-3 sm:grid-cols-4"><div className="rounded-xl bg-white/70 p-3"><div className="text-2xl font-black text-slate-900">{report.health.total}</div><div className="text-xs text-slate-500">материалов</div></div><div className="rounded-xl bg-white/70 p-3"><div className="text-2xl font-black text-emerald-700">{report.health.excellent + report.health.good}</div><div className="text-xs text-slate-500">healthy / good</div></div><div className="rounded-xl bg-white/70 p-3"><div className="text-2xl font-black text-amber-700">{report.health.needsWork}</div><div className="text-xs text-slate-500">needs work</div></div><div className="rounded-xl bg-white/70 p-3"><div className="text-2xl font-black text-blue-700">{report.health.infos}</div><div className="text-xs text-slate-500">recommendations</div></div></div></div>
+        <div className={`rounded-3xl border p-6 ${problemCount === 0 ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}><div className="flex items-start gap-3">{problemCount === 0 ? <CheckCircle2 className="mt-0.5 h-6 w-6 text-emerald-600" /> : <TriangleAlert className="mt-0.5 h-6 w-6 text-amber-600" />}<div><p className="font-black text-slate-900">{problemCount === 0 ? 'Контент и инфраструктура без критических замечаний' : `Требуют внимания: ${problemCount} сигналов`}</p><p className="mt-1 text-sm text-slate-600">Автоисправления доступны только для однозначных структурных операций. Контент, SEO, taxonomy и publish status меняются только вручную через редактор.</p></div></div><div className="mt-5 grid gap-3 sm:grid-cols-4"><div className="rounded-xl bg-white/70 p-3"><div className="text-2xl font-black text-slate-900">{report.health.total}</div><div className="text-xs text-slate-500">материалов</div></div><div className="rounded-xl bg-white/70 p-3"><div className="text-2xl font-black text-emerald-700">{report.health.excellent + report.health.good}</div><div className="text-xs text-slate-500">healthy / good</div></div><div className="rounded-xl bg-white/70 p-3"><div className="text-2xl font-black text-amber-700">{report.health.needsWork}</div><div className="text-xs text-slate-500">needs work</div></div><div className="rounded-xl bg-white/70 p-3"><div className="text-2xl font-black text-blue-700">{report.health.infos}</div><div className="text-xs text-slate-500">recommendations</div></div></div></div>
       </section>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><CountCard title="Cases" {...report.counts.cases} score={report.health.byType.case.score} /><CountCard title="Galleries" {...report.counts.galleries} score={report.health.byType.gallery.score} /><CountCard title="Video Projects" {...report.counts.videos} score={report.health.byType.video.score} /><CountCard title="Articles" {...report.counts.articles} score={report.health.byType.article.score} /></div>
@@ -277,7 +342,11 @@ export function CmsDiagnostics({ onOpenContent }: CmsDiagnosticsProps = {}) {
 
       {filteredHealth.length === 0 ? <div className="rounded-3xl border border-dashed border-emerald-300 bg-emerald-50 p-10 text-center text-sm font-bold text-emerald-800">По выбранным фильтрам проблемных материалов нет.</div> : <div className="grid gap-4 lg:grid-cols-2">{filteredHealth.map(item => <HealthEntityCard key={item.key} item={item} onOpenContent={onOpenContent} />)}</div>}
 
-      <div className="grid gap-6 xl:grid-cols-3"><IssuesSection title="Дубли slug / title" items={report.duplicateIssues} emptyText="Дубли slug/title не найдены." onOpenContent={onOpenContent} /><IssuesSection title={`Связи portfolio + articles · ${report.counts.relations}`} items={report.relationIssues} emptyText="Portfolio и Article relations консистентны." onOpenContent={onOpenContent} /><IssuesSection title="Структурные media-поля" items={report.contentIssues} emptyText="Пустые media-элементы не найдены." onOpenContent={onOpenContent} /></div>
+      <div className="grid gap-6 xl:grid-cols-3">
+        <IssuesSection title="Дубли slug / title" items={report.duplicateIssues} emptyText="Дубли slug/title не найдены." onOpenContent={onOpenContent} onSafeFix={applySafeFix} fixingIssueId={fixingIssueId} />
+        <IssuesSection title={`Связи portfolio + articles · ${report.counts.relations}`} items={report.relationIssues} emptyText="Portfolio и Article relations консистентны." onOpenContent={onOpenContent} onSafeFix={applySafeFix} fixingIssueId={fixingIssueId} />
+        <IssuesSection title="Структурные media-поля" items={report.contentIssues} emptyText="Пустые media-элементы не найдены." onOpenContent={onOpenContent} onSafeFix={applySafeFix} fixingIssueId={fixingIssueId} />
+      </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3"><div><h3 className="font-black text-slate-900">Media Library</h3><p className="mt-1 text-xs text-slate-500">Реестр и фактические Cloudinary-ссылки, найденные в контенте CMS.</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">{report.media.total} файлов</span></div>

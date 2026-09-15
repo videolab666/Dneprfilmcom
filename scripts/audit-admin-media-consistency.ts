@@ -106,13 +106,23 @@ const checks: Array<{ file: string; mustContain: string[]; mustNotContain?: stri
     mustNotContain: ["getDocs(collection(db, 'site_settings'))", "getDocs(collection(db, 'cases'))"],
   },
   {
-    file: 'scripts/generate-seo-assets.ts',
+    file: 'scripts/generate-seo-assets-once.ts',
     mustContain: [
       "where('published', '==', true)",
       "where('kind', '==', 'gallery')",
       "where('kind', '==', 'video_project')",
     ],
     mustNotContain: ["getDocs(collection(db, 'site_settings'))", "getDocs(collection(db, 'cases'))"],
+  },
+  {
+    file: 'scripts/generate-seo-assets.ts',
+    mustContain: [
+      "['scripts/generate-seo-assets-once.ts']",
+      'dynamic > 0',
+      'records === dynamic',
+      'delays = [0, 1500, 3500, 7000]',
+      'Refusing to continue with a static-only manifest',
+    ],
   },
 ];
 
