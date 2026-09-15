@@ -79,13 +79,15 @@ jobs:
             "https://videolab666.github.io${asset_path}?__production_health=${GITHUB_RUN_ID}"
           test -s /tmp/production-app.js
 
+          # Only static/prerendered public routes are required to return HTTP 200 here.
+          # Client-only SPA routes such as /admin/login are covered by the deployment browser smoke test;
+          # GitHub Pages may serve those through 404.html with an HTTP 404 before React takes over.
           routes=(
             ''
             'cases/'
             'galleries/'
             'videos/'
             'media-center/'
-            'admin/login/'
           )
 
           for route in "${routes[@]}"; do
