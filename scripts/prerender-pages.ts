@@ -52,28 +52,55 @@ function missingExpectedIndexLinks(path: string, html: string): string[] {
   });
 }
 
+function unexpectedIndexLinks(path: string, html: string): string[] {
+  const expected = new Set(expectedIndexLinks(path).map(escapeAttribute));
+  const prefix = escapeAttribute(`${previewBasePath}${path}/`);
+  const unexpected = new Set<string>();
+  for (const match of html.matchAll(/href="([^"]+)"/g)) {
+    const href = match[1];
+    if (href.startsWith(prefix) && !expected.has(href)) unexpected.add(href);
+  }
+  return Array.from(unexpected);
+}
+
+function stripUnexpectedIndexLinks(path: string, html: string): string {
+  const unexpected = new Set(unexpectedIndexLinks(path, html));
+  if (unexpected.size === 0) return html;
+  return html.replace(/href="([^"]+)"/g, (attribute, href: string) =>
+    unexpected.has(href)
+      ? `data-prerender-stale-href="${href}"`
+      : attribute,
+  );
+}
+
 /**
  * Public portfolio indexes normally get their cards from Firestore at runtime.
  * During CI prerender that network subscription can resolve after Chrome has
  * already produced an otherwise complete DOM. generate-seo-assets.ts has
  * already loaded the authoritative published Firestore snapshot and written
  * every canonical dynamic route to prerender-routes.json, so use that same
- * build snapshot as a deterministic internal-link fallback.
+ * build snapshot as the deterministic source of internal detail links.
  *
- * The fallback is emitted only into prerendered HTML, is visually hidden but
- * semantically navigable, and is still validated fail-closed below. Runtime
- * pages remain unchanged and continue to use live Firestore data.
+ * Runtime fallback cards can briefly expose stale legacy hrefs before the live
+ * Firestore subscription settles. Those hrefs are removed from prerendered HTML
+ * when they are not present in the build manifest, then any missing canonical
+ * links are emitted in a visually hidden semantic nav. Runtime pages remain
+ * unchanged and continue to use live Firestore data.
  */
-function injectIndexSnapshotLinks(path: string, html: string): string {
+function normalizeIndexSnapshotLinks(path: string, html: string): string {
   const links = expectedIndexLinks(path);
-  if (links.length === 0 || missingExpectedIndexLinks(path, html).length === 0) return html;
-  if (!html.includes('</body>')) return html;
+  if (links.length === 0) return html;
+
+  let normalized = stripUnexpectedIndexLinks(path, html);
+  if (missingExpectedIndexLinks(path, normalized).length === 0) return normalized;
+  if (!normalized.includes('</body>')) return normalized;
 
   const anchors = links
     .map(href => `<a href="${escapeAttribute(href)}">${escapeAttribute(href)}</a>`)
     .join('');
   const nav = `<nav data-prerender-index-snapshot="true" aria-label="Portfolio index" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">${anchors}</nav>`;
-  return html.replace('</body>', `${nav}</body>`);
+  normalized = normalized.replace('</body>', `${nav}</body>`);
+  return normalized;
 }
 
 function renderRoute(route: RouteEntry): string {
@@ -115,15 +142,18 @@ function renderRoute(route: RouteEntry): string {
     } else if (dynamic && rawHtml.includes('name="robots" content="noindex')) {
       lastError = `resolver state=${state}, but robots remained noindex`;
     } else {
-      if (indexRoute) html = injectIndexSnapshotLinks(route.path, rawHtml);
+      if (indexRoute) html = normalizeIndexSnapshotLinks(route.path, rawHtml);
       const missingIndexLinks = indexRoute ? missingExpectedIndexLinks(route.path, html) : [];
+      const staleIndexLinks = indexRoute ? unexpectedIndexLinks(route.path, html) : [];
       lastHtml = html;
 
       if (missingIndexLinks.length > 0) {
         lastError = `portfolio index is missing ${missingIndexLinks.length} canonical link(s): ${missingIndexLinks.slice(0, 3).join(', ')}`;
+      } else if (staleIndexLinks.length > 0) {
+        lastError = `portfolio index contains ${staleIndexLinks.length} stale link(s): ${staleIndexLinks.slice(0, 3).join(', ')}`;
       } else {
         if (indexRoute && html !== rawHtml) {
-          console.log(`Prerender injected build-snapshot index links for ${route.path}.`);
+          console.log(`Prerender normalized build-snapshot index links for ${route.path}.`);
         } else if (attempt > 0) {
           console.log(`Prerender recovered ${route.path} on attempt ${attempt + 1} (SEO state: ${state}).`);
         }
