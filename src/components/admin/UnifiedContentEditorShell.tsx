@@ -3,17 +3,20 @@ import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
   CheckCircle2,
+  Cloud,
   ExternalLink,
   Globe2,
+  History,
   Loader2,
   Save,
+  SaveAll,
   ShieldCheck,
   X,
 } from 'lucide-react';
 import type { Locale } from '../../types';
 import type { PublishQualityIssue, PublishQualityType } from '../../lib/publishQuality';
 
-export type UnifiedEditorTabId = 'content' | 'media' | 'taxonomy' | 'relations' | 'seo' | 'preview';
+export type UnifiedEditorTabId = 'content' | 'media' | 'taxonomy' | 'relations' | 'seo' | 'health' | 'preview';
 
 export interface UnifiedEditorSection {
   id: UnifiedEditorTabId;
@@ -39,8 +42,12 @@ interface UnifiedContentEditorShellProps {
   saving: boolean;
   busy?: boolean;
   error?: string;
+  dirty?: boolean;
+  autosavedAt?: number | null;
+  recovered?: boolean;
   onClose: () => void;
   onSubmit: (event: FormEvent) => void;
+  onSaveAndClose?: () => void;
   saveLabel?: string;
 }
 
@@ -56,6 +63,15 @@ const TYPE_LABEL: Record<PublishQualityType, string> = {
   video: 'VIDEO',
   article: 'ARTICLE',
 };
+
+function formatAutosave(value?: number | null): string {
+  if (!value) return '';
+  try {
+    return new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(value));
+  } catch {
+    return '';
+  }
+}
 
 export function UnifiedContentEditorShell({
   type,
@@ -73,12 +89,17 @@ export function UnifiedContentEditorShell({
   saving,
   busy = false,
   error,
+  dirty = false,
+  autosavedAt,
+  recovered = false,
   onClose,
   onSubmit,
+  onSaveAndClose,
   saveLabel = 'Сохранить',
 }: UnifiedContentEditorShellProps) {
   const errors = issues.filter(issue => issue.severity === 'error');
   const warnings = issues.filter(issue => issue.severity === 'warning');
+  const autosaveLabel = formatAutosave(autosavedAt);
 
   return (
     <div className="fixed inset-0 z-[80] overflow-y-auto bg-slate-950/70 p-2 backdrop-blur-sm sm:p-5">
@@ -89,6 +110,9 @@ export function UnifiedContentEditorShell({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-black tracking-[0.16em] text-indigo-700">{TYPE_LABEL[type]}</span>
                 <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${published ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{published ? 'PUBLISHED' : 'DRAFT'}</span>
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${dirty ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-500'}`}>{dirty ? 'UNSAVED' : 'SAVED'}</span>
+                {recovered && <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-black text-blue-700"><History className="h-3 w-3" />RECOVERED</span>}
+                {autosaveLabel && <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2.5 py-1 text-[10px] font-black text-cyan-700"><Cloud className="h-3 w-3" />LOCAL {autosaveLabel}</span>}
                 {errors.length > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-black text-red-700"><AlertTriangle className="h-3 w-3" />{errors.length} error</span>}
                 {warnings.length > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-800"><AlertTriangle className="h-3 w-3" />{warnings.length} warning</span>}
                 {issues.length === 0 && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700"><CheckCircle2 className="h-3 w-3" />READY</span>}
@@ -163,13 +187,17 @@ export function UnifiedContentEditorShell({
           ))}
         </main>
 
-        <footer className="sticky bottom-0 z-20 flex flex-col gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <ShieldCheck className={`h-4 w-4 ${errors.length ? 'text-red-500' : warnings.length ? 'text-amber-500' : 'text-emerald-500'}`} />
-            {errors.length ? `Публикация заблокирована: ${errors.length} критических ошибок` : warnings.length ? `Quality Gate: ${warnings.length} предупреждений` : 'Quality Gate: материал готов к публикации'}
+        <footer className="sticky bottom-0 z-20 flex flex-col gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:flex-row lg:items-center lg:justify-between sm:px-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <ShieldCheck className={`h-4 w-4 ${errors.length ? 'text-red-500' : warnings.length ? 'text-amber-500' : 'text-emerald-500'}`} />
+              {errors.length ? `Публикация заблокирована: ${errors.length} критических ошибок` : warnings.length ? `Quality Gate: ${warnings.length} предупреждений` : 'Quality Gate: материал готов к публикации'}
+            </div>
+            <div className="text-[10px] font-semibold text-slate-400">Command bar: Ctrl/⌘+S — сохранить · локальный draft хранится автоматически при изменениях</div>
           </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700">Отмена</button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700">Закрыть</button>
+            {onSaveAndClose && <button type="button" onClick={onSaveAndClose} disabled={saving || busy} className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-black text-indigo-700 disabled:opacity-50"><SaveAll className="h-4 w-4" />Сохранить и закрыть</button>}
             <button type="submit" disabled={saving || busy} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-black text-white hover:bg-indigo-500 disabled:opacity-50">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? 'Сохранение…' : saveLabel}
