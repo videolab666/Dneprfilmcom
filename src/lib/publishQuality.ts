@@ -73,7 +73,15 @@ function articleBlockImageAltMissing(record: Record<string, unknown>): boolean {
   return ['contentBlocks', 'contentBlocks_uk', 'contentBlocks_en'].some(field =>
     arrayOf(record[field]).some(item => {
       const block = recordOf(item);
-      return text(block, 'type') === 'image' && Boolean(text(block, 'url')) && !text(block, 'alt');
+      const type = text(block, 'type');
+      if (type === 'image') return Boolean(text(block, 'url')) && !text(block, 'alt');
+      if (type === 'gallery') {
+        return arrayOf(block.images).some(imageValue => {
+          const image = recordOf(imageValue);
+          return Boolean(text(image, 'url')) && !text(image, 'alt');
+        });
+      }
+      return false;
     }),
   );
 }
