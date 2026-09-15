@@ -17,6 +17,7 @@ import {
 } from '../lib/seo';
 import type { Article } from '../types';
 import { useSiteContent } from '../context/SiteContentContext';
+import { ArticleRelatedContent } from '../components/article/ArticleRelatedContent';
 
 interface LoadedArticle {
   article: Article;
@@ -210,6 +211,8 @@ export function ArticleDetail() {
           </section>
         )}
       </div>
+
+      <ArticleRelatedContent raw={loaded.raw} />
     </article>
   );
 }
