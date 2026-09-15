@@ -70,12 +70,12 @@ export function AdminDashboard() {
     { id: 'settings', label: isUk ? 'Головна & Засновник' : 'Главная & Основатель', icon: <Sliders className="w-4 h-4" /> },
     { id: 'pages', label: isUk ? 'Контент сторінок' : 'Контент страниц', icon: <Layers className="w-4 h-4" /> },
     { id: 'page-copy', label: isUk ? 'Тексти & FAQ' : 'Тексты & FAQ', icon: <FileText className="w-4 h-4" />, badge: 'CMS' },
-    { id: 'content', label: isUk ? 'Єдиний контент' : 'Единый контент', icon: <LayoutGrid className="w-4 h-4" />, badge: 'NEW' },
+    { id: 'content', label: isUk ? 'Єдиний контент' : 'Единый контент', icon: <LayoutGrid className="w-4 h-4" />, badge: '2.0' },
     { id: 'organizer', label: isUk ? 'Організатор портфоліо' : 'Организатор портфолио', icon: <LayoutGrid className="w-4 h-4" /> },
     { id: 'seo-quality', label: 'SEO & Quality', icon: <FileSearch className="w-4 h-4" />, badge: '3.0' },
     { id: 'relations', label: isUk ? 'Зв’язки портфоліо' : 'Связи портфолио', icon: <Link2 className="w-4 h-4" /> },
     { id: 'media', label: isUk ? 'Медіатека' : 'Медиатека', icon: <FolderOpen className="w-4 h-4" /> },
-    { id: 'diagnostics', label: isUk ? 'Діагностика CMS' : 'Диагностика CMS', icon: <Activity className="w-4 h-4" /> },
+    { id: 'diagnostics', label: isUk ? 'Здоров’я CMS' : 'Здоровье CMS', icon: <Activity className="w-4 h-4" />, badge: '2.0' },
     { id: 'testimonials', label: isUk ? 'Відгуки клієнтів' : 'Отзывы клиентов', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'backstage', label: isUk ? 'ПТС та Бекстейдж' : 'ПТС и Бэкстейдж', icon: <Radio className="w-4 h-4" /> },
     { id: 'leads', label: 'Заявки / CRM', icon: <Inbox className="w-4 h-4" /> },
@@ -129,7 +129,7 @@ export function AdminDashboard() {
           {activeTab === 'seo-quality' && <SeoQualityManager />}
           {activeTab === 'relations' && <RelationsManager />}
           {activeTab === 'media' && <MediaLibraryManager />}
-          {activeTab === 'diagnostics' && <CmsDiagnostics />}
+          {activeTab === 'diagnostics' && <CmsDiagnostics onOpenContent={() => setActiveTab('content')} />}
           {activeTab === 'testimonials' && <TestimonialsManager />}
           {activeTab === 'backstage' && <BackstageManager />}
           {activeTab === 'leads' && <LeadsCRM />}
