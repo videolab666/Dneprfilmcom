@@ -1,4 +1,6 @@
 import { Tags } from 'lucide-react';
+import { articleCategoryLabel } from '../../lib/articleCms';
+import type { ArticleCategory } from '../../types';
 import {
   PORTFOLIO_CATEGORIES,
   getPortfolioCategory,
@@ -19,6 +21,11 @@ function taxonomyRecord(value: Record<string, unknown>): Record<string, unknown>
   return taxonomy && typeof taxonomy === 'object' ? taxonomy as Record<string, unknown> : {};
 }
 
+function objectField(value: Record<string, unknown>, key: string): Record<string, unknown> {
+  const field = value[key];
+  return field && typeof field === 'object' ? field as Record<string, unknown> : {};
+}
+
 export function UnifiedTaxonomyPanel({
   value,
   onPatch,
@@ -32,6 +39,17 @@ export function UnifiedTaxonomyPanel({
 
   const patchTaxonomy = (patch: Record<string, unknown>) => {
     onPatch({ taxonomy: { ...taxonomy, ...patch } });
+  };
+
+  const changeArticleCategory = (next: string) => {
+    onArticleCategoryChange?.(next);
+    const articleCategoryValue = next as ArticleCategory;
+    onPatch({
+      category: next,
+      uk: { ...objectField(value, 'uk'), categoryLabel: articleCategoryLabel(articleCategoryValue, 'uk') },
+      ru: { ...objectField(value, 'ru'), categoryLabel: articleCategoryLabel(articleCategoryValue, 'ru') },
+      en: { ...objectField(value, 'en'), categoryLabel: articleCategoryLabel(articleCategoryValue, 'en') },
+    });
   };
 
   return (
@@ -54,7 +72,7 @@ export function UnifiedTaxonomyPanel({
           {articleCategory !== undefined && onArticleCategoryChange && articleCategories && (
             <label className="text-xs font-bold text-slate-700">
               Media Center category
-              <select value={articleCategory} onChange={event => onArticleCategoryChange(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal text-sm">
+              <select value={articleCategory} onChange={event => changeArticleCategory(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal text-sm">
                 {articleCategories.map(item => <option key={item} value={item}>{item}</option>)}
               </select>
             </label>
