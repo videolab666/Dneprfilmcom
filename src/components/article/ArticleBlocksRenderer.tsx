@@ -85,16 +85,19 @@ export function ArticleBlocksRenderer({ blocks }: ArticleBlocksRendererProps) {
             </div>
           );
         }
-        return (
-          <section key={block.id} className="my-10 space-y-3">
-            {block.items.map((item, index) => (
-              <details key={`${block.id}-${index}`} className="group rounded-2xl border border-slate-200 bg-white p-4 open:bg-slate-50">
-                <summary className="cursor-pointer list-none pr-6 font-black text-slate-950">{item.question}</summary>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{item.answer}</p>
-              </details>
-            ))}
-          </section>
-        );
+        if (block.type === 'faq' && 'items' in block) {
+          return (
+            <section key={block.id} className="my-10 space-y-3">
+              {block.items.map((item, index) => (
+                <details key={`${block.id}-${index}`} className="group rounded-2xl border border-slate-200 bg-white p-4 open:bg-slate-50">
+                  <summary className="cursor-pointer list-none pr-6 font-black text-slate-950">{item.question}</summary>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{item.answer}</p>
+                </details>
+              ))}
+            </section>
+          );
+        }
+        return null;
       })}
     </div>
   );
