@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import {
   Bold,
   Eraser,
@@ -105,7 +105,7 @@ function serializeEditor(root: HTMLElement): RichTextDocument {
   };
 }
 
-function ToolButton({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) {
+function ToolButton({ title, onClick, children }: { title: string; onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
