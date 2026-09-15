@@ -123,8 +123,9 @@ export function GalleryGrid({ images, galleryTitle, settings }: GalleryGridProps
     if (pointersRef.current.size === 1) {
       gestureRef.current = { start: point, offset };
     } else if (pointersRef.current.size === 2) {
-      const points = Array.from(pointersRef.current.values());
+      const points: Point[] = Array.from(pointersRef.current.values());
       const [a, b] = points;
+      if (!a || !b) return;
       gestureRef.current = { start: point, offset, pinchDistance: distance(a, b), pinchScale: scale };
     }
   };
@@ -136,8 +137,9 @@ export function GalleryGrid({ images, galleryTitle, settings }: GalleryGridProps
     const gesture = gestureRef.current;
     if (!gesture) return;
     if (pointersRef.current.size >= 2 && gesture.pinchDistance && gesture.pinchScale) {
-      const points = Array.from(pointersRef.current.values());
+      const points: Point[] = Array.from(pointersRef.current.values());
       const [a, b] = points;
+      if (!a || !b) return;
       setZoom(gesture.pinchScale * (distance(a, b) / Math.max(1, gesture.pinchDistance)));
       return;
     }
