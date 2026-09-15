@@ -64,6 +64,10 @@ function sameIds(left: string[], right: string[]): boolean {
   return a.every((value, index) => value === b[index]);
 }
 
+function stringIds(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
+}
+
 export function selectionForEntity(
   entityType: PortfolioRelationEntityType,
   entityId: string,
@@ -174,38 +178,58 @@ export async function cleanupPortfolioRelations(
   entityId: string,
 ): Promise<void> {
   if (!entityId) return;
-  if (entityType === 'case') {
-    await deleteDoc(doc(db, PROJECT_RELATION_COLLECTION, relationDocumentId(entityId)));
-    return;
-  }
 
-  const snapshot = await getDocs(collection(db, PROJECT_RELATION_COLLECTION));
-  const relations = snapshot.docs
+  const [relationSnapshot, articleSnapshot] = await Promise.all([
+    getDocs(collection(db, PROJECT_RELATION_COLLECTION)),
+    getDocs(collection(db, 'articles')),
+  ]);
+  const relations = relationSnapshot.docs
     .map(item => ({ id: item.id, ...item.data() }))
     .filter(isProjectRelation);
   const batch = writeBatch(db);
   let changes = 0;
 
-  for (const relation of relations) {
-    const nextGalleryIds = entityType === 'gallery'
-      ? relation.galleryIds.filter(id => id !== entityId)
-      : relation.galleryIds;
-    const nextVideoIds = entityType === 'video'
-      ? relation.videoProjectIds.filter(id => id !== entityId)
-      : relation.videoProjectIds;
-    if (sameIds(nextGalleryIds, relation.galleryIds) && sameIds(nextVideoIds, relation.videoProjectIds)) continue;
+  if (entityType === 'case') {
+    batch.delete(doc(db, PROJECT_RELATION_COLLECTION, relationDocumentId(entityId)));
+    changes += 1;
+  } else {
+    for (const relation of relations) {
+      const nextGalleryIds = entityType === 'gallery'
+        ? relation.galleryIds.filter(id => id !== entityId)
+        : relation.galleryIds;
+      const nextVideoIds = entityType === 'video'
+        ? relation.videoProjectIds.filter(id => id !== entityId)
+        : relation.videoProjectIds;
+      if (sameIds(nextGalleryIds, relation.galleryIds) && sameIds(nextVideoIds, relation.videoProjectIds)) continue;
 
-    const relationRef = doc(db, PROJECT_RELATION_COLLECTION, relationDocumentId(relation.caseId));
-    if (nextGalleryIds.length === 0 && nextVideoIds.length === 0) {
-      batch.delete(relationRef);
-    } else {
-      batch.set(relationRef, {
-        ...relation,
-        galleryIds: nextGalleryIds,
-        videoProjectIds: nextVideoIds,
-        updatedAt: Date.now(),
-      });
+      const relationRef = doc(db, PROJECT_RELATION_COLLECTION, relationDocumentId(relation.caseId));
+      if (nextGalleryIds.length === 0 && nextVideoIds.length === 0) {
+        batch.delete(relationRef);
+      } else {
+        batch.set(relationRef, {
+          ...relation,
+          galleryIds: nextGalleryIds,
+          videoProjectIds: nextVideoIds,
+          updatedAt: Date.now(),
+        });
+      }
+      changes += 1;
     }
+  }
+
+  const articleField = entityType === 'case'
+    ? 'relatedCaseIds'
+    : entityType === 'gallery'
+      ? 'relatedGalleryIds'
+      : 'relatedVideoProjectIds';
+
+  for (const article of articleSnapshot.docs) {
+    const current = stringIds(article.data()[articleField]);
+    if (!current.includes(entityId)) continue;
+    batch.update(article.ref, {
+      [articleField]: current.filter(id => id !== entityId),
+      updatedAt: Date.now(),
+    });
     changes += 1;
   }
 
