@@ -6,6 +6,19 @@ import { slugifyCase } from './caseMedia';
 export const GALLERY_COLLECTION = 'site_settings';
 export const GALLERY_KIND = 'gallery' as const;
 
+export type GalleryLayout = 'masonry' | 'grid' | 'justified' | 'cinematic';
+export type GalleryAspect = 'original' | '4:3' | '3:2' | '1:1';
+export type GalleryGap = 'small' | 'medium' | 'large';
+export type GalleryCaptionMode = 'always' | 'hover' | 'lightbox';
+
+export interface GalleryDisplaySettings {
+  layout: GalleryLayout;
+  columns: 2 | 3 | 4;
+  gap: GalleryGap;
+  aspect: GalleryAspect;
+  captionMode: GalleryCaptionMode;
+}
+
 export interface GalleryImage {
   id: string;
   url: string;
@@ -16,6 +29,9 @@ export interface GalleryImage {
   caption?: string;
   caption_uk?: string;
   caption_en?: string;
+  featured?: boolean;
+  focalX?: number;
+  focalY?: number;
 }
 
 export interface PhotoGallery {
@@ -34,6 +50,11 @@ export interface PhotoGallery {
   date?: string;
   coverUrl?: string;
   images: GalleryImage[];
+  layout?: GalleryLayout;
+  columns?: 2 | 3 | 4;
+  gap?: GalleryGap;
+  aspect?: GalleryAspect;
+  captionMode?: GalleryCaptionMode;
   published?: boolean;
   order?: number;
   createdAt: number;
@@ -74,6 +95,22 @@ function legacyGalleryMeta(gallery: PhotoGallery) {
 function legacyImageKey(image: GalleryImage): string | undefined {
   const match = image.id.match(/^legacy-(photo-[a-z]+-\d+)-\d+$/i);
   return match?.[1];
+}
+
+export function galleryDisplaySettings(gallery: PhotoGallery): GalleryDisplaySettings {
+  return {
+    layout: gallery.layout || 'masonry',
+    columns: gallery.columns === 2 || gallery.columns === 4 ? gallery.columns : 3,
+    gap: gallery.gap || 'medium',
+    aspect: gallery.aspect || 'original',
+    captionMode: gallery.captionMode || 'always',
+  };
+}
+
+export function imageFocalPoint(image: GalleryImage): string {
+  const x = Math.max(0, Math.min(100, Number.isFinite(image.focalX) ? Number(image.focalX) : 50));
+  const y = Math.max(0, Math.min(100, Number.isFinite(image.focalY) ? Number(image.focalY) : 50));
+  return `${x}% ${y}%`;
 }
 
 export function isPhotoGallery(value: unknown): value is PhotoGallery & Record<string, unknown> {
