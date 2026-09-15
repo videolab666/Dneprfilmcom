@@ -1,0 +1,29 @@
+name: Repair Pages publishing source
+
+on:
+  push:
+    branches:
+      - fix/pages-publishing-source
+
+permissions:
+  contents: read
+  pages: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Switch GitHub Pages to Actions workflow source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --method PUT \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            "/repos/${GITHUB_REPOSITORY}/pages" \
+            -f build_type=workflow
+
+          BUILD_TYPE="$(gh api "/repos/${GITHUB_REPOSITORY}/pages" --jq '.build_type')"
+          echo "GitHub Pages build_type=${BUILD_TYPE}"
+          test "${BUILD_TYPE}" = "workflow"
