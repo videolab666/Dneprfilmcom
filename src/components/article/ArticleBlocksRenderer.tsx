@@ -1,5 +1,11 @@
+import { useEffect } from 'react';
 import type { ArticleBlock } from '../../lib/articleBlocks';
-import { videoEmbedUrl } from '../../lib/articleBlocks';
+import {
+  articleFaqItems,
+  articleImageBlocks,
+  articleVideoBlocks,
+  videoEmbedUrl,
+} from '../../lib/articleBlocks';
 
 interface ArticleBlocksRendererProps {
   blocks: ArticleBlock[];
@@ -17,7 +23,79 @@ function safeExternalUrl(value: string): string {
   }
 }
 
+function publicArticleTitle(): string {
+  return document.querySelector('article h1')?.textContent?.trim()
+    || document.title.replace(/\s+[—-]\s+Dneprfilm.*$/i, '').trim()
+    || 'Article';
+}
+
 export function ArticleBlocksRenderer({ blocks }: ArticleBlocksRendererProps) {
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.location.pathname.includes('/media-center/')) return;
+
+    const faqItems = articleFaqItems(blocks);
+    const images = articleImageBlocks(blocks);
+    const videos = articleVideoBlocks(blocks);
+    const graph: Record<string, unknown>[] = [];
+    const title = publicArticleTitle();
+    const canonical = `${window.location.origin}${window.location.pathname}`;
+
+    if (faqItems.length > 0) {
+      graph.push({
+        '@type': 'FAQPage',
+        '@id': `${canonical}#faq`,
+        mainEntity: faqItems.map(item => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: { '@type': 'Answer', text: item.answer },
+        })),
+      });
+    }
+
+    if (videos.length > 0) {
+      videos.forEach((video, index) => {
+        const embed = videoEmbedUrl(video.url);
+        const isHostedEmbed = /youtube\.com\/embed|player\.vimeo\.com\/video/i.test(embed);
+        graph.push({
+          '@type': 'VideoObject',
+          '@id': `${canonical}#article-video-${index + 1}`,
+          name: video.caption || `${title} — video ${index + 1}`,
+          description: video.caption || title,
+          ...(isHostedEmbed ? { embedUrl: embed } : { contentUrl: video.url }),
+          isPartOf: { '@id': `${canonical}#article` },
+        });
+      });
+    }
+
+    if (images.length > 1) {
+      graph.push({
+        '@type': 'ImageGallery',
+        '@id': `${canonical}#article-images`,
+        name: `${title} — images`,
+        image: images.map((image, index) => ({
+          '@type': 'ImageObject',
+          '@id': `${canonical}#article-image-${index + 1}`,
+          contentUrl: image.url,
+          name: image.alt || image.caption || `${title} — image ${index + 1}`,
+          ...(image.caption ? { caption: image.caption } : {}),
+        })),
+      });
+    }
+
+    document.getElementById('article-rich-block-jsonld')?.remove();
+    if (graph.length === 0) return;
+
+    const script = document.createElement('script');
+    script.id = 'article-rich-block-jsonld';
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': graph,
+    });
+    document.head.appendChild(script);
+    return () => script.remove();
+  }, [blocks]);
+
   return (
     <div className="space-y-7 text-[17px] leading-8 text-slate-700">
       {blocks.map(block => {
