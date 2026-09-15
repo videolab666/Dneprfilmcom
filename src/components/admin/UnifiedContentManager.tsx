@@ -311,7 +311,7 @@ export function UnifiedContentManager() {
   const [mediaBusy, setMediaBusy] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [error, setError] = useState('');
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set<string>());
   const [bulkCategory, setBulkCategory] = useState('other');
   const [bulkTag, setBulkTag] = useState('');
   const [baselineFingerprint, setBaselineFingerprint] = useState('');
@@ -344,8 +344,8 @@ export function UnifiedContentManager() {
       ];
       next.sort((a, b) => b.updatedAt - a.updatedAt || a.title.localeCompare(b.title));
       setItems(next);
-      const validKeys = new Set(next.map(item => item.key));
-      setSelected(current => new Set(Array.from(current).filter(key => validKeys.has(key))));
+      const validKeys = new Set<string>(next.map(item => item.key));
+      setSelected(current => new Set<string>(Array.from(current).filter((key: string) => validKeys.has(key))));
     } catch (reason) {
       console.error(reason);
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -357,7 +357,7 @@ export function UnifiedContentManager() {
   useEffect(() => { void load(); }, []);
 
   useEffect(() => {
-    setSelected(new Set());
+    setSelected(new Set<string>());
   }, [typeFilter]);
 
   const counts = useMemo(() => ({
@@ -452,12 +452,12 @@ export function UnifiedContentManager() {
   const brokenRelation = useMemo(() => {
     if (!draft || editingType !== 'article') return false;
     const sets = {
-      relatedCaseIds: new Set(items.filter(item => item.type === 'case').map(item => item.id)),
-      relatedGalleryIds: new Set(items.filter(item => item.type === 'gallery').map(item => item.id)),
-      relatedVideoProjectIds: new Set(items.filter(item => item.type === 'video').map(item => item.id)),
+      relatedCaseIds: new Set<string>(items.filter(item => item.type === 'case').map(item => item.id)),
+      relatedGalleryIds: new Set<string>(items.filter(item => item.type === 'gallery').map(item => item.id)),
+      relatedVideoProjectIds: new Set<string>(items.filter(item => item.type === 'video').map(item => item.id)),
     };
     return (['relatedCaseIds', 'relatedGalleryIds', 'relatedVideoProjectIds'] as const).some(field =>
-      (Array.isArray(draft[field]) ? draft[field].map(String) : []).some(id => !sets[field].has(id)),
+      (Array.isArray(draft[field]) ? draft[field].map(String) : []).some((id: string) => sets[field].has(id) === false),
     );
   }, [draft, editingType, items]);
 
@@ -624,7 +624,7 @@ export function UnifiedContentManager() {
       const now = Date.now();
       selectedItems.forEach(item => batch.update(doc(db, item.collectionName, item.id), { published, updatedAt: now }));
       await batch.commit();
-      setSelected(new Set());
+      setSelected(new Set<string>());
       await load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -662,7 +662,7 @@ export function UnifiedContentManager() {
       selectedItems.forEach(item => {
         const taxonomy = taxonomyRecord(item.data);
         const tags = Array.isArray(taxonomy.tags) ? taxonomy.tags.map(String).filter(Boolean) : [];
-        batch.update(doc(db, item.collectionName, item.id), { taxonomy: { ...taxonomy, tags: Array.from(new Set([...tags, tag])) }, updatedAt: now });
+        batch.update(doc(db, item.collectionName, item.id), { taxonomy: { ...taxonomy, tags: Array.from(new Set<string>([...tags, tag])) }, updatedAt: now });
       });
       await batch.commit();
       setBulkTag('');
@@ -684,7 +684,7 @@ export function UnifiedContentManager() {
         if (item.type !== 'article') await cleanupPortfolioRelations(item.type, item.id);
         clearUnifiedDraft(item.type, item.id);
       }
-      setSelected(new Set());
+      setSelected(new Set<string>());
       await load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -694,7 +694,7 @@ export function UnifiedContentManager() {
   };
 
   const toggleSelected = (key: string) => setSelected(current => {
-    const next = new Set(current);
+    const next = new Set<string>(current);
     if (next.has(key)) next.delete(key); else next.add(key);
     return next;
   });
@@ -702,7 +702,7 @@ export function UnifiedContentManager() {
   const toggleAllVisible = () => {
     const allSelected = filteredItems.length > 0 && filteredItems.every(item => selected.has(item.key));
     setSelected(current => {
-      const next = new Set(current);
+      const next = new Set<string>(current);
       filteredItems.forEach(item => allSelected ? next.delete(item.key) : next.add(item.key));
       return next;
     });
@@ -710,7 +710,7 @@ export function UnifiedContentManager() {
 
   const toggleArticleRelation = (field: 'relatedCaseIds' | 'relatedGalleryIds' | 'relatedVideoProjectIds', id: string) => {
     if (!draft) return;
-    const current = new Set(Array.isArray(draft[field]) ? draft[field].map(String) : []);
+    const current = new Set<string>(Array.isArray(draft[field]) ? draft[field].map(String) : []);
     if (current.has(id)) current.delete(id); else current.add(id);
     patchDraft({ [field]: Array.from(current) });
   };
@@ -733,7 +733,7 @@ export function UnifiedContentManager() {
         <div className="mt-5 grid gap-5 xl:grid-cols-3">
           {groups.map(group => {
             const currentIds = Array.isArray(draft[group.field]) ? draft[group.field].map(String) : [];
-            const currentSet = new Set(currentIds);
+            const currentSet = new Set<string>(currentIds);
             return (
               <div key={group.field}>
                 <div className="mb-2 text-sm font-black text-slate-900">{group.label} <span className="text-xs text-violet-600">{currentSet.size}</span></div>
@@ -813,7 +813,7 @@ export function UnifiedContentManager() {
               <button type="button" disabled={bulkBusy} onClick={() => void bulkPublish(false)} className="rounded-xl bg-slate-700 px-3 py-2 text-xs font-black text-white disabled:opacity-50">В черновики</button>
               <div className="flex overflow-hidden rounded-xl border border-indigo-200 bg-white"><select value={bulkCategory} onChange={event => setBulkCategory(event.target.value)} className="bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none">{PORTFOLIO_CATEGORY_OPTIONS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select><button type="button" disabled={bulkBusy} onClick={() => void bulkApplyCategory()} className="border-l border-indigo-100 px-3 text-xs font-black text-indigo-700 disabled:opacity-50">Применить category</button></div>
               <div className="flex overflow-hidden rounded-xl border border-indigo-200 bg-white"><input value={bulkTag} onChange={event => setBulkTag(event.target.value)} placeholder="Добавить tag" className="w-32 px-3 py-2 text-xs outline-none" /><button type="button" disabled={bulkBusy || !bulkTag.trim()} onClick={() => void bulkAddTag()} className="border-l border-indigo-100 px-3 text-xs font-black text-indigo-700 disabled:opacity-50">Добавить</button></div>
-              <button type="button" disabled={bulkBusy} onClick={() => setSelected(new Set())} className="rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700 disabled:opacity-50">Снять выбор</button>
+              <button type="button" disabled={bulkBusy} onClick={() => setSelected(new Set<string>())} className="rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700 disabled:opacity-50">Снять выбор</button>
               <button type="button" disabled={bulkBusy} onClick={() => void bulkDelete()} className="ml-auto inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-xs font-black text-white disabled:opacity-50"><Trash2 className="h-4 w-4" />Удалить</button>
             </div>
             {bulkBusy && <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />}
