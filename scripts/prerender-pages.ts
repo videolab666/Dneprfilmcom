@@ -49,7 +49,16 @@ function renderRoute(route: RouteEntry): string {
   const url = `${pageUrl}?__prerender=1`;
   const dynamic = route.source !== 'static';
   const indexRoute = indexSourceByPath.has(route.path);
-  const budgets = dynamic || indexRoute ? [12000, 22000, 35000] : [12000];
+  // Portfolio indexes depend on a live Firestore snapshot before their canonical
+  // detail links appear. A fresh headless Chrome process is intentionally used
+  // for every attempt. Keep the validation fail-closed, but give these four
+  // indexes two extra fresh-network attempts so transient Firestore startup
+  // latency does not make otherwise valid builds flaky.
+  const budgets = indexRoute
+    ? [12000, 22000, 35000, 50000, 70000]
+    : dynamic
+      ? [12000, 22000, 35000]
+      : [12000];
   let lastHtml = '';
   let lastError = '';
 
