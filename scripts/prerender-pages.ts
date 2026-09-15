@@ -68,7 +68,7 @@ function stripUnexpectedIndexLinks(path: string, html: string): string {
   if (unexpected.size === 0) return html;
   return html.replace(/href="([^"]+)"/g, (attribute, href: string) =>
     unexpected.has(href)
-      ? `data-prerender-stale-href="${href}"`
+      ? `data-prerender-stale-link="${href}"`
       : attribute,
   );
 }
