@@ -94,8 +94,8 @@ export function UnifiedContentManager({ focusTarget = null, onFocusHandled }: Un
           }
 
           const label = TYPE_LABEL[focusTarget.type];
-          const typeButton = Array.from(root.querySelectorAll<HTMLButtonElement>('button'))
-            .find(candidate => candidate.textContent?.trim().startsWith(label));
+          const typeButtons = Array.from(root.querySelectorAll('button')) as HTMLButtonElement[];
+          const typeButton = typeButtons.find(candidate => candidate.textContent?.trim().startsWith(label));
           if (typeButton) typeButton.click();
 
           attempts += 1;
