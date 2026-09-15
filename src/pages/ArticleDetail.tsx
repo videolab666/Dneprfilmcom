@@ -4,6 +4,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { Link, useParams } from 'react-router-dom';
 import { db } from '../lib/firebase';
 import { DEFAULT_ARTICLES, localizeArticle, normalizeArticle } from '../lib/articleCms';
+import { articleBlocksPlainText, normalizeArticleBlocks } from '../lib/articleBlocks';
 import { loadPrerenderPortfolioEntry } from '../lib/prerenderContent';
 import { resolveSeoOverrides } from '../lib/seoOverrides';
 import {
@@ -18,6 +19,7 @@ import {
 import type { Article } from '../types';
 import { useSiteContent } from '../context/SiteContentContext';
 import { ArticleRelatedContent } from '../components/article/ArticleRelatedContent';
+import { ArticleBlocksRenderer } from '../components/article/ArticleBlocksRenderer';
 
 interface LoadedArticle {
   article: Article;
@@ -83,6 +85,10 @@ export function ArticleDetail() {
   }, [slug]);
 
   const localized = useMemo(() => loaded ? localizeArticle(loaded.article, locale) : null, [loaded, locale]);
+  const blocks = useMemo(
+    () => loaded && localized ? normalizeArticleBlocks(loaded.raw, locale, localized) : [],
+    [loaded, localized, locale],
+  );
 
   useEffect(() => {
     if (!resolved) return;
@@ -96,8 +102,9 @@ export function ArticleDetail() {
 
     const article = loaded.article;
     const seo = resolveSeoOverrides(loaded.raw, locale);
+    const richText = articleBlocksPlainText(blocks);
     const title = seo.title || localized.title;
-    const description = seo.description || localized.summary || localized.content[0] || localized.title;
+    const description = seo.description || localized.summary || richText.slice(0, 220) || localized.content[0] || localized.title;
     const image = seo.socialImage || article.coverImage;
     const path = `/media-center/${encodeURIComponent(article.slug)}`;
     const canonical = canonicalUrlForPath(path);
@@ -144,7 +151,7 @@ export function ArticleDetail() {
         '@graph': [articleJsonLd, { ...breadcrumb, '@context': undefined }],
       },
     });
-  }, [resolved, loaded, localized, locale]);
+  }, [resolved, loaded, localized, locale, blocks]);
 
   const share = async () => {
     if (!loaded || !localized) return;
@@ -198,9 +205,7 @@ export function ArticleDetail() {
       )}
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-18">
-        <div className="space-y-7 text-[17px] leading-8 text-slate-700">
-          {localized.content.map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>)}
-        </div>
+        <ArticleBlocksRenderer blocks={blocks} />
 
         {localized.keyTakeaways.length > 0 && (
           <section className="mt-12 rounded-3xl border border-indigo-100 bg-indigo-50/70 p-6 sm:p-8">
