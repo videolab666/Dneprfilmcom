@@ -1,0 +1,111 @@
+name: Production Health Watch
+
+on:
+  workflow_run:
+    workflows:
+      - Deploy to GitHub Pages
+    types:
+      - completed
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-health
+  cancel-in-progress: true
+
+env:
+  SITE_URL: https://videolab666.github.io/Dneprfilmcom
+
+jobs:
+  production-health:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify live GitHub Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          root_html=''
+          healthy='false'
+
+          for attempt in {1..12}; do
+            cache_bust="health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}"
+            url="${SITE_URL}/?__production_health=${cache_bust}"
+            echo "Production health attempt ${attempt}/12: ${url}"
+
+            if root_html="$(curl --fail --silent --show-error --location \
+              --connect-timeout 10 \
+              --max-time 30 \
+              -H 'Cache-Control: no-cache, no-store, must-revalidate' \
+              -H 'Pragma: no-cache' \
+              "${url}")"; then
+
+              if grep -q '/src/main.tsx' <<< "${root_html}"; then
+                echo 'Live site is serving raw Vite source (/src/main.tsx). A branch/Jekyll Pages deployment has overwritten the production build.'
+              elif grep -q 'id="boot-fallback"' <<< "${root_html}"; then
+                echo 'Live site still contains the static boot fallback.'
+              elif grep -q 'Завантаження Dneprfilm' <<< "${root_html}"; then
+                echo 'Live site is still serving the loading fallback.'
+              elif ! grep -Eq 'src="/Dneprfilmcom/assets/[^"]+\.js"' <<< "${root_html}"; then
+                echo 'Live site does not reference a hashed Vite JavaScript asset under /Dneprfilmcom/assets/.'
+              else
+                healthy='true'
+                break
+              fi
+            fi
+
+            sleep 10
+          done
+
+          if [ "${healthy}" != 'true' ]; then
+            echo 'Production root did not become healthy.'
+            printf '%s\n' "${root_html}" | head -c 4000 || true
+            exit 1
+          fi
+
+          asset_path="$(grep -Eo 'src="/Dneprfilmcom/assets/[^"]+\.js"' <<< "${root_html}" | head -n 1 | sed -E 's/^src="([^"]+)"$/\1/')"
+          test -n "${asset_path}"
+          echo "Verifying production asset ${asset_path}"
+          curl --fail --silent --show-error --location \
+            --connect-timeout 10 \
+            --max-time 30 \
+            -H 'Cache-Control: no-cache' \
+            -o /tmp/production-app.js \
+            "https://videolab666.github.io${asset_path}?__production_health=${GITHUB_RUN_ID}"
+          test -s /tmp/production-app.js
+
+          routes=(
+            ''
+            'cases/'
+            'galleries/'
+            'videos/'
+            'media-center/'
+            'admin/login/'
+          )
+
+          for route in "${routes[@]}"; do
+            route_url="${SITE_URL}/${route}?__production_health=${GITHUB_RUN_ID}-${RANDOM}"
+            echo "Verifying ${route_url}"
+            html="$(curl --fail --silent --show-error --location \
+              --connect-timeout 10 \
+              --max-time 30 \
+              -H 'Cache-Control: no-cache, no-store, must-revalidate' \
+              "${route_url}")"
+
+            if grep -q '/src/main.tsx' <<< "${html}"; then
+              echo "Raw Vite source detected on ${route_url}"
+              exit 1
+            fi
+
+            if grep -q 'id="boot-fallback"' <<< "${html}"; then
+              echo "Static loading fallback detected on ${route_url}"
+              exit 1
+            fi
+          done
+
+          echo 'Live GitHub Pages production health check passed.'
