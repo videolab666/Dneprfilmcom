@@ -3,7 +3,13 @@ import path from 'node:path';
 import ts from 'typescript';
 import { TRANSLATIONS } from '../src/locales/translations';
 import { legacyText } from '../src/locales/legacyEnglish';
-import { copyOverrideKey, legacyStructureItemId, legacyStructureKey, translationOverrideKey } from '../src/lib/fullPageEditing';
+import {
+  copyOverrideKey,
+  legacyStructureItemId,
+  legacyStructureKey,
+  translationOverrideKey,
+  type StructureScalar,
+} from '../src/lib/fullPageEditing';
 
 interface CatalogEntry {
   id: string;
@@ -17,12 +23,17 @@ interface CatalogEntry {
   en: string;
 }
 
+type StructureFieldType = 'string' | 'number' | 'boolean' | 'null';
+
 interface StructureFieldEntry {
   key: string;
-  copyId: string;
-  uk: string;
-  ru: string;
-  en: string;
+  scope: 'locale' | 'common';
+  valueType: StructureFieldType;
+  copyId?: string;
+  uk?: string;
+  ru?: string;
+  en?: string;
+  common?: StructureScalar;
 }
 
 interface StructureItemEntry {
@@ -101,7 +112,13 @@ const structures = new Map<string, StructureCatalogEntry>();
 function unwrap(node: ts.Expression | undefined, seen = new Set<ts.Node>()): ts.Expression | undefined {
   if (!node || seen.has(node)) return node;
   seen.add(node);
-  if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isTypeAssertionExpression(node) || ts.isNonNullExpression(node) || ts.isSatisfiesExpression(node)) return unwrap(node.expression, seen);
+  if (
+    ts.isParenthesizedExpression(node)
+    || ts.isAsExpression(node)
+    || ts.isTypeAssertionExpression(node)
+    || ts.isNonNullExpression(node)
+    || ts.isSatisfiesExpression(node)
+  ) return unwrap(node.expression, seen);
   if (!ts.isIdentifier(node)) return node;
   let symbol = checker.getSymbolAtLocation(node);
   if (!symbol) return node;
@@ -120,6 +137,29 @@ function stringValue(node: ts.Expression | undefined): string | undefined {
   if (!resolved) return undefined;
   if (ts.isStringLiteralLike(resolved) || ts.isNoSubstitutionTemplateLiteral(resolved)) return resolved.text;
   return undefined;
+}
+
+function scalarValue(node: ts.Expression | undefined): StructureScalar | undefined {
+  const resolved = unwrap(node);
+  if (!resolved) return undefined;
+  if (ts.isStringLiteralLike(resolved) || ts.isNoSubstitutionTemplateLiteral(resolved)) return resolved.text;
+  if (ts.isNumericLiteral(resolved)) return Number(resolved.text);
+  if (resolved.kind === ts.SyntaxKind.TrueKeyword) return true;
+  if (resolved.kind === ts.SyntaxKind.FalseKeyword) return false;
+  if (resolved.kind === ts.SyntaxKind.NullKeyword) return null;
+  if (ts.isPrefixUnaryExpression(resolved) && ts.isNumericLiteral(resolved.operand)) {
+    const value = Number(resolved.operand.text);
+    if (resolved.operator === ts.SyntaxKind.MinusToken) return -value;
+    if (resolved.operator === ts.SyntaxKind.PlusToken) return value;
+  }
+  return undefined;
+}
+
+function scalarType(value: StructureScalar): StructureFieldType {
+  if (value === null) return 'null';
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'boolean') return 'boolean';
+  return 'string';
 }
 
 function propertyName(node: ts.ObjectLiteralElementLike): string | undefined {
@@ -169,7 +209,21 @@ function pairObjectProperties(left: ts.ObjectLiteralExpression, right: ts.Object
   return { leftMap, rightMap };
 }
 
-function collectLegacyPair(leftNode: ts.Expression | undefined, rightNode: ts.Expression | undefined, sourceFile: ts.SourceFile, anchor: ts.Node, depth = 0) {
+const COMMON_FIELD_RE = /(^|\.)(id|key|slug|icon|iconname|image|imageurl|thumbnail|thumbnailurl|poster|posterurl|videourl|url|href|link|buttonlink|primarylink|secondarylink|ctaprimarylink|ctasecondarylink|downloadname|doctype|format|filesize|status|type|kind|variant|layout|enabled|active|isactive|order|price|amount|count|number|num|durationms|overlayopacity|objectposition|target|rel|tone|color|style|size)$/i;
+
+function isCommonField(pathValue: string, left: StructureScalar, right: StructureScalar): boolean {
+  if (typeof left !== 'string' || typeof right !== 'string') return true;
+  return COMMON_FIELD_RE.test(pathValue);
+}
+
+function collectLegacyPair(
+  leftNode: ts.Expression | undefined,
+  rightNode: ts.Expression | undefined,
+  sourceFile: ts.SourceFile,
+  anchor: ts.Node,
+  depth = 0,
+  fieldPath = '',
+) {
   if (depth > 12) return;
   const left = unwrap(leftNode);
   const right = unwrap(rightNode);
@@ -177,21 +231,95 @@ function collectLegacyPair(leftNode: ts.Expression | undefined, rightNode: ts.Ex
   const uk = stringValue(left);
   const ru = stringValue(right);
   if (uk !== undefined && ru !== undefined) {
-    addPair('legacy', uk, ru, undefined, sourceFile, anchor);
+    if (!fieldPath || !isCommonField(fieldPath, uk, ru)) addPair('legacy', uk, ru, undefined, sourceFile, anchor);
     return;
   }
   if (ts.isArrayLiteralExpression(left) && ts.isArrayLiteralExpression(right)) {
     const count = Math.min(left.elements.length, right.elements.length);
-    for (let index = 0; index < count; index += 1) collectLegacyPair(left.elements[index], right.elements[index], sourceFile, anchor, depth + 1);
+    for (let index = 0; index < count; index += 1) {
+      collectLegacyPair(left.elements[index], right.elements[index], sourceFile, anchor, depth + 1, fieldPath);
+    }
     return;
   }
   if (ts.isObjectLiteralExpression(left) && ts.isObjectLiteralExpression(right)) {
     const { leftMap, rightMap } = pairObjectProperties(left, right);
     for (const [name, a] of leftMap.entries()) {
       const b = rightMap.get(name);
-      if (b) collectLegacyPair(a, b, sourceFile, anchor, depth + 1);
+      if (b) collectLegacyPair(a, b, sourceFile, anchor, depth + 1, fieldPath ? `${fieldPath}.${name}` : name);
     }
   }
+}
+
+function collectStructureFields(
+  left: ts.ObjectLiteralExpression,
+  right: ts.ObjectLiteralExpression,
+  prefix = '',
+  depth = 0,
+): StructureFieldEntry[] {
+  if (depth > 5) return [];
+  const fields: StructureFieldEntry[] = [];
+  const { leftMap, rightMap } = pairObjectProperties(left, right);
+  for (const [name, leftNode] of leftMap.entries()) {
+    const rightNode = rightMap.get(name);
+    if (!rightNode) continue;
+    const fieldPath = prefix ? `${prefix}.${name}` : name;
+    const a = unwrap(leftNode);
+    const b = unwrap(rightNode);
+    if (!a || !b) continue;
+
+    if (ts.isObjectLiteralExpression(a) && ts.isObjectLiteralExpression(b)) {
+      fields.push(...collectStructureFields(a, b, fieldPath, depth + 1));
+      continue;
+    }
+
+    const leftValue = scalarValue(a);
+    const rightValue = scalarValue(b);
+    if (leftValue === undefined || rightValue === undefined) continue;
+
+    if (typeof leftValue === 'string' && typeof rightValue === 'string' && !isCommonField(fieldPath, leftValue, rightValue)) {
+      fields.push({
+        key: fieldPath,
+        scope: 'locale',
+        valueType: 'string',
+        copyId: copyOverrideKey(leftValue, rightValue),
+        uk: leftValue,
+        ru: rightValue,
+        en: legacyText('en', leftValue, rightValue),
+      });
+      continue;
+    }
+
+    if (typeof leftValue !== typeof rightValue && !(leftValue === null && rightValue === null)) continue;
+    fields.push({
+      key: fieldPath,
+      scope: 'common',
+      valueType: scalarType(leftValue),
+      common: leftValue,
+    });
+  }
+  return fields;
+}
+
+function topLevelStringSkeleton(object: ts.ObjectLiteralExpression): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const property of object.properties) {
+    const name = propertyName(property);
+    if (!name) continue;
+    const value = ts.isPropertyAssignment(property)
+      ? stringValue(property.initializer)
+      : ts.isShorthandPropertyAssignment(property)
+        ? stringValue(property.name)
+        : undefined;
+    if (value !== undefined) result[name] = value;
+  }
+  return result;
+}
+
+function itemLabel(fields: StructureFieldEntry[], fallback: string): string {
+  const localized = fields.find(field => field.scope === 'locale' && field.uk)?.uk;
+  if (localized) return shortLabel(localized);
+  const commonText = fields.find(field => field.scope === 'common' && typeof field.common === 'string')?.common;
+  return shortLabel(typeof commonText === 'string' ? commonText : fallback);
 }
 
 function collectStructure(leftNode: ts.Expression | undefined, rightNode: ts.Expression | undefined, sourceFile: ts.SourceFile, anchor: ts.Node) {
@@ -208,29 +336,27 @@ function collectStructure(leftNode: ts.Expression | undefined, rightNode: ts.Exp
     const a = unwrap(left.elements[index]);
     const b = unwrap(right.elements[index]);
     if (!a || !b || !ts.isObjectLiteralExpression(a) || !ts.isObjectLiteralExpression(b)) return;
-    const { leftMap, rightMap } = pairObjectProperties(a, b);
-    const ukObject: Record<string, string> = {};
-    const ruObject: Record<string, string> = {};
-    const fields: StructureFieldEntry[] = [];
-    for (const [key, leftValue] of leftMap.entries()) {
-      const rightValue = rightMap.get(key);
-      if (!rightValue) continue;
-      const uk = stringValue(leftValue);
-      const ru = stringValue(rightValue);
-      if (uk === undefined || ru === undefined) continue;
-      ukObject[key] = uk;
-      ruObject[key] = ru;
-      fields.push({ key, copyId: copyOverrideKey(uk, ru), uk, ru, en: legacyText('en', uk, ru) });
-    }
+    const fields = collectStructureFields(a, b);
     if (!fields.length) return;
+    const ukObject = topLevelStringSkeleton(a);
+    const ruObject = topLevelStringSkeleton(b);
     ukSkeleton.push(ukObject);
     ruSkeleton.push(ruObject);
-    items.push({ id: legacyStructureItemId(ukObject, ruObject, index), label: shortLabel(fields[0]?.uk || `Элемент ${index + 1}`), fields });
+    items.push({
+      id: legacyStructureItemId(ukObject, ruObject, index),
+      label: itemLabel(fields, `Элемент ${index + 1}`),
+      fields,
+    });
   }
 
   const id = legacyStructureKey(ukSkeleton, ruSkeleton);
   const info = sourceInfo(sourceFile, anchor);
-  if (!structures.has(id)) structures.set(id, { id, ...info, label: `${info.page}: ${shortLabel(items[0]?.label || 'список')}`, items });
+  if (!structures.has(id)) structures.set(id, {
+    id,
+    ...info,
+    label: `${info.page}: ${items[0]?.label || 'список'}`,
+    items,
+  });
 }
 
 for (const sourceFile of program.getSourceFiles()) {
@@ -258,7 +384,9 @@ for (const sourceFile of program.getSourceFiles()) {
             const existing = entries.get(id);
             if (existing) {
               if (!existing.source.includes(info.source)) existing.source += `, ${info.source}`;
-            } else entries.set(id, { id, kind: 't', ...info, label: `${key} — ${shortLabel(uk || ru || en)}`, uk, ru, en });
+            } else {
+              entries.set(id, { id, kind: 't', ...info, label: `${key} — ${shortLabel(uk || ru || en)}`, uk, ru, en });
+            }
           }
         }
       }
@@ -273,6 +401,6 @@ const structureSorted = [...structures.values()].sort((a, b) => a.page.localeCom
 const header = `export type EditableCopyCatalogKind = 'l' | 't' | 'legacy';\n\nexport interface EditableCopyCatalogEntry {\n  id: string;\n  kind: EditableCopyCatalogKind;\n  page: string;\n  source: string;\n  line: number;\n  label: string;\n  uk: string;\n  ru: string;\n  en: string;\n}\n\n`;
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, header + `export const EDITABLE_COPY_CATALOG: EditableCopyCatalogEntry[] = ${JSON.stringify(sorted, null, 2)};\n`, 'utf8');
-const structureHeader = `export interface EditableStructureField { key: string; copyId: string; uk: string; ru: string; en: string; }\nexport interface EditableStructureItem { id: string; label: string; fields: EditableStructureField[]; }\nexport interface EditableStructureCatalogEntry { id: string; page: string; source: string; line: number; label: string; items: EditableStructureItem[]; }\n\n`;
+const structureHeader = `import type { StructureScalar } from '../lib/fullPageEditing';\n\nexport type EditableStructureFieldScope = 'locale' | 'common';\nexport type EditableStructureFieldType = 'string' | 'number' | 'boolean' | 'null';\nexport interface EditableStructureField { key: string; scope: EditableStructureFieldScope; valueType: EditableStructureFieldType; copyId?: string; uk?: string; ru?: string; en?: string; common?: StructureScalar; }\nexport interface EditableStructureItem { id: string; label: string; fields: EditableStructureField[]; }\nexport interface EditableStructureCatalogEntry { id: string; page: string; source: string; line: number; label: string; items: EditableStructureItem[]; }\n\n`;
 fs.writeFileSync(structuresOutputPath, structureHeader + `export const EDITABLE_STRUCTURE_CATALOG: EditableStructureCatalogEntry[] = ${JSON.stringify(structureSorted, null, 2)};\n`, 'utf8');
 console.log(`Generated ${sorted.length} editable public copy entries and ${structureSorted.length} editable structures.`);
