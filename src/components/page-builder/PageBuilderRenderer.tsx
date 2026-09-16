@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import type { BuilderSiteBlock } from '../../lib/pageBuilder';
 
 const LazyPageBuilderRenderer = lazy(() =>
-  import('./PageBuilderRendererV3').then(module => ({ default: module.PageBuilderRenderer })),
+  import('./PageBuilderRendererV4').then(module => ({ default: module.PageBuilderRenderer })),
 );
 
 interface PageBuilderRendererProps {
