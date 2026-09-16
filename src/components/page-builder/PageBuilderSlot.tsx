@@ -1,12 +1,16 @@
-import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { useSiteContent } from '../../context/SiteContentContext';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../lib/firebase';
 import {
-  blockMatchesPage,
-  blockPlacement,
   localizedBuilderBlock,
   pageBlocks,
+  resolveBuilderDraft,
+  type BuilderSiteBlock,
   type PageBuilderPage,
   type PageBuilderPlacement,
+  type StoredBuilderSiteBlock,
 } from '../../lib/pageBuilder';
 import { PageBuilderRenderer } from './PageBuilderRenderer';
 
@@ -15,13 +19,43 @@ interface PageBuilderSlotProps {
   placement: PageBuilderPlacement;
 }
 
+function useBuilderDraftPreview(): { enabled: boolean; blocks: BuilderSiteBlock[] | null } {
+  const { user } = useAuth();
+  const [blocks, setBlocks] = useState<BuilderSiteBlock[] | null>(null);
+  const requested = useMemo(() => {
+    try { return new URLSearchParams(window.location.search).get('cmsPreview') === '1'; } catch { return false; }
+  }, []);
+  const enabled = requested && Boolean(user);
+
+  useEffect(() => {
+    if (!enabled) {
+      setBlocks(null);
+      return;
+    }
+    return onSnapshot(collection(db, 'site_blocks'), snapshot => {
+      const resolved = snapshot.docs
+        .map(item => ({ id: item.id, ...item.data() } as StoredBuilderSiteBlock))
+        .map(resolveBuilderDraft)
+        .filter((item): item is BuilderSiteBlock => Boolean(item));
+      setBlocks(resolved);
+    }, error => {
+      console.warn('Page Builder draft preview:', error);
+      setBlocks(null);
+    });
+  }, [enabled]);
+
+  return { enabled, blocks };
+}
+
 export function PageBuilderSlot({ page, placement }: PageBuilderSlotProps) {
-  const { blocks, locale } = useSiteContent();
-  const items = pageBlocks(blocks, page, placement).map(block => localizedBuilderBlock(block, locale));
+  const { blocks: publishedBlocks, locale } = useSiteContent();
+  const preview = useBuilderDraftPreview();
+  const source = preview.enabled && preview.blocks ? preview.blocks : publishedBlocks;
+  const items = pageBlocks(source, page, placement).map(block => localizedBuilderBlock(block, locale));
   if (!items.length) return null;
   return (
-    <div data-page-builder-slot={`${page}:${placement}`}>
-      {items.map(block => <div key={block.id} className="contents"><PageBuilderRenderer block={block} /></div>)}
+    <div data-page-builder-slot={`${page}:${placement}`} data-cms-builder-preview={preview.enabled ? 'draft' : 'published'}>
+      {items.map(block => <div key={block.id} className="contents" data-cms-builder-block={block.id}><PageBuilderRenderer block={block} preview={preview.enabled} /></div>)}
     </div>
   );
 }
@@ -32,13 +66,11 @@ interface PageBuilderSurfaceProps {
 }
 
 export function PageBuilderSurface({ page, children }: PageBuilderSurfaceProps) {
-  const { blocks } = useSiteContent();
-  const hasInline = blocks.some(block => block.isActive && blockMatchesPage(block, page) && blockPlacement(block, page) === 'inline');
   return (
     <>
       <PageBuilderSlot page={page} placement="before" />
       {children}
-      {page !== 'home' && hasInline ? <PageBuilderSlot page={page} placement="inline" /> : null}
+      {page !== 'home' ? <PageBuilderSlot page={page} placement="inline" /> : null}
       <PageBuilderSlot page={page} placement="after" />
     </>
   );
