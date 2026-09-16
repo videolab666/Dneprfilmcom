@@ -31,6 +31,7 @@ import {
   type PageBuilderPage,
   type StoredBuilderSiteBlock,
 } from '../lib/pageBuilder';
+import { validateBuilderBlock } from '../lib/pageBuilderValidation';
 import {
   discardComposerDraftPage,
   normalizePageComposer,
@@ -263,6 +264,20 @@ export function CmsPageComposer() {
   };
 
   const publish = async () => {
+    const candidates = stored.filter(item => {
+      const view = editableBlock(item);
+      return blockMatchesPage(view, page) && (item.builderDraft || item._builderUnpublished);
+    });
+    const validationErrors = candidates.flatMap(item => {
+      if (item.builderDraft?.deleted) return [];
+      const resolved = resolveBuilderDraft(item);
+      if (!resolved) return [];
+      return validateBuilderBlock(resolved).map(issue => `${resolved.title_uk || resolved.title}: ${issue}`);
+    });
+    if (validationErrors.length) {
+      setError(`Публикация остановлена. ${validationErrors.join(' ')}`);
+      return;
+    }
     if (!window.confirm(`Опубликовать визуальную структуру страницы «${pageMeta?.label || page}» и все её Draft-блоки?`)) return;
     setSaving(true);
     setError('');
@@ -274,10 +289,6 @@ export function CmsPageComposer() {
       canonical = publishComposerPage(canonical, page, actor);
       await versionedUpdateDoc(settingsRef, { pageComposer: canonical, updatedAt: Date.now() });
 
-      const candidates = stored.filter(item => {
-        const view = editableBlock(item);
-        return blockMatchesPage(view, page) && (item.builderDraft || item._builderUnpublished);
-      });
       await Promise.all(candidates.map(async item => {
         if (item.builderDraft?.deleted) {
           await deleteDoc(doc(db, 'site_blocks', item.id));
