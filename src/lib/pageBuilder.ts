@@ -256,6 +256,7 @@ export function asBuilderBlock(block: SiteBlock): BuilderSiteBlock {
 
 export function blockKind(block: SiteBlock | BuilderSiteBlock): PageBuilderKind {
   const builder = asBuilderBlock(block as SiteBlock);
+  if (builder.config.nativeSection?.includes('.')) return 'native_page_section';
   return builder.config.builderKind || builder.type;
 }
 
