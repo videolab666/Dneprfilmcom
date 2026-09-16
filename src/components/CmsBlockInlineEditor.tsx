@@ -8,6 +8,7 @@ import {
   type PageBuilderImage,
 } from '../lib/pageBuilder';
 import { MediaLibraryPicker } from './admin/MediaLibraryPicker';
+import { RichTextEditor } from './admin/RichTextEditor';
 
 interface CmsBlockInlineEditorProps {
   block: BuilderSiteBlock;
@@ -177,18 +178,14 @@ export function CmsBlockInlineEditor({ block, locale, onClose, onSave }: CmsBloc
   const kindEditor = () => {
     if (['features_grid', 'stats_counter', 'process', 'pricing'].includes(String(kind))) return renderGenericItems();
     if (kind === 'faq') return renderFaq();
-    if (kind === 'timeline') return renderTimeline();
-    if (kind === 'downloads') return renderDownloads();
-    if (kind === 'tabs') return renderTabs();
-    if (kind === 'table') return renderTable();
-    if (kind === 'team') return renderTeam();
-    if (kind === 'gallery') return renderGallery();
     if (kind === 'partners') {
       const names = activeConfig.partnerNames || [];
       return <div className="space-y-2">{names.map((name, index) => <div key={index} className="flex gap-2"><input value={name} onChange={event => { const next = [...names]; next[index] = event.target.value; updateLocalizedArray('partnerNames', next); }} className={fieldClass()} /><SmallButton danger onClick={() => updateLocalizedArray('partnerNames', names.filter((_, i) => i !== index))}><Trash2 className="h-3 w-3" /></SmallButton></div>)}<SmallButton onClick={() => updateLocalizedArray('partnerNames', [...names, 'Новый партнёр'])}><Plus className="h-3 w-3" />Партнёр</SmallButton></div>;
     }
     return null;
   };
+
+  const extraEditor = kindEditor();
 
   return <>
     <aside data-cms-inspector-ui className="fixed inset-y-0 right-0 z-[2147483400] w-[min(560px,100vw)] overflow-y-auto border-l border-slate-700 bg-slate-950 p-5 text-white shadow-2xl">
@@ -200,7 +197,9 @@ export function CmsBlockInlineEditor({ block, locale, onClose, onSave }: CmsBloc
       {error && <div className="mt-3 rounded-xl bg-red-500/10 px-3 py-2 text-xs font-bold text-red-300">{error}</div>}
 
       <div className="mt-5 space-y-5">
-        <section className="space-y-3 rounded-2xl border border-slate-800 p-4"><div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Контент · {language.toUpperCase()}</div><TextField label="Внутреннее название" value={internalTitle} onChange={setInternalTitle} /><TextField label="Badge" value={activeConfig.badge} onChange={value => patchLocalized({ badge: value })} /><TextField label="Заголовок" value={activeConfig.heading} onChange={value => patchLocalized({ heading: value })} /><TextField label="Подзаголовок" multiline value={activeConfig.subheading} onChange={value => patchLocalized({ subheading: value })} />{(['text_image', 'rich_text'].includes(String(kind)) || activeConfig.content !== undefined) && <TextField label="Текст" multiline value={activeConfig.content} onChange={value => patchLocalized({ content: value })} />}</section>
+        <section className="space-y-3 rounded-2xl border border-slate-800 p-4"><div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Контент · {language.toUpperCase()}</div><TextField label="Внутреннее название" value={internalTitle} onChange={setInternalTitle} /><TextField label="Badge" value={activeConfig.badge} onChange={value => patchLocalized({ badge: value })} /><TextField label="Заголовок" value={activeConfig.heading} onChange={value => patchLocalized({ heading: value })} /><TextField label="Подзаголовок" multiline value={activeConfig.subheading} onChange={value => patchLocalized({ subheading: value })} />{(kind === 'text_image' || (kind !== 'rich_text' && activeConfig.content !== undefined)) && <TextField label="Текст" multiline value={activeConfig.content} onChange={value => patchLocalized({ content: value })} />}</section>
+
+        {kind === 'rich_text' && <section className="space-y-3 rounded-2xl border border-slate-800 p-4"><div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Rich Text · {language.toUpperCase()}</div><RichTextEditor value={activeConfig.richText || activeConfig.content || ''} onChange={value => patchLocalized({ richText: value })} compact minHeight={170} /></section>}
 
         <section className="space-y-3 rounded-2xl border border-slate-800 p-4"><div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Разметка · общая</div><div className="grid grid-cols-2 gap-2"><label><Label>Ширина</Label><select value={draft.config.width || 'normal'} onChange={event => patchCommon({ width: event.target.value as Config['width'] })} className={fieldClass()}><option value="narrow">Narrow</option><option value="normal">Normal</option><option value="wide">Wide</option><option value="full">Full</option></select></label><label><Label>Отступы</Label><select value={draft.config.spacing || 'normal'} onChange={event => patchCommon({ spacing: event.target.value as Config['spacing'] })} className={fieldClass()}><option value="compact">Compact</option><option value="normal">Normal</option><option value="large">Large</option></select></label><label><Label>Выравнивание</Label><select value={draft.config.alignment || 'left'} onChange={event => patchCommon({ alignment: event.target.value as Config['alignment'] })} className={fieldClass()}><option value="left">Left</option><option value="center">Center</option></select></label><label><Label>Стиль</Label><select value={draft.config.style || 'light'} onChange={event => patchCommon({ style: event.target.value as Config['style'] })} className={fieldClass()}><option value="light">Light</option><option value="dark">Dark</option><option value="indigo">Indigo</option><option value="gradient">Gradient</option></select></label></div><TextField label="Anchor / ID" value={draft.config.anchor} onChange={value => patchCommon({ anchor: value })} /></section>
 
@@ -219,10 +218,15 @@ export function CmsBlockInlineEditor({ block, locale, onClose, onSave }: CmsBloc
         {kind === 'team' && <section className="space-y-3 rounded-2xl border border-slate-800 p-4"><label><Label>Колонки</Label><select value={draft.config.teamColumns || 3} onChange={event => patchCommon({ teamColumns: Number(event.target.value) as Config['teamColumns'] })} className={fieldClass()}><option value={2}>2</option><option value={3}>3</option><option value={4}>4</option></select></label>{renderTeam()}</section>}
         {kind === 'table' && <section className="space-y-3 rounded-2xl border border-slate-800 p-4"><label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={draft.config.tableStriped !== false} onChange={event => patchCommon({ tableStriped: event.target.checked })} />Чередовать строки</label>{renderTable()}</section>}
         {kind === 'tabs' && <section className="space-y-3 rounded-2xl border border-slate-800 p-4">{renderTabs()}</section>}
-        {kind === 'gallery' && <section className="space-y-3 rounded-2xl border border-slate-800 p-4">{renderGallery()}</section>}
-        {!['timeline', 'downloads', 'team', 'table', 'tabs', 'gallery'].includes(String(kind)) && kindEditor() && <section className="rounded-2xl border border-slate-800 p-4">{kindEditor()}</section>}
 
-        {kind === 'rich_text' && <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200">Форматированный Rich Text сохраняет структуру документа. В Inline Editor можно менять заголовок/подзаголовок и fallback-текст; для сложного форматирования остаётся полный редактор в Page Builder.</div>}
+        {kind === 'gallery' && <section className="space-y-3 rounded-2xl border border-slate-800 p-4"><div className="grid grid-cols-2 gap-2"><label><Label>Layout</Label><select value={draft.config.galleryLayout || 'masonry'} onChange={event => patchCommon({ galleryLayout: event.target.value as Config['galleryLayout'] })} className={fieldClass()}><option value="masonry">Masonry</option><option value="grid">Grid</option><option value="justified">Justified</option><option value="cinematic">Cinematic</option></select></label><label><Label>Колонки</Label><select value={draft.config.galleryColumns || 3} onChange={event => patchCommon({ galleryColumns: Number(event.target.value) as Config['galleryColumns'] })} className={fieldClass()}><option value={2}>2</option><option value={3}>3</option><option value={4}>4</option></select></label><label><Label>Gap</Label><select value={draft.config.galleryGap || 'medium'} onChange={event => patchCommon({ galleryGap: event.target.value as Config['galleryGap'] })} className={fieldClass()}><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label><label><Label>Aspect</Label><select value={draft.config.galleryAspect || 'original'} onChange={event => patchCommon({ galleryAspect: event.target.value as Config['galleryAspect'] })} className={fieldClass()}><option value="original">Original</option><option value="4:3">4:3</option><option value="3:2">3:2</option><option value="1:1">1:1</option></select></label><label className="col-span-2"><Label>Подписи</Label><select value={draft.config.galleryCaptionMode || 'always'} onChange={event => patchCommon({ galleryCaptionMode: event.target.value as Config['galleryCaptionMode'] })} className={fieldClass()}><option value="always">Always</option><option value="hover">Hover</option><option value="lightbox">Lightbox</option></select></label></div>{renderGallery()}</section>}
+
+        {(kind === 'cases' || kind === 'videos') && <section className="rounded-2xl border border-slate-800 p-4"><label><Label>Максимум карточек</Label><input type="number" min={1} max={24} value={draft.config.maxItems || 6} onChange={event => patchCommon({ maxItems: Math.max(1, Math.min(24, Number(event.target.value) || 1)) })} className={fieldClass()} /></label></section>}
+
+        {kind === 'divider' && <section className="rounded-2xl border border-slate-800 p-4"><label><Label>Разделитель</Label><select value={draft.config.dividerStyle || 'line'} onChange={event => patchCommon({ dividerStyle: event.target.value as Config['dividerStyle'] })} className={fieldClass()}><option value="line">Линия</option><option value="dots">Точки</option></select></label></section>}
+        {kind === 'spacer' && <section className="rounded-2xl border border-slate-800 p-4"><label><Label>Размер отступа</Label><select value={draft.config.spacerSize || 'medium'} onChange={event => patchCommon({ spacerSize: event.target.value as Config['spacerSize'] })} className={fieldClass()}><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label></section>}
+
+        {extraEditor && <section className="rounded-2xl border border-slate-800 p-4">{extraEditor}</section>}
       </div>
 
       <div className="sticky bottom-0 -mx-5 mt-6 flex items-center gap-2 border-t border-slate-800 bg-slate-950/95 px-5 py-4 backdrop-blur"><button type="button" onClick={() => void save()} disabled={saving} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black text-white disabled:opacity-50"><Save className="h-4 w-4" />{saving ? 'Сохранение…' : 'Сохранить Draft'}</button><button type="button" onClick={onClose} className="rounded-xl bg-slate-800 px-4 py-3 text-xs font-black text-slate-300">Закрыть</button></div>
