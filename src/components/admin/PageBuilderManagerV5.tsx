@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { ExternalLink, LayoutTemplate } from 'lucide-react';
 import { PageBuilderManager as PageBuilderManagerV4 } from './PageBuilderManagerV4';
 import { PAGE_BUILDER_PAGES, type PageBuilderPage } from '../../lib/pageBuilder';
-import { PAGE_COMPOSER_PAGES } from '../../lib/pageComposer';
+import { pageComposerSupported } from '../../lib/pageComposer';
 
 export function PageBuilderManager() {
   const [page, setPage] = useState<PageBuilderPage>('live');
-  const supported = PAGE_BUILDER_PAGES.filter(item => PAGE_COMPOSER_PAGES.includes(item.id as never));
+  const supported = PAGE_BUILDER_PAGES.filter(item => pageComposerSupported(item.id));
 
   const openComposer = () => {
     const meta = PAGE_BUILDER_PAGES.find(item => item.id === page);
