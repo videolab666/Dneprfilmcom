@@ -7,3 +7,13 @@ declare module 'react' {
     }
   }
 }
+
+declare global {
+  namespace JSX {
+    interface IntrinsicAttributes {
+      key?: string | number | null;
+    }
+  }
+}
+
+export {};
