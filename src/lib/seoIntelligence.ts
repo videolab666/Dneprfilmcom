@@ -1,5 +1,6 @@
-import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { collection, doc, getDocs, query, where } from 'firebase/firestore';
 import { db } from './firebase';
+import { versionedSetDoc as setDoc } from './cmsVersioning';
 import type { CaseStudy } from '../types';
 import { getCaseSlug } from './caseMedia';
 import { getGallerySlug, isPhotoGallery, type PhotoGallery } from './galleryContent';

@@ -26,8 +26,7 @@ import { collection,
   doc,
   getDocs,
   query,
-  where,
-  writeBatch
+  where
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { ArticleCategory, ArticleTranslation, CaseMediaItem, CaseStudy, Locale } from '../../types';
@@ -86,7 +85,7 @@ import { UnifiedMediaPanel } from './UnifiedMediaPanel';
 import { UnifiedSeoPanel } from './UnifiedSeoPanel';
 import { UnifiedTaxonomyPanel } from './UnifiedTaxonomyPanel';
 
-import { versionedDeleteDoc as deleteDoc, versionedSetDoc as setDoc } from '../../lib/cmsVersioning';
+import { versionedDeleteDoc as deleteDoc, versionedSetDoc as setDoc, versionedUpdateDoc as updateDoc } from '../../lib/cmsVersioning';
 
 interface ContentItem {
   key: string;
@@ -632,10 +631,8 @@ export function UnifiedContentManager() {
 
     setBulkBusy(true);
     try {
-      const batch = writeBatch(db);
       const now = Date.now();
-      selectedItems.forEach(item => batch.update(doc(db, item.collectionName, item.id), { published, updatedAt: now }));
-      await batch.commit();
+      await Promise.all(selectedItems.map(item => updateDoc(doc(db, item.collectionName, item.id), { published, updatedAt: now })));
       setSelected(new Set<string>());
       await load();
     } catch (reason) {
@@ -649,13 +646,11 @@ export function UnifiedContentManager() {
     if (!selectedItems.length || bulkBusy) return;
     setBulkBusy(true);
     try {
-      const batch = writeBatch(db);
       const now = Date.now();
-      selectedItems.forEach(item => {
+      await Promise.all(selectedItems.map(item => {
         const taxonomy = taxonomyRecord(item.data);
-        batch.update(doc(db, item.collectionName, item.id), { taxonomy: { ...taxonomy, category: bulkCategory }, updatedAt: now });
-      });
-      await batch.commit();
+        return updateDoc(doc(db, item.collectionName, item.id), { taxonomy: { ...taxonomy, category: bulkCategory }, updatedAt: now });
+      }));
       await load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -669,14 +664,12 @@ export function UnifiedContentManager() {
     if (!selectedItems.length || !tag || bulkBusy) return;
     setBulkBusy(true);
     try {
-      const batch = writeBatch(db);
       const now = Date.now();
-      selectedItems.forEach(item => {
+      await Promise.all(selectedItems.map(item => {
         const taxonomy = taxonomyRecord(item.data);
         const tags = Array.isArray(taxonomy.tags) ? taxonomy.tags.map(String).filter(Boolean) : [];
-        batch.update(doc(db, item.collectionName, item.id), { taxonomy: { ...taxonomy, tags: Array.from(new Set<string>([...tags, tag])) }, updatedAt: now });
-      });
-      await batch.commit();
+        return updateDoc(doc(db, item.collectionName, item.id), { taxonomy: { ...taxonomy, tags: Array.from(new Set<string>([...tags, tag])) }, updatedAt: now });
+      }));
       setBulkTag('');
       await load();
     } catch (reason) {
@@ -688,7 +681,7 @@ export function UnifiedContentManager() {
 
   const bulkDelete = async () => {
     if (!selectedItems.length || bulkBusy) return;
-    if (!window.confirm(`Удалить выбранные материалы (${selectedItems.length})? Это действие нельзя отменить.`)) return;
+    if (!window.confirm(`Удалить выбранные материалы (${selectedItems.length})? Перед удалением будет создана версия для восстановления через «История & Undo».`)) return;
     setBulkBusy(true);
     try {
       for (const item of selectedItems) {

@@ -1,5 +1,6 @@
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { versionedUpdateDoc as updateDoc } from './cmsVersioning';
 import type { DiagnosticIssue } from './cmsDiagnostics';
 
 export interface DiagnosticSafeFix {
