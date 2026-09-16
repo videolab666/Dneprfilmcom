@@ -50,6 +50,7 @@ export interface ConstructionCalculatorPricing {
 }
 
 export type StructureScalar = string | number | boolean | null;
+export type StructureLayout = 'auto' | 'stack' | 'grid-2' | 'grid-3' | 'grid-4';
 
 export interface StructureItemOverride {
   id: string;
@@ -62,6 +63,7 @@ export interface StructureItemOverride {
 
 export interface StructureOverride {
   items: StructureItemOverride[];
+  layout?: StructureLayout;
 }
 
 export interface FullPageCmsContent {
@@ -151,6 +153,24 @@ function finiteNumber(value: unknown, fallback: number): number {
   return Number.isFinite(numeric) && numeric >= 0 ? numeric : fallback;
 }
 
+function normalizeStructures(value: unknown): Record<string, StructureOverride> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const output: Record<string, StructureOverride> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+    const source = raw as Partial<StructureOverride>;
+    const items = Array.isArray(source.items) ? source.items : [];
+    const layout = source.layout;
+    output[key] = {
+      items,
+      ...(layout === 'stack' || layout === 'grid-2' || layout === 'grid-3' || layout === 'grid-4' || layout === 'auto'
+        ? { layout }
+        : {}),
+    };
+  }
+  return output;
+}
+
 function normalizeContent(input: unknown): FullPageCmsContent {
   const source = input && typeof input === 'object' ? input as Partial<FullPageCmsContent> : {};
   const calculators = source.calculators || {} as FullPageCmsContent['calculators'];
@@ -159,7 +179,7 @@ function normalizeContent(input: unknown): FullPageCmsContent {
   const construction = calculators.construction || {} as ConstructionCalculatorPricing;
   return {
     copyOverrides: source.copyOverrides && typeof source.copyOverrides === 'object' ? source.copyOverrides : {},
-    structures: source.structures && typeof source.structures === 'object' ? source.structures : {},
+    structures: normalizeStructures(source.structures),
     calculators: {
       live: {
         base: finiteNumber(live.base, DEFAULT_CONTENT.calculators.live.base),
