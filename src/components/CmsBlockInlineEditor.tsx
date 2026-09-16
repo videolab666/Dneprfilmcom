@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Image as ImageIcon, Plus, Save, Trash2, X } from 'lucide-react';
 import type { Locale } from '../types';
 import {
@@ -53,7 +53,7 @@ function TextField({ label, value, onChange, multiline = false, placeholder = ''
     : <input value={value || ''} placeholder={placeholder} onChange={event => onChange(event.target.value)} className={fieldClass()} />}</label>;
 }
 
-function SmallButton({ onClick, children, danger = false }: { onClick: () => void; children: React.ReactNode; danger?: boolean }) {
+function SmallButton({ onClick, children, danger = false }: { onClick: () => void; children: ReactNode; danger?: boolean }) {
   return <button type="button" onClick={onClick} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-black ${danger ? 'bg-red-500/10 text-red-300 hover:bg-red-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>{children}</button>;
 }
 
