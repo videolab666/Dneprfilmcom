@@ -10,6 +10,7 @@ import { pixelPerfectSectionById } from '../../lib/pixelPerfectSections';
 
 const CmsVisualInspector = lazy(() => import('../CmsVisualInspector').then(module => ({ default: module.CmsVisualInspector })));
 const CmsStructureRuntime = lazy(() => import('../CmsStructureRuntime').then(module => ({ default: module.CmsStructureRuntime })));
+const CmsPageComposer = lazy(() => import('../CmsPageComposer').then(module => ({ default: module.CmsPageComposer })));
 
 interface NativeEmbedMessage {
   type: 'cms-native-section-resize' | 'cms-native-section-overlay' | 'cms-native-section-anchor' | 'cms-native-section-navigate';
@@ -130,6 +131,7 @@ export function Layout() {
   const nativeSectionId = params.get('cmsNativeSection') || '';
   const nativeSection = pixelPerfectSectionById(nativeSectionId);
   const inspectorRequested = params.get('cmsInspect') === '1';
+  const composerRequested = params.get('cmsCompose') === '1';
   const structureRuntimeRequested = inspectorRequested || hasRuntimeStructureLayout(rawSettings.fullPageCms);
 
   if (nativeSection) {
@@ -160,6 +162,7 @@ export function Layout() {
       <SeoManager />
       {structureRuntimeRequested ? <Suspense fallback={null}><CmsStructureRuntime /></Suspense> : null}
       {inspectorRequested ? <Suspense fallback={null}><CmsVisualInspector /></Suspense> : null}
+      {composerRequested ? <Suspense fallback={null}><CmsPageComposer /></Suspense> : null}
       <Navbar />
       <main className="flex-grow pt-20">
         <Outlet />
