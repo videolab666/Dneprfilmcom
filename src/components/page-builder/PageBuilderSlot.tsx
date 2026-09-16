@@ -21,6 +21,7 @@ import {
 import { PageBuilderRenderer } from './PageBuilderRenderer';
 
 const LazyPageComposerRuntime = lazy(() => import('./PageComposerRuntime').then(module => ({ default: module.PageComposerRuntime })));
+const LazyCmsInlineEditingOverlay = lazy(() => import('../CmsInlineEditingOverlay').then(module => ({ default: module.CmsInlineEditingOverlay })));
 
 interface PageBuilderSlotProps {
   page: PageBuilderPage;
@@ -103,6 +104,7 @@ export function PageBuilderSurface({ page, children }: PageBuilderSurfaceProps) 
         {children}
         <Suspense fallback={null}>
           <LazyPageComposerRuntime page={page} preview={previewRequested} compose={composeRequested} />
+          {composeRequested ? <LazyCmsInlineEditingOverlay page={page} /> : null}
         </Suspense>
       </>
     );
