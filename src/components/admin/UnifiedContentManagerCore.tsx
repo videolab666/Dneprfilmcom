@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Briefcase,
@@ -16,8 +21,14 @@ import {
   Search,
   Tags,
   Trash2,
-} from 'lucide-react';
-import { collection, deleteDoc, doc, getDocs, query, setDoc, where, writeBatch } from 'firebase/firestore';
+  } from 'lucide-react';
+import { collection,
+  doc,
+  getDocs,
+  query,
+  where,
+  writeBatch
+} from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { ArticleCategory, ArticleTranslation, CaseMediaItem, CaseStudy, Locale } from '../../types';
 import { getCaseSlug, getYouTubeThumbnail, normalizedCaseMedia, slugifyCase } from '../../lib/caseMedia';
@@ -74,6 +85,8 @@ import { UnifiedContentHealthPanel } from './UnifiedContentHealthPanel';
 import { UnifiedMediaPanel } from './UnifiedMediaPanel';
 import { UnifiedSeoPanel } from './UnifiedSeoPanel';
 import { UnifiedTaxonomyPanel } from './UnifiedTaxonomyPanel';
+
+import { versionedDeleteDoc as deleteDoc, versionedSetDoc as setDoc } from '../../lib/cmsVersioning';
 
 interface ContentItem {
   key: string;

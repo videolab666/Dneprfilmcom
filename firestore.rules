@@ -145,6 +145,10 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /content_versions/{versionId} {
+      allow read, write: if isAdmin();
+    }
+
     match /leads/{leadId} {
       allow create: if isAdmin() || validPublicLead(request.resource.data);
       allow read, update, delete: if isAdmin();

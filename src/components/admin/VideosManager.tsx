@@ -1,5 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent } from 'react';
+import { collection,
+  doc,
+  getDocs
+} from 'firebase/firestore';
 import {
   ArrowDown,
   ArrowUp,
@@ -25,6 +33,8 @@ import { cleanupPortfolioRelations } from '../../lib/portfolioRelationsAdmin';
 import { requestPublishApproval } from '../../lib/publishQuality';
 import { ResponsiveImage } from '../ResponsiveImage';
 import { MediaLibraryPicker } from './MediaLibraryPicker';
+import { versionedDeleteDoc as deleteDoc, versionedSetDoc as setDoc } from '../../lib/cmsVersioning';
+
 import {
   PortfolioRelationsField,
   type PortfolioRelationsFieldHandle,

@@ -1,5 +1,12 @@
-import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs
+} from 'firebase/firestore';
 import { db } from './firebase';
+import { versionedSetDoc as setDoc } from './cmsVersioning';
+
 import {
   ensureMediaAssetRegistered,
   loadMediaLibrary,

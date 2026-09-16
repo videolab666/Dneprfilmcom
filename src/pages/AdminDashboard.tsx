@@ -19,6 +19,8 @@ import {
   LayoutGrid,
   FileSearch,
   ContactRound,
+  History,
+  Search,
 } from 'lucide-react';
 import { useSiteContent } from '../context/SiteContentContext';
 import type { PublishQualityType } from '../lib/publishQuality';
@@ -27,6 +29,8 @@ const PageBuilderManager = lazy(() => import('../components/admin/PageBuilderMan
 const SiteSettingsEditor = lazy(() => import('../components/admin/SiteSettingsEditor').then(module => ({ default: module.SiteSettingsEditor })));
 const ContactsPageEditor = lazy(() => import('../components/admin/ContactsPageEditor').then(module => ({ default: module.ContactsPageEditor })));
 const FullPageEditingManager = lazy(() => import('../components/admin/FullPageEditingManager').then(module => ({ default: module.FullPageEditingManager })));
+const AdminCommandCenter = lazy(() => import('../components/admin/AdminCommandCenter').then(module => ({ default: module.AdminCommandCenter })));
+const CmsHistoryManager = lazy(() => import('../components/admin/CmsHistoryManager').then(module => ({ default: module.CmsHistoryManager })));
 const UnifiedContentManager = lazy(() => import('../components/admin/UnifiedContentManager').then(module => ({ default: module.UnifiedContentManager })));
 const PortfolioOrganizer = lazy(() => import('../components/admin/PortfolioOrganizer').then(module => ({ default: module.PortfolioOrganizer })));
 const SeoQualityManager = lazy(() => import('../components/admin/SeoQualityManager').then(module => ({ default: module.SeoQualityManager })));
@@ -39,7 +43,7 @@ const PageCopyManager = lazy(() => import('../components/admin/PageCopyManager')
 const RelationsManager = lazy(() => import('../components/admin/RelationsManager').then(module => ({ default: module.RelationsManager })));
 const CmsDiagnostics = lazy(() => import('../components/admin/CmsDiagnostics').then(module => ({ default: module.CmsDiagnostics })));
 
-type AdminTab = 'blocks' | 'contacts-page' | 'full-page' | 'settings' | 'pages' | 'page-copy' | 'content' | 'organizer' | 'seo-quality' | 'relations' | 'media' | 'diagnostics' | 'testimonials' | 'backstage' | 'leads';
+type AdminTab = 'command-center' | 'history' | 'blocks' | 'contacts-page' | 'full-page' | 'settings' | 'pages' | 'page-copy' | 'content' | 'organizer' | 'seo-quality' | 'relations' | 'media' | 'diagnostics' | 'testimonials' | 'backstage' | 'leads';
 
 interface NavItem {
   id: AdminTab;
@@ -82,9 +86,11 @@ export function AdminDashboard() {
   };
 
   const navItems: NavItem[] = [
+    { id: 'command-center', label: isUk ? 'Пошук CMS' : 'Поиск CMS', icon: <Search className="w-4 h-4" />, badge: '1.0' },
+    { id: 'history', label: isUk ? 'Історія & Undo' : 'История & Undo', icon: <History className="w-4 h-4" />, badge: '1.0' },
     { id: 'blocks', label: isUk ? 'Конструктор сторінок' : 'Конструктор страниц', icon: <Layers className="w-4 h-4" />, badge: '1.0' },
     { id: 'contacts-page', label: isUk ? 'Контакти' : 'Контакты', icon: <ContactRound className="w-4 h-4" />, badge: '2.0' },
-    { id: 'full-page', label: isUk ? 'Повне редагування' : 'Полное редактирование', icon: <FileText className="w-4 h-4" />, badge: '3.0' },
+    { id: 'full-page', label: isUk ? 'Повне редагування' : 'Полное редактирование', icon: <FileText className="w-4 h-4" />, badge: '4.0' },
     { id: 'settings', label: isUk ? 'Головна & Засновник' : 'Главная & Основатель', icon: <Sliders className="w-4 h-4" /> },
     { id: 'pages', label: isUk ? 'Контент сторінок' : 'Контент страниц', icon: <Layers className="w-4 h-4" /> },
     { id: 'page-copy', label: isUk ? 'Тексти & FAQ' : 'Тексты & FAQ', icon: <FileText className="w-4 h-4" />, badge: 'CMS' },
@@ -130,6 +136,8 @@ export function AdminDashboard() {
         </div>
 
         <Suspense fallback={<AdminPanelFallback />}>
+          {activeTab === 'command-center' && <AdminCommandCenter onNavigate={(tab, target) => { if (tab === 'content' && target) openUnifiedContent(target as never); else setActiveTab(tab as AdminTab); }} />}
+          {activeTab === 'history' && <CmsHistoryManager />}
           {activeTab === 'blocks' && <PageBuilderManager />}
           {activeTab === 'contacts-page' && <ContactsPageEditor />}
           {activeTab === 'full-page' && <FullPageEditingManager />}

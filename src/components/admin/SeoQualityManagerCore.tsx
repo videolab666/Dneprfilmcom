@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -9,8 +12,13 @@ import {
   Save,
   Search,
   ShieldCheck,
-} from 'lucide-react';
-import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
+  } from 'lucide-react';
+import { collection,
+  doc,
+  getDocs,
+  query,
+  where
+} from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { CaseStudy, Locale } from '../../types';
 import { getCaseSlug } from '../../lib/caseMedia';
@@ -20,6 +28,8 @@ import { normalizeArticle } from '../../lib/articleCms';
 import { evaluatePublishQuality, type PublishQualityIssue, type PublishQualityType } from '../../lib/publishQuality';
 import { seoFieldName } from '../../lib/seoOverrides';
 import { isProjectRelation, type ProjectRelation } from '../../lib/projectRelations';
+
+import { versionedSetDoc as setDoc } from '../../lib/cmsVersioning';
 
 interface ContentRecord {
   key: string;
