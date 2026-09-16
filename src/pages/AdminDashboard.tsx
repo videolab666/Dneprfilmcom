@@ -18,12 +18,14 @@ import {
   Loader2,
   LayoutGrid,
   FileSearch,
+  ContactRound,
 } from 'lucide-react';
 import { useSiteContent } from '../context/SiteContentContext';
 import type { PublishQualityType } from '../lib/publishQuality';
 
 const PageBuilderManager = lazy(() => import('../components/admin/PageBuilderManager').then(module => ({ default: module.PageBuilderManager })));
 const SiteSettingsEditor = lazy(() => import('../components/admin/SiteSettingsEditor').then(module => ({ default: module.SiteSettingsEditor })));
+const ContactsPageEditor = lazy(() => import('../components/admin/ContactsPageEditor').then(module => ({ default: module.ContactsPageEditor })));
 const UnifiedContentManager = lazy(() => import('../components/admin/UnifiedContentManager').then(module => ({ default: module.UnifiedContentManager })));
 const PortfolioOrganizer = lazy(() => import('../components/admin/PortfolioOrganizer').then(module => ({ default: module.PortfolioOrganizer })));
 const SeoQualityManager = lazy(() => import('../components/admin/SeoQualityManager').then(module => ({ default: module.SeoQualityManager })));
@@ -36,7 +38,7 @@ const PageCopyManager = lazy(() => import('../components/admin/PageCopyManager')
 const RelationsManager = lazy(() => import('../components/admin/RelationsManager').then(module => ({ default: module.RelationsManager })));
 const CmsDiagnostics = lazy(() => import('../components/admin/CmsDiagnostics').then(module => ({ default: module.CmsDiagnostics })));
 
-type AdminTab = 'blocks' | 'settings' | 'pages' | 'page-copy' | 'content' | 'organizer' | 'seo-quality' | 'relations' | 'media' | 'diagnostics' | 'testimonials' | 'backstage' | 'leads';
+type AdminTab = 'blocks' | 'contacts-page' | 'settings' | 'pages' | 'page-copy' | 'content' | 'organizer' | 'seo-quality' | 'relations' | 'media' | 'diagnostics' | 'testimonials' | 'backstage' | 'leads';
 
 interface NavItem {
   id: AdminTab;
@@ -80,6 +82,7 @@ export function AdminDashboard() {
 
   const navItems: NavItem[] = [
     { id: 'blocks', label: isUk ? 'Конструктор сторінок' : 'Конструктор страниц', icon: <Layers className="w-4 h-4" />, badge: '1.0' },
+    { id: 'contacts-page', label: isUk ? 'Контакти' : 'Контакты', icon: <ContactRound className="w-4 h-4" />, badge: '2.0' },
     { id: 'settings', label: isUk ? 'Головна & Засновник' : 'Главная & Основатель', icon: <Sliders className="w-4 h-4" /> },
     { id: 'pages', label: isUk ? 'Контент сторінок' : 'Контент страниц', icon: <Layers className="w-4 h-4" /> },
     { id: 'page-copy', label: isUk ? 'Тексти & FAQ' : 'Тексты & FAQ', icon: <FileText className="w-4 h-4" />, badge: 'CMS' },
@@ -126,6 +129,7 @@ export function AdminDashboard() {
 
         <Suspense fallback={<AdminPanelFallback />}>
           {activeTab === 'blocks' && <PageBuilderManager />}
+          {activeTab === 'contacts-page' && <ContactsPageEditor />}
           {activeTab === 'settings' && <SiteSettingsEditor />}
           {activeTab === 'pages' && <PageContentManager />}
           {activeTab === 'page-copy' && <PageCopyManager />}

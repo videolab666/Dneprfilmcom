@@ -149,6 +149,133 @@ export interface Lead {
   createdAt: number;
 }
 
+export type ContactPageSectionId = 'hero' | 'channels' | 'main' | 'faq';
+export type ContactRightPanelId = 'workingHours' | 'locations' | 'legal';
+export type ContactCardKind = 'phone' | 'telegram' | 'email' | 'whatsapp' | 'custom';
+export type ContactIconKey = 'phone' | 'mail' | 'message' | 'globe' | 'building' | 'truck';
+
+export interface ContactPageLayout {
+  sectionOrder: ContactPageSectionId[];
+  sectionEnabled: Record<ContactPageSectionId, boolean>;
+  mainEnabled: Record<'form' | ContactRightPanelId, boolean>;
+  rightPanelOrder: ContactRightPanelId[];
+}
+
+export interface ContactCardContent {
+  id: string;
+  kind: ContactCardKind;
+  icon: ContactIconKey;
+  title: string;
+  subtitle: string;
+  badge: string;
+  valueOverride: string;
+  hrefOverride: string;
+}
+
+export interface ContactChoiceContent {
+  id: string;
+  label: string;
+}
+
+export interface ContactWorkingHoursRow {
+  id: string;
+  label: string;
+  value: string;
+  tone: 'default' | 'indigo' | 'emerald';
+}
+
+export interface ContactLocationContent {
+  id: string;
+  icon: ContactIconKey;
+  city: string;
+  address: string;
+  description: string;
+  type: string;
+  mapUrl: string;
+}
+
+export interface ContactLegalItem {
+  id: string;
+  title: string;
+  description: string;
+}
+
+export interface ContactFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface ContactPageLocaleContent {
+  hero: {
+    badge: string;
+    title: string;
+    accent: string;
+    description: string;
+    phoneButtonPrefix: string;
+    telegramButton: string;
+  };
+  contactCards: ContactCardContent[];
+  form: {
+    badge: string;
+    title: string;
+    description: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    phoneLabel: string;
+    phonePlaceholder: string;
+    preferredContactLabel: string;
+    preferredContacts: ContactChoiceContent[];
+    serviceLabel: string;
+    services: ContactChoiceContent[];
+    locationLabel: string;
+    locationPlaceholder: string;
+    defaultLocation: string;
+    dateLabel: string;
+    datePlaceholder: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    messageLabel: string;
+    messagePlaceholder: string;
+    privacyText: string;
+    submitText: string;
+    submittingText: string;
+    requiredError: string;
+    submitError: string;
+    eventTypeLabel: string;
+    cameraCountText: string;
+    successTitle: string;
+    successDescription: string;
+    successButton: string;
+  };
+  workingHours: {
+    title: string;
+    subtitle: string;
+    rows: ContactWorkingHoursRow[];
+  };
+  locations: {
+    title: string;
+    items: ContactLocationContent[];
+  };
+  legal: {
+    title: string;
+    items: ContactLegalItem[];
+  };
+  faq: {
+    title: string;
+    subtitle: string;
+    items: ContactFaqItem[];
+  };
+}
+
+export interface ContactPageConfig {
+  version: 2;
+  layout: ContactPageLayout;
+  ru: ContactPageLocaleContent;
+  uk: ContactPageLocaleContent;
+  en: ContactPageLocaleContent;
+}
+
 export interface SiteSetting {
   id?: string;
   studioName: string;
@@ -204,6 +331,7 @@ export interface SiteSetting {
   youtubeUrl: string;
   instagramUrl: string;
   facebookUrl: string;
+  contactsPage?: ContactPageConfig;
   updatedAt?: number;
 }
 
