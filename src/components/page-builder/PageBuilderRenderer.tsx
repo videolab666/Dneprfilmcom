@@ -1,1 +1,1 @@
-export { PageBuilderRenderer } from './PageBuilderRendererV2';
+export { PageBuilderRenderer } from './PageBuilderRendererV3';
