@@ -22,7 +22,7 @@ import {
 import { useSiteContent } from '../context/SiteContentContext';
 import type { PublishQualityType } from '../lib/publishQuality';
 
-const BlocksManager = lazy(() => import('../components/admin/BlocksManager').then(module => ({ default: module.BlocksManager })));
+const PageBuilderManager = lazy(() => import('../components/admin/PageBuilderManager').then(module => ({ default: module.PageBuilderManager })));
 const SiteSettingsEditor = lazy(() => import('../components/admin/SiteSettingsEditor').then(module => ({ default: module.SiteSettingsEditor })));
 const UnifiedContentManager = lazy(() => import('../components/admin/UnifiedContentManager').then(module => ({ default: module.UnifiedContentManager })));
 const PortfolioOrganizer = lazy(() => import('../components/admin/PortfolioOrganizer').then(module => ({ default: module.PortfolioOrganizer })));
@@ -79,13 +79,13 @@ export function AdminDashboard() {
   };
 
   const navItems: NavItem[] = [
-    { id: 'blocks', label: isUk ? 'Конструктор блоків' : 'Конструктор блоков', icon: <Layers className="w-4 h-4" />, badge: 'CMS' },
+    { id: 'blocks', label: isUk ? 'Конструктор сторінок' : 'Конструктор страниц', icon: <Layers className="w-4 h-4" />, badge: '1.0' },
     { id: 'settings', label: isUk ? 'Головна & Засновник' : 'Главная & Основатель', icon: <Sliders className="w-4 h-4" /> },
     { id: 'pages', label: isUk ? 'Контент сторінок' : 'Контент страниц', icon: <Layers className="w-4 h-4" /> },
     { id: 'page-copy', label: isUk ? 'Тексти & FAQ' : 'Тексты & FAQ', icon: <FileText className="w-4 h-4" />, badge: 'CMS' },
     { id: 'content', label: isUk ? 'Єдиний контент' : 'Единый контент', icon: <LayoutGrid className="w-4 h-4" />, badge: '2.1' },
     { id: 'organizer', label: isUk ? 'Організатор портфоліо' : 'Организатор портфолио', icon: <LayoutGrid className="w-4 h-4" /> },
-    { id: 'seo-quality', label: 'SEO & Quality', icon: <FileSearch className="w-4 h-4" />, badge: '3.0' },
+    { id: 'seo-quality', label: 'SEO & Quality', icon: <FileSearch className="w-4 h-4" />, badge: '4.0' },
     { id: 'relations', label: isUk ? 'Зв’язки портфоліо' : 'Связи портфолио', icon: <Link2 className="w-4 h-4" /> },
     { id: 'media', label: isUk ? 'Медіатека' : 'Медиатека', icon: <FolderOpen className="w-4 h-4" /> },
     { id: 'diagnostics', label: isUk ? 'Здоров’я CMS' : 'Здоровье CMS', icon: <Activity className="w-4 h-4" />, badge: '2.1' },
@@ -103,21 +103,14 @@ export function AdminDashboard() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-sm tracking-tight">{settings.studioName || 'LIVE & VIDEO'}</span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  <ShieldCheck className="w-3 h-3 mr-1" /> {isUk ? 'Панель керування' : 'Панель управления'}
-                </span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"><ShieldCheck className="w-3 h-3 mr-1" /> {isUk ? 'Панель керування' : 'Панель управления'}</span>
               </div>
               <p className="text-[11px] text-slate-400">{isUk ? 'Повний контроль вмісту сайту' : 'Полный контроль содержимого сайта'}</p>
             </div>
           </div>
-
           <div className="flex items-center gap-3">
-            <Link to="/" target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors">
-              <span>{isUk ? 'Відкрити сайт' : 'Открыть сайт'}</span><ExternalLink className="w-3.5 h-3.5" />
-            </Link>
-            <button onClick={handleLogout} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition-colors">
-              <LogOut className="w-3.5 h-3.5" /><span>{isUk ? 'Вийти' : 'Выйти'}</span>
-            </button>
+            <Link to="/" target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors"><span>{isUk ? 'Відкрити сайт' : 'Открыть сайт'}</span><ExternalLink className="w-3.5 h-3.5" /></Link>
+            <button onClick={handleLogout} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition-colors"><LogOut className="w-3.5 h-3.5" /><span>{isUk ? 'Вийти' : 'Выйти'}</span></button>
           </div>
         </div>
       </header>
@@ -126,14 +119,13 @@ export function AdminDashboard() {
         <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm mb-8 overflow-x-auto flex gap-1">
           {navItems.map(item => (
             <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${activeTab === item.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>
-              {item.icon}<span>{item.label}</span>
-              {item.badge && <span className={`text-[10px] px-1.5 py-0.5 rounded font-black ${activeTab === item.id ? 'bg-white text-indigo-700' : 'bg-indigo-100 text-indigo-700'}`}>{item.badge}</span>}
+              {item.icon}<span>{item.label}</span>{item.badge && <span className={`text-[10px] px-1.5 py-0.5 rounded font-black ${activeTab === item.id ? 'bg-white text-indigo-700' : 'bg-indigo-100 text-indigo-700'}`}>{item.badge}</span>}
             </button>
           ))}
         </div>
 
         <Suspense fallback={<AdminPanelFallback />}>
-          {activeTab === 'blocks' && <BlocksManager />}
+          {activeTab === 'blocks' && <PageBuilderManager />}
           {activeTab === 'settings' && <SiteSettingsEditor />}
           {activeTab === 'pages' && <PageContentManager />}
           {activeTab === 'page-copy' && <PageCopyManager />}
