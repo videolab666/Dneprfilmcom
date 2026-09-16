@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { useSiteContent } from '../../context/SiteContentContext';
 import { useAuth } from '../../context/AuthContext';
@@ -12,23 +12,33 @@ import {
   type PageBuilderPlacement,
   type StoredBuilderSiteBlock,
 } from '../../lib/pageBuilder';
+import {
+  composerHasPublishedPage,
+  draftComposerPage,
+  normalizePageComposer,
+  pageComposerSupported,
+} from '../../lib/pageComposer';
 import { PageBuilderRenderer } from './PageBuilderRenderer';
+
+const LazyPageComposerRuntime = lazy(() => import('./PageComposerRuntime').then(module => ({ default: module.PageComposerRuntime })));
 
 interface PageBuilderSlotProps {
   page: PageBuilderPage;
   placement: PageBuilderPlacement;
 }
 
+function params(): URLSearchParams {
+  try { return new URLSearchParams(window.location.search); } catch { return new URLSearchParams(); }
+}
+
 function nativeSectionEmbedRequested(): boolean {
-  try { return Boolean(new URLSearchParams(window.location.search).get('cmsNativeSection')); } catch { return false; }
+  return Boolean(params().get('cmsNativeSection'));
 }
 
 function useBuilderDraftPreview(): { enabled: boolean; blocks: BuilderSiteBlock[] | null } {
   const { user } = useAuth();
   const [blocks, setBlocks] = useState<BuilderSiteBlock[] | null>(null);
-  const requested = useMemo(() => {
-    try { return new URLSearchParams(window.location.search).get('cmsPreview') === '1'; } catch { return false; }
-  }, []);
+  const requested = useMemo(() => params().get('cmsPreview') === '1', []);
   const enabled = requested && Boolean(user);
 
   useEffect(() => {
@@ -70,10 +80,33 @@ interface PageBuilderSurfaceProps {
 }
 
 export function PageBuilderSurface({ page, children }: PageBuilderSurfaceProps) {
-  // A pixel-perfect section is rendered inside an isolated same-origin iframe.
-  // Never render builder slots inside that iframe, otherwise a native builder
-  // block could recursively embed itself.
+  const { rawSettings } = useSiteContent();
+  const { user } = useAuth();
+
   if (nativeSectionEmbedRequested()) return <>{children}</>;
+
+  const query = params();
+  const previewRequested = query.get('cmsPreview') === '1' && Boolean(user);
+  const composeRequested = query.get('cmsCompose') === '1' && Boolean(user);
+  const composer = normalizePageComposer((rawSettings as unknown as { pageComposer?: unknown }).pageComposer);
+  const supported = pageComposerSupported(page);
+  const composerMode = supported && (
+    composerHasPublishedPage(composer, page)
+    || (previewRequested && Boolean(draftComposerPage(composer, page)))
+    || composeRequested
+  );
+
+  if (composerMode) {
+    return (
+      <>
+        <span hidden data-cms-page-root-marker={page} />
+        {children}
+        <Suspense fallback={null}>
+          <LazyPageComposerRuntime page={page} preview={previewRequested} compose={composeRequested} />
+        </Suspense>
+      </>
+    );
+  }
 
   return (
     <>
