@@ -21,7 +21,7 @@ export function PageBuilderSlot({ page, placement }: PageBuilderSlotProps) {
   if (!items.length) return null;
   return (
     <div data-page-builder-slot={`${page}:${placement}`}>
-      {items.map(block => <PageBuilderRenderer key={block.id} block={block} />)}
+      {items.map(block => <div key={block.id} className="contents"><PageBuilderRenderer block={block} /></div>)}
     </div>
   );
 }
