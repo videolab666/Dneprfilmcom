@@ -19,6 +19,10 @@ interface PageBuilderSlotProps {
   placement: PageBuilderPlacement;
 }
 
+function nativeSectionEmbedRequested(): boolean {
+  try { return Boolean(new URLSearchParams(window.location.search).get('cmsNativeSection')); } catch { return false; }
+}
+
 function useBuilderDraftPreview(): { enabled: boolean; blocks: BuilderSiteBlock[] | null } {
   const { user } = useAuth();
   const [blocks, setBlocks] = useState<BuilderSiteBlock[] | null>(null);
@@ -66,6 +70,11 @@ interface PageBuilderSurfaceProps {
 }
 
 export function PageBuilderSurface({ page, children }: PageBuilderSurfaceProps) {
+  // A pixel-perfect section is rendered inside an isolated same-origin iframe.
+  // Never render builder slots inside that iframe, otherwise a native builder
+  // block could recursively embed itself.
+  if (nativeSectionEmbedRequested()) return <>{children}</>;
+
   return (
     <>
       <PageBuilderSlot page={page} placement="before" />
