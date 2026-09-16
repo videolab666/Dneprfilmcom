@@ -1,5 +1,6 @@
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
+import { collection, doc, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
+import { versionedDeleteDoc as deleteDoc, versionedSetDoc as setDoc } from './cmsVersioning';
 import { videoPosterUrl, type UploadedAsset } from './mediaUpload';
 
 export const MEDIA_ASSET_COLLECTION = 'site_settings';

@@ -1,8 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
+import {
+  useEffect,
+  useMemo,
+  useState } from 'react';
+import { collection,
+  doc,
+  getDocs
+} from 'firebase/firestore';
 import { Briefcase, Check, Film, Images, Link2, Loader2, Save, X } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import type { CaseStudy } from '../../types';
+import { versionedDeleteDoc as deleteDoc, versionedSetDoc as setDoc } from '../../lib/cmsVersioning';
+
 import {
   isPhotoGallery,
   sortGalleries,

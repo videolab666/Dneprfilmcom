@@ -1,5 +1,6 @@
-import { collection, deleteDoc, doc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
+import { snapshotDocument, versionedDeleteDoc as deleteDoc, versionedSetDoc as setDoc } from './cmsVersioning';
 import type { CaseStudy } from '../types';
 import {
   isPhotoGallery,
@@ -133,6 +134,7 @@ export async function savePortfolioRelationSelection(
   const selectedCases = new Set(selection.caseIds);
   const allCaseIds = new Set([...byCase.keys(), ...selectedCases]);
   const batch = writeBatch(db);
+  const snapshots: Promise<void>[] = [];
   let changes = 0;
 
   for (const caseId of allCaseIds) {
@@ -155,6 +157,7 @@ export async function savePortfolioRelationSelection(
     const relationRef = doc(db, PROJECT_RELATION_COLLECTION, relationId);
 
     if (nextGalleryIds.length === 0 && nextVideoIds.length === 0) {
+      snapshots.push(snapshotDocument(relationRef, 'batch-delete'));
       batch.delete(relationRef);
     } else {
       const payload: ProjectRelation = {
@@ -165,12 +168,13 @@ export async function savePortfolioRelationSelection(
         videoProjectIds: nextVideoIds,
         updatedAt: Date.now(),
       };
+      snapshots.push(snapshotDocument(relationRef, 'batch-set', payload));
       batch.set(relationRef, payload);
     }
     changes += 1;
   }
 
-  if (changes > 0) await batch.commit();
+  if (changes > 0) { await Promise.all(snapshots); await batch.commit(); }
 }
 
 export async function cleanupPortfolioRelations(
@@ -187,10 +191,13 @@ export async function cleanupPortfolioRelations(
     .map(item => ({ id: item.id, ...item.data() }))
     .filter(isProjectRelation);
   const batch = writeBatch(db);
+  const snapshots: Promise<void>[] = [];
   let changes = 0;
 
   if (entityType === 'case') {
-    batch.delete(doc(db, PROJECT_RELATION_COLLECTION, relationDocumentId(entityId)));
+    const relationRef = doc(db, PROJECT_RELATION_COLLECTION, relationDocumentId(entityId));
+    snapshots.push(snapshotDocument(relationRef, 'batch-delete'));
+    batch.delete(relationRef);
     changes += 1;
   } else {
     for (const relation of relations) {
@@ -204,14 +211,12 @@ export async function cleanupPortfolioRelations(
 
       const relationRef = doc(db, PROJECT_RELATION_COLLECTION, relationDocumentId(relation.caseId));
       if (nextGalleryIds.length === 0 && nextVideoIds.length === 0) {
+        snapshots.push(snapshotDocument(relationRef, 'batch-delete'));
         batch.delete(relationRef);
       } else {
-        batch.set(relationRef, {
-          ...relation,
-          galleryIds: nextGalleryIds,
-          videoProjectIds: nextVideoIds,
-          updatedAt: Date.now(),
-        });
+        const payload = { ...relation, galleryIds: nextGalleryIds, videoProjectIds: nextVideoIds, updatedAt: Date.now() };
+        snapshots.push(snapshotDocument(relationRef, 'batch-set', payload));
+        batch.set(relationRef, payload);
       }
       changes += 1;
     }
@@ -226,12 +231,11 @@ export async function cleanupPortfolioRelations(
   for (const article of articleSnapshot.docs) {
     const current = stringIds(article.data()[articleField]);
     if (!current.includes(entityId)) continue;
-    batch.update(article.ref, {
-      [articleField]: current.filter(id => id !== entityId),
-      updatedAt: Date.now(),
-    });
+    const payload = { [articleField]: current.filter(id => id !== entityId), updatedAt: Date.now() };
+    snapshots.push(snapshotDocument(article.ref, 'batch-update', payload));
+    batch.update(article.ref, payload);
     changes += 1;
   }
 
-  if (changes > 0) await batch.commit();
+  if (changes > 0) { await Promise.all(snapshots); await batch.commit(); }
 }

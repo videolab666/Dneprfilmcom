@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowDown,
@@ -18,8 +21,11 @@ import {
   Tablet,
   Trash2,
   X,
-} from 'lucide-react';
-import { collection, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
+  } from 'lucide-react';
+import { collection,
+  doc,
+  onSnapshot
+} from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useSiteContent } from '../../context/SiteContentContext';
 import { AdminImageField } from './AdminImageField';
@@ -41,6 +47,8 @@ import {
   type PageBuilderPreset,
 } from '../../lib/pageBuilder';
 import type { Locale, SiteBlock } from '../../types';
+
+import { versionedDeleteDoc as deleteDoc, versionedSetDoc as setDoc } from '../../lib/cmsVersioning';
 
 const LANGS: Array<{ id: Locale; label: string }> = [
   { id: 'uk', label: 'UA' },

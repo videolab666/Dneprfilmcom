@@ -1,11 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Edit3, FileText, Plus, Trash2, X } from 'lucide-react';
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
+import {
+  Edit3,
+  FileText,
+  Plus,
+  Trash2,
+  X } from 'lucide-react';
+import { collection,
+  doc,
+  getDocs
+} from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Article, ArticleCategory, ArticleTranslation, Locale } from '../../types';
 import { articleCategoryLabel, normalizeArticle, slugifyArticleTitle } from '../../lib/articleCms';
 import { requestPublishApproval } from '../../lib/publishQuality';
 import { AdminImageField } from './AdminImageField';
+
+import { versionedDeleteDoc as deleteDoc, versionedSetDoc as setDoc } from '../../lib/cmsVersioning';
 
 const LANGS: Array<{ id: Locale; label: string }> = [
   { id: 'uk', label: 'Українська' },

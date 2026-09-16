@@ -3,7 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import { TRANSLATIONS } from '../src/locales/translations';
 import { legacyText } from '../src/locales/legacyEnglish';
-import { copyOverrideKey, translationOverrideKey } from '../src/lib/fullPageEditing';
+import { copyOverrideKey, legacyStructureItemId, legacyStructureKey, translationOverrideKey } from '../src/lib/fullPageEditing';
 
 interface CatalogEntry {
   id: string;
@@ -17,9 +17,33 @@ interface CatalogEntry {
   en: string;
 }
 
+interface StructureFieldEntry {
+  key: string;
+  copyId: string;
+  uk: string;
+  ru: string;
+  en: string;
+}
+
+interface StructureItemEntry {
+  id: string;
+  label: string;
+  fields: StructureFieldEntry[];
+}
+
+interface StructureCatalogEntry {
+  id: string;
+  page: string;
+  source: string;
+  line: number;
+  label: string;
+  items: StructureItemEntry[];
+}
+
 const root = process.cwd();
 const srcRoot = path.join(root, 'src');
 const outputPath = path.join(srcRoot, 'generated', 'editableCopyCatalog.ts');
+const structuresOutputPath = path.join(srcRoot, 'generated', 'editableStructureCatalog.ts');
 
 function walk(directory: string): string[] {
   const result: string[] = [];
@@ -59,9 +83,7 @@ function pageFromSource(relative: string): string {
 
 const files = walk(srcRoot).filter(file => {
   const normalized = file.replace(/\\/g, '/');
-  return !normalized.includes('/components/admin/') &&
-    !normalized.includes('/pages/Admin') &&
-    !normalized.includes('/components/ProtectedRoute');
+  return !normalized.includes('/components/admin/') && !normalized.includes('/pages/Admin') && !normalized.includes('/components/ProtectedRoute');
 });
 
 const program = ts.createProgram(files, {
@@ -74,13 +96,12 @@ const program = ts.createProgram(files, {
 });
 const checker = program.getTypeChecker();
 const entries = new Map<string, CatalogEntry>();
+const structures = new Map<string, StructureCatalogEntry>();
 
 function unwrap(node: ts.Expression | undefined, seen = new Set<ts.Node>()): ts.Expression | undefined {
   if (!node || seen.has(node)) return node;
   seen.add(node);
-  if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isTypeAssertionExpression(node) || ts.isNonNullExpression(node) || ts.isSatisfiesExpression(node)) {
-    return unwrap(node.expression, seen);
-  }
+  if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isTypeAssertionExpression(node) || ts.isNonNullExpression(node) || ts.isSatisfiesExpression(node)) return unwrap(node.expression, seen);
   if (!ts.isIdentifier(node)) return node;
   let symbol = checker.getSymbolAtLocation(node);
   if (!symbol) return node;
@@ -127,15 +148,7 @@ function addPair(kind: 'l' | 'legacy', uk: string, ru: string, en: string | unde
     if (!existing.source.includes(info.source)) existing.source += `, ${info.source}`;
     return;
   }
-  entries.set(id, {
-    id,
-    kind,
-    ...info,
-    label: shortLabel(uk || ru),
-    uk,
-    ru,
-    en: normalizedEn,
-  });
+  entries.set(id, { id, kind, ...info, label: shortLabel(uk || ru), uk, ru, en: normalizedEn });
 }
 
 function pairObjectProperties(left: ts.ObjectLiteralExpression, right: ts.ObjectLiteralExpression) {
@@ -161,24 +174,17 @@ function collectLegacyPair(leftNode: ts.Expression | undefined, rightNode: ts.Ex
   const left = unwrap(leftNode);
   const right = unwrap(rightNode);
   if (!left || !right) return;
-
   const uk = stringValue(left);
   const ru = stringValue(right);
   if (uk !== undefined && ru !== undefined) {
     addPair('legacy', uk, ru, undefined, sourceFile, anchor);
     return;
   }
-
   if (ts.isArrayLiteralExpression(left) && ts.isArrayLiteralExpression(right)) {
     const count = Math.min(left.elements.length, right.elements.length);
-    for (let index = 0; index < count; index += 1) {
-      const a = left.elements[index];
-      const b = right.elements[index];
-      collectLegacyPair(a, b, sourceFile, anchor, depth + 1);
-    }
+    for (let index = 0; index < count; index += 1) collectLegacyPair(left.elements[index], right.elements[index], sourceFile, anchor, depth + 1);
     return;
   }
-
   if (ts.isObjectLiteralExpression(left) && ts.isObjectLiteralExpression(right)) {
     const { leftMap, rightMap } = pairObjectProperties(left, right);
     for (const [name, a] of leftMap.entries()) {
@@ -186,6 +192,45 @@ function collectLegacyPair(leftNode: ts.Expression | undefined, rightNode: ts.Ex
       if (b) collectLegacyPair(a, b, sourceFile, anchor, depth + 1);
     }
   }
+}
+
+function collectStructure(leftNode: ts.Expression | undefined, rightNode: ts.Expression | undefined, sourceFile: ts.SourceFile, anchor: ts.Node) {
+  const left = unwrap(leftNode);
+  const right = unwrap(rightNode);
+  if (!left || !right || !ts.isArrayLiteralExpression(left) || !ts.isArrayLiteralExpression(right)) return;
+  const count = Math.min(left.elements.length, right.elements.length);
+  if (count < 2) return;
+  const ukSkeleton: Array<Record<string, string>> = [];
+  const ruSkeleton: Array<Record<string, string>> = [];
+  const items: StructureItemEntry[] = [];
+
+  for (let index = 0; index < count; index += 1) {
+    const a = unwrap(left.elements[index]);
+    const b = unwrap(right.elements[index]);
+    if (!a || !b || !ts.isObjectLiteralExpression(a) || !ts.isObjectLiteralExpression(b)) return;
+    const { leftMap, rightMap } = pairObjectProperties(a, b);
+    const ukObject: Record<string, string> = {};
+    const ruObject: Record<string, string> = {};
+    const fields: StructureFieldEntry[] = [];
+    for (const [key, leftValue] of leftMap.entries()) {
+      const rightValue = rightMap.get(key);
+      if (!rightValue) continue;
+      const uk = stringValue(leftValue);
+      const ru = stringValue(rightValue);
+      if (uk === undefined || ru === undefined) continue;
+      ukObject[key] = uk;
+      ruObject[key] = ru;
+      fields.push({ key, copyId: copyOverrideKey(uk, ru), uk, ru, en: legacyText('en', uk, ru) });
+    }
+    if (!fields.length) return;
+    ukSkeleton.push(ukObject);
+    ruSkeleton.push(ruObject);
+    items.push({ id: legacyStructureItemId(ukObject, ruObject, index), label: shortLabel(fields[0]?.uk || `Элемент ${index + 1}`), fields });
+  }
+
+  const id = legacyStructureKey(ukSkeleton, ruSkeleton);
+  const info = sourceInfo(sourceFile, anchor);
+  if (!structures.has(id)) structures.set(id, { id, ...info, label: `${info.page}: ${shortLabel(items[0]?.label || 'список')}`, items });
 }
 
 for (const sourceFile of program.getSourceFiles()) {
@@ -200,6 +245,7 @@ for (const sourceFile of program.getSourceFiles()) {
         if (uk !== undefined && ru !== undefined) addPair('l', uk, ru, en, sourceFile, node);
       } else if (name === 'legacy' && node.arguments.length >= 2) {
         collectLegacyPair(node.arguments[0] as ts.Expression, node.arguments[1] as ts.Expression, sourceFile, node);
+        collectStructure(node.arguments[0] as ts.Expression, node.arguments[1] as ts.Expression, sourceFile, node);
       } else if (name === 't') {
         const key = stringValue(node.arguments[0] as ts.Expression | undefined);
         if (key) {
@@ -212,17 +258,7 @@ for (const sourceFile of program.getSourceFiles()) {
             const existing = entries.get(id);
             if (existing) {
               if (!existing.source.includes(info.source)) existing.source += `, ${info.source}`;
-            } else {
-              entries.set(id, {
-                id,
-                kind: 't',
-                ...info,
-                label: `${key} — ${shortLabel(uk || ru || en)}`,
-                uk,
-                ru,
-                en,
-              });
-            }
+            } else entries.set(id, { id, kind: 't', ...info, label: `${key} — ${shortLabel(uk || ru || en)}`, uk, ru, en });
           }
         }
       }
@@ -233,8 +269,10 @@ for (const sourceFile of program.getSourceFiles()) {
 }
 
 const sorted = [...entries.values()].sort((a, b) => a.page.localeCompare(b.page) || a.source.localeCompare(b.source) || a.line - b.line || a.id.localeCompare(b.id));
+const structureSorted = [...structures.values()].sort((a, b) => a.page.localeCompare(b.page) || a.source.localeCompare(b.source) || a.line - b.line || a.id.localeCompare(b.id));
 const header = `export type EditableCopyCatalogKind = 'l' | 't' | 'legacy';\n\nexport interface EditableCopyCatalogEntry {\n  id: string;\n  kind: EditableCopyCatalogKind;\n  page: string;\n  source: string;\n  line: number;\n  label: string;\n  uk: string;\n  ru: string;\n  en: string;\n}\n\n`;
-const body = `export const EDITABLE_COPY_CATALOG: EditableCopyCatalogEntry[] = ${JSON.stringify(sorted, null, 2)};\n`;
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-fs.writeFileSync(outputPath, header + body, 'utf8');
-console.log(`Generated ${sorted.length} editable public copy entries.`);
+fs.writeFileSync(outputPath, header + `export const EDITABLE_COPY_CATALOG: EditableCopyCatalogEntry[] = ${JSON.stringify(sorted, null, 2)};\n`, 'utf8');
+const structureHeader = `export interface EditableStructureField { key: string; copyId: string; uk: string; ru: string; en: string; }\nexport interface EditableStructureItem { id: string; label: string; fields: EditableStructureField[]; }\nexport interface EditableStructureCatalogEntry { id: string; page: string; source: string; line: number; label: string; items: EditableStructureItem[]; }\n\n`;
+fs.writeFileSync(structuresOutputPath, structureHeader + `export const EDITABLE_STRUCTURE_CATALOG: EditableStructureCatalogEntry[] = ${JSON.stringify(structureSorted, null, 2)};\n`, 'utf8');
+console.log(`Generated ${sorted.length} editable public copy entries and ${structureSorted.length} editable structures.`);

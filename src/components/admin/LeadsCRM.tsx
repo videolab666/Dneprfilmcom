@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState } from 'react';
 import {
   Calendar,
   Download,
@@ -10,10 +13,15 @@ import {
   Search,
   Trash2,
   X,
-} from 'lucide-react';
-import { collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
+  } from 'lucide-react';
+import { collection,
+  doc,
+  getDocs
+} from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Lead } from '../../types';
+
+import { versionedDeleteDoc as deleteDoc, versionedUpdateDoc as updateDoc } from '../../lib/cmsVersioning';
 
 type CmsLead = Omit<Lead, 'createdAt' | 'calculatorDetails'> & {
   createdAt?: unknown;

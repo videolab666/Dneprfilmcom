@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -15,8 +20,11 @@ import {
   Trash2,
   Upload,
   X,
-} from 'lucide-react';
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
+  } from 'lucide-react';
+import { collection,
+  doc,
+  getDocs
+} from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { CaseMediaItem, CaseMediaType, CaseStudy, Locale } from '../../types';
 import {
@@ -34,6 +42,8 @@ import { cleanupPortfolioRelations } from '../../lib/portfolioRelationsAdmin';
 import { requestPublishApproval } from '../../lib/publishQuality';
 import { ResponsiveImage } from '../ResponsiveImage';
 import { MediaLibraryPicker } from './MediaLibraryPicker';
+import { versionedDeleteDoc as deleteDoc, versionedSetDoc as setDoc } from '../../lib/cmsVersioning';
+
 import {
   PortfolioRelationsField,
   type PortfolioRelationsFieldHandle,

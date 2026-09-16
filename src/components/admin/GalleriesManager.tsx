@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowDown,
@@ -16,8 +21,11 @@ import {
   Star,
   Trash2,
   Upload,
-} from 'lucide-react';
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
+  } from 'lucide-react';
+import { collection,
+  doc,
+  getDocs
+} from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { Locale } from '../../types';
 import { uploadGalleryImage } from '../../lib/mediaUpload';
@@ -26,6 +34,8 @@ import { registerMediaAsset, type MediaLibraryAsset } from '../../lib/mediaLibra
 import { cleanupPortfolioRelations } from '../../lib/portfolioRelationsAdmin';
 import { requestPublishApproval } from '../../lib/publishQuality';
 import { MediaLibraryPicker } from './MediaLibraryPicker';
+import { versionedDeleteDoc as deleteDoc, versionedSetDoc as setDoc } from '../../lib/cmsVersioning';
+
 import {
   PortfolioRelationsField,
   type PortfolioRelationsFieldHandle,

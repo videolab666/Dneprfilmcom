@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, doc, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs } from 'firebase/firestore';
 import {
   Briefcase,
   CheckCircle2,
@@ -15,6 +15,7 @@ import {
   Tags,
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
+import { versionedSetDoc as setDoc } from '../../lib/cmsVersioning';
 import { slugifyCase } from '../../lib/caseMedia';
 import { isPhotoGallery } from '../../lib/galleryContent';
 import { isVideoProject } from '../../lib/videoPortfolio';
@@ -299,20 +300,20 @@ export function PortfolioOrganizer() {
     setSaving(true);
     setError('');
     try {
-      const batch = writeBatch(db);
       const now = Date.now();
+      const writes = [];
       for (const item of items) {
         if (!dirtyKeys.has(item.key)) continue;
         const collectionName = item.type === 'case' ? 'cases' : 'site_settings';
         const orderField = item.type === 'case' ? { featuredOrder: item.order } : { order: item.order };
-        batch.set(doc(db, collectionName, item.id), {
+        writes.push(setDoc(doc(db, collectionName, item.id), {
           ...orderField,
           published: item.published,
           taxonomy: item.taxonomy,
           updatedAt: now,
-        }, { merge: true });
+        }, { merge: true }));
       }
-      await batch.commit();
+      await Promise.all(writes);
       setBaseline(Object.fromEntries(items.map(item => [item.key, fingerprint(item)])));
       localStorage.removeItem(LOCAL_DRAFT_KEY);
       setSelected(new Set());

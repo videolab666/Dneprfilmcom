@@ -1,11 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  onSnapshot 
+import {
+  collection,
+  doc,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { SiteSetting, SiteBlock, CaseStudy, Testimonial, BackstageItem, Locale } from '../types';
@@ -18,7 +15,8 @@ import {
 } from '../lib/cmsDefaults';
 import { TRANSLATIONS } from '../locales/translations';
 import { legacyText, legacyValue, translateEnglishValue } from '../locales/legacyEnglish';
-import { normalizeFullPageCms, resolveEditableCopy, resolveEditableLegacy, translationOverrideKey } from '../lib/fullPageEditing';
+import { fullPageRuntimeConfig, resolveEditableCopy, resolveEditableLegacy, translationOverrideKey } from '../lib/fullPageEditing';
+import { useAuth } from './AuthContext';
 import { DEFAULT_SITE_BLOCKS_EN } from '../locales/siteBlocksEn';
 import { 
   CASE_TRANSLATIONS_UK, 
@@ -32,6 +30,8 @@ import {
 } from '../locales/localizedContentEn';
 import { BACKSTAGE_SEED_EN } from '../locales/backstageSeedEn';
 import { localizeMigratedConstructionCase } from '../lib/legacyMigratedCaseEnglish';
+
+import { versionedSetDoc as setDoc, versionedUpdateDoc as updateDoc, versionedDeleteDoc as deleteDoc } from '../lib/cmsVersioning';
 
 interface SiteContentContextType {
   locale: Locale;
@@ -60,6 +60,7 @@ interface SiteContentContextType {
 const SiteContentContext = createContext<SiteContentContextType | undefined>(undefined);
 
 export function SiteContentProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [locale, setLocaleState] = useState<Locale>(() => {
     try {
       const requested = new URLSearchParams(window.location.search).get('lang');
@@ -79,7 +80,11 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   const [rawSettings, setRawSettings] = useState<SiteSetting>(DEFAULT_SITE_SETTINGS);
   const [blocks, setBlocks] = useState<SiteBlock[]>(DEFAULT_SITE_BLOCKS);
   const [loading, setLoading] = useState(true);
-  const fullPageCms = useMemo(() => normalizeFullPageCms(rawSettings.fullPageCms), [rawSettings.fullPageCms]);
+  const previewRequested = useMemo(() => {
+    try { return new URLSearchParams(window.location.search).get('cmsPreview') === '1'; } catch { return false; }
+  }, []);
+  const fullPageCms = useMemo(() => fullPageRuntimeConfig(rawSettings.fullPageCms, { preview: previewRequested && Boolean(user) }), [rawSettings.fullPageCms, previewRequested, user]);
+  const effectiveRawSettings = useMemo<SiteSetting>(() => ({ ...rawSettings, fullPageCms }), [rawSettings, fullPageCms]);
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
@@ -118,7 +123,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   };
 
   const l = (uk: string, ru: string, en?: string): string => resolveEditableCopy(locale, uk, ru, en, fullPageCms.copyOverrides);
-  const legacy = <T,>(uk: T, ru: T): T => resolveEditableLegacy(locale, uk, ru, fullPageCms.copyOverrides);
+  const legacy = <T,>(uk: T, ru: T): T => resolveEditableLegacy(locale, uk, ru, fullPageCms.copyOverrides, fullPageCms.structures);
 
   const isUk = locale === 'uk';
   const isEn = locale === 'en';
@@ -168,69 +173,69 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   const settings = useMemo<SiteSetting>(() => {
     if (locale === 'en') {
       return {
-        ...rawSettings,
-        studioName: rawSettings.studioName_en || rawSettings.studioName,
-        address: rawSettings.address_en || 
-          (rawSettings.address === DEFAULT_SITE_SETTINGS.address ? DEFAULT_SITE_SETTINGS_EN.address : rawSettings.address),
-        workingHours: rawSettings.workingHours_en || 
-          (rawSettings.workingHours === DEFAULT_SITE_SETTINGS.workingHours ? DEFAULT_SITE_SETTINGS_EN.workingHours : rawSettings.workingHours),
-        heroBadge: rawSettings.heroBadge_en || 
-          (rawSettings.heroBadge === DEFAULT_SITE_SETTINGS.heroBadge ? DEFAULT_SITE_SETTINGS_EN.heroBadge : rawSettings.heroBadge),
-        heroTitle: rawSettings.heroTitle_en || 
-          (rawSettings.heroTitle === DEFAULT_SITE_SETTINGS.heroTitle ? DEFAULT_SITE_SETTINGS_EN.heroTitle : rawSettings.heroTitle),
-        heroSubtitle: rawSettings.heroSubtitle_en || 
-          (rawSettings.heroSubtitle === DEFAULT_SITE_SETTINGS.heroSubtitle ? DEFAULT_SITE_SETTINGS_EN.heroSubtitle : rawSettings.heroSubtitle),
-        heroCtaPrimaryText: rawSettings.heroCtaPrimaryText_en || 
-          (rawSettings.heroCtaPrimaryText === DEFAULT_SITE_SETTINGS.heroCtaPrimaryText ? DEFAULT_SITE_SETTINGS_EN.heroCtaPrimaryText : rawSettings.heroCtaPrimaryText),
-        heroCtaSecondaryText: rawSettings.heroCtaSecondaryText_en || 
-          (rawSettings.heroCtaSecondaryText === DEFAULT_SITE_SETTINGS.heroCtaSecondaryText ? DEFAULT_SITE_SETTINGS_EN.heroCtaSecondaryText : rawSettings.heroCtaSecondaryText),
-        founderName: rawSettings.founderName_en || 
-          (rawSettings.founderName === DEFAULT_SITE_SETTINGS.founderName ? DEFAULT_SITE_SETTINGS_EN.founderName : rawSettings.founderName),
-        founderRole: rawSettings.founderRole_en || 
-          (rawSettings.founderRole === DEFAULT_SITE_SETTINGS.founderRole ? DEFAULT_SITE_SETTINGS_EN.founderRole : rawSettings.founderRole),
-        founderQuote: rawSettings.founderQuote_en || 
-          (rawSettings.founderQuote === DEFAULT_SITE_SETTINGS.founderQuote ? DEFAULT_SITE_SETTINGS_EN.founderQuote : rawSettings.founderQuote),
-        founderBio: rawSettings.founderBio_en || 
-          (rawSettings.founderBio === DEFAULT_SITE_SETTINGS.founderBio ? DEFAULT_SITE_SETTINGS_EN.founderBio : rawSettings.founderBio),
-        announcementText: rawSettings.announcementText_en || 
-          (rawSettings.announcementText === DEFAULT_SITE_SETTINGS.announcementText ? DEFAULT_SITE_SETTINGS_EN.announcementText : rawSettings.announcementText),
+        ...effectiveRawSettings,
+        studioName: effectiveRawSettings.studioName_en || effectiveRawSettings.studioName,
+        address: effectiveRawSettings.address_en || 
+          (effectiveRawSettings.address === DEFAULT_SITE_SETTINGS.address ? DEFAULT_SITE_SETTINGS_EN.address : effectiveRawSettings.address),
+        workingHours: effectiveRawSettings.workingHours_en || 
+          (effectiveRawSettings.workingHours === DEFAULT_SITE_SETTINGS.workingHours ? DEFAULT_SITE_SETTINGS_EN.workingHours : effectiveRawSettings.workingHours),
+        heroBadge: effectiveRawSettings.heroBadge_en || 
+          (effectiveRawSettings.heroBadge === DEFAULT_SITE_SETTINGS.heroBadge ? DEFAULT_SITE_SETTINGS_EN.heroBadge : effectiveRawSettings.heroBadge),
+        heroTitle: effectiveRawSettings.heroTitle_en || 
+          (effectiveRawSettings.heroTitle === DEFAULT_SITE_SETTINGS.heroTitle ? DEFAULT_SITE_SETTINGS_EN.heroTitle : effectiveRawSettings.heroTitle),
+        heroSubtitle: effectiveRawSettings.heroSubtitle_en || 
+          (effectiveRawSettings.heroSubtitle === DEFAULT_SITE_SETTINGS.heroSubtitle ? DEFAULT_SITE_SETTINGS_EN.heroSubtitle : effectiveRawSettings.heroSubtitle),
+        heroCtaPrimaryText: effectiveRawSettings.heroCtaPrimaryText_en || 
+          (effectiveRawSettings.heroCtaPrimaryText === DEFAULT_SITE_SETTINGS.heroCtaPrimaryText ? DEFAULT_SITE_SETTINGS_EN.heroCtaPrimaryText : effectiveRawSettings.heroCtaPrimaryText),
+        heroCtaSecondaryText: effectiveRawSettings.heroCtaSecondaryText_en || 
+          (effectiveRawSettings.heroCtaSecondaryText === DEFAULT_SITE_SETTINGS.heroCtaSecondaryText ? DEFAULT_SITE_SETTINGS_EN.heroCtaSecondaryText : effectiveRawSettings.heroCtaSecondaryText),
+        founderName: effectiveRawSettings.founderName_en || 
+          (effectiveRawSettings.founderName === DEFAULT_SITE_SETTINGS.founderName ? DEFAULT_SITE_SETTINGS_EN.founderName : effectiveRawSettings.founderName),
+        founderRole: effectiveRawSettings.founderRole_en || 
+          (effectiveRawSettings.founderRole === DEFAULT_SITE_SETTINGS.founderRole ? DEFAULT_SITE_SETTINGS_EN.founderRole : effectiveRawSettings.founderRole),
+        founderQuote: effectiveRawSettings.founderQuote_en || 
+          (effectiveRawSettings.founderQuote === DEFAULT_SITE_SETTINGS.founderQuote ? DEFAULT_SITE_SETTINGS_EN.founderQuote : effectiveRawSettings.founderQuote),
+        founderBio: effectiveRawSettings.founderBio_en || 
+          (effectiveRawSettings.founderBio === DEFAULT_SITE_SETTINGS.founderBio ? DEFAULT_SITE_SETTINGS_EN.founderBio : effectiveRawSettings.founderBio),
+        announcementText: effectiveRawSettings.announcementText_en || 
+          (effectiveRawSettings.announcementText === DEFAULT_SITE_SETTINGS.announcementText ? DEFAULT_SITE_SETTINGS_EN.announcementText : effectiveRawSettings.announcementText),
       };
     }
 
     if (locale === 'uk') {
       // For Ukrainian: use custom _uk fields if provided, or default uk settings when matches default RU
       return {
-        ...rawSettings,
-        studioName: rawSettings.studioName_uk || rawSettings.studioName,
-        address: rawSettings.address_uk || 
-          (rawSettings.address === DEFAULT_SITE_SETTINGS.address ? DEFAULT_SITE_SETTINGS_UK.address : rawSettings.address),
-        workingHours: rawSettings.workingHours_uk || 
-          (rawSettings.workingHours === DEFAULT_SITE_SETTINGS.workingHours ? DEFAULT_SITE_SETTINGS_UK.workingHours : rawSettings.workingHours),
-        heroBadge: rawSettings.heroBadge_uk || 
-          (rawSettings.heroBadge === DEFAULT_SITE_SETTINGS.heroBadge ? DEFAULT_SITE_SETTINGS_UK.heroBadge : rawSettings.heroBadge),
-        heroTitle: rawSettings.heroTitle_uk || 
-          (rawSettings.heroTitle === DEFAULT_SITE_SETTINGS.heroTitle ? DEFAULT_SITE_SETTINGS_UK.heroTitle : rawSettings.heroTitle),
-        heroSubtitle: rawSettings.heroSubtitle_uk || 
-          (rawSettings.heroSubtitle === DEFAULT_SITE_SETTINGS.heroSubtitle ? DEFAULT_SITE_SETTINGS_UK.heroSubtitle : rawSettings.heroSubtitle),
-        heroCtaPrimaryText: rawSettings.heroCtaPrimaryText_uk || 
-          (rawSettings.heroCtaPrimaryText === DEFAULT_SITE_SETTINGS.heroCtaPrimaryText ? DEFAULT_SITE_SETTINGS_UK.heroCtaPrimaryText : rawSettings.heroCtaPrimaryText),
-        heroCtaSecondaryText: rawSettings.heroCtaSecondaryText_uk || 
-          (rawSettings.heroCtaSecondaryText === DEFAULT_SITE_SETTINGS.heroCtaSecondaryText ? DEFAULT_SITE_SETTINGS_UK.heroCtaSecondaryText : rawSettings.heroCtaSecondaryText),
-        founderName: rawSettings.founderName_uk || 
-          (rawSettings.founderName === DEFAULT_SITE_SETTINGS.founderName ? DEFAULT_SITE_SETTINGS_UK.founderName : rawSettings.founderName),
-        founderRole: rawSettings.founderRole_uk || 
-          (rawSettings.founderRole === DEFAULT_SITE_SETTINGS.founderRole ? DEFAULT_SITE_SETTINGS_UK.founderRole : rawSettings.founderRole),
-        founderQuote: rawSettings.founderQuote_uk || 
-          (rawSettings.founderQuote === DEFAULT_SITE_SETTINGS.founderQuote ? DEFAULT_SITE_SETTINGS_UK.founderQuote : rawSettings.founderQuote),
-        founderBio: rawSettings.founderBio_uk || 
-          (rawSettings.founderBio === DEFAULT_SITE_SETTINGS.founderBio ? DEFAULT_SITE_SETTINGS_UK.founderBio : rawSettings.founderBio),
-        announcementText: rawSettings.announcementText_uk || 
-          (rawSettings.announcementText === DEFAULT_SITE_SETTINGS.announcementText ? DEFAULT_SITE_SETTINGS_UK.announcementText : rawSettings.announcementText),
+        ...effectiveRawSettings,
+        studioName: effectiveRawSettings.studioName_uk || effectiveRawSettings.studioName,
+        address: effectiveRawSettings.address_uk || 
+          (effectiveRawSettings.address === DEFAULT_SITE_SETTINGS.address ? DEFAULT_SITE_SETTINGS_UK.address : effectiveRawSettings.address),
+        workingHours: effectiveRawSettings.workingHours_uk || 
+          (effectiveRawSettings.workingHours === DEFAULT_SITE_SETTINGS.workingHours ? DEFAULT_SITE_SETTINGS_UK.workingHours : effectiveRawSettings.workingHours),
+        heroBadge: effectiveRawSettings.heroBadge_uk || 
+          (effectiveRawSettings.heroBadge === DEFAULT_SITE_SETTINGS.heroBadge ? DEFAULT_SITE_SETTINGS_UK.heroBadge : effectiveRawSettings.heroBadge),
+        heroTitle: effectiveRawSettings.heroTitle_uk || 
+          (effectiveRawSettings.heroTitle === DEFAULT_SITE_SETTINGS.heroTitle ? DEFAULT_SITE_SETTINGS_UK.heroTitle : effectiveRawSettings.heroTitle),
+        heroSubtitle: effectiveRawSettings.heroSubtitle_uk || 
+          (effectiveRawSettings.heroSubtitle === DEFAULT_SITE_SETTINGS.heroSubtitle ? DEFAULT_SITE_SETTINGS_UK.heroSubtitle : effectiveRawSettings.heroSubtitle),
+        heroCtaPrimaryText: effectiveRawSettings.heroCtaPrimaryText_uk || 
+          (effectiveRawSettings.heroCtaPrimaryText === DEFAULT_SITE_SETTINGS.heroCtaPrimaryText ? DEFAULT_SITE_SETTINGS_UK.heroCtaPrimaryText : effectiveRawSettings.heroCtaPrimaryText),
+        heroCtaSecondaryText: effectiveRawSettings.heroCtaSecondaryText_uk || 
+          (effectiveRawSettings.heroCtaSecondaryText === DEFAULT_SITE_SETTINGS.heroCtaSecondaryText ? DEFAULT_SITE_SETTINGS_UK.heroCtaSecondaryText : effectiveRawSettings.heroCtaSecondaryText),
+        founderName: effectiveRawSettings.founderName_uk || 
+          (effectiveRawSettings.founderName === DEFAULT_SITE_SETTINGS.founderName ? DEFAULT_SITE_SETTINGS_UK.founderName : effectiveRawSettings.founderName),
+        founderRole: effectiveRawSettings.founderRole_uk || 
+          (effectiveRawSettings.founderRole === DEFAULT_SITE_SETTINGS.founderRole ? DEFAULT_SITE_SETTINGS_UK.founderRole : effectiveRawSettings.founderRole),
+        founderQuote: effectiveRawSettings.founderQuote_uk || 
+          (effectiveRawSettings.founderQuote === DEFAULT_SITE_SETTINGS.founderQuote ? DEFAULT_SITE_SETTINGS_UK.founderQuote : effectiveRawSettings.founderQuote),
+        founderBio: effectiveRawSettings.founderBio_uk || 
+          (effectiveRawSettings.founderBio === DEFAULT_SITE_SETTINGS.founderBio ? DEFAULT_SITE_SETTINGS_UK.founderBio : effectiveRawSettings.founderBio),
+        announcementText: effectiveRawSettings.announcementText_uk || 
+          (effectiveRawSettings.announcementText === DEFAULT_SITE_SETTINGS.announcementText ? DEFAULT_SITE_SETTINGS_UK.announcementText : effectiveRawSettings.announcementText),
       };
     }
 
-    return rawSettings;
-  }, [rawSettings, locale]);
+    return effectiveRawSettings;
+  }, [effectiveRawSettings, locale]);
 
   // Compute localized blocks dynamically
   const localizedBlocks = useMemo<SiteBlock[]>(() => {
@@ -476,7 +481,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
         isEn,
         isRu,
         settings,
-        rawSettings,
+        rawSettings: effectiveRawSettings,
         blocks: localizedBlocks,
         loading,
         updateSettings,
