@@ -58,8 +58,8 @@ async function fetchText(path: string): Promise<string> {
   return response.text();
 }
 
-async function restoreLastDeployedSnapshot(): Promise<boolean> {
-  if (allowStaticOnly) return false;
+async function restoreLastDeployedSnapshot(allowInPullRequest = false): Promise<boolean> {
+  if (allowStaticOnly && !allowInPullRequest) return false;
   console.warn(`Live Firestore SEO snapshot is unavailable. Trying the last successfully deployed snapshot from ${siteUrl}.`);
   try {
     const [routesText, snapshotText, sitemapText, imageSitemapText] = await Promise.all([
@@ -109,7 +109,8 @@ for (let index = 0; index < delays.length; index += 1) {
   }
 
   if (result.status === 0 && allowStaticOnly && validation.filesReady) {
-    console.warn(`PR SEO check is using a static-only fallback: ${validation.routes} route(s), ${validation.dynamic} dynamic route(s), ${validation.records} record(s). Production builds remain strict.`);
+    if (await restoreLastDeployedSnapshot(true)) process.exit(0);
+    console.warn(`PR SEO check is using a static-only fallback because neither Firestore nor the last deployed snapshot was available: ${validation.routes} route(s), ${validation.dynamic} dynamic route(s), ${validation.records} record(s). Production builds remain strict.`);
     process.exit(0);
   }
 
