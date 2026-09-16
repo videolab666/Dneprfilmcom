@@ -28,6 +28,7 @@ export type PageBuilderKind =
   | 'table'
   | 'team'
   | 'quote'
+  | 'native_page_section'
   | 'native_home_hero'
   | 'native_home_clients'
   | 'native_home_featured_cases'
@@ -232,6 +233,7 @@ export const PAGE_BUILDER_KINDS: PageBuilderKindDefinition[] = [
   { id: 'divider', label: 'Разделитель', description: 'Линия или точки', legacyType: 'cta', category: 'layout' },
   { id: 'spacer', label: 'Отступ', description: 'Контролируемое вертикальное пространство', legacyType: 'cta', category: 'layout' },
 
+  { id: 'native_page_section', label: 'Секция исходной страницы', description: 'Pixel-perfect секция LIVE / Video / Construction / Photo; полный каталог расположен выше', legacyType: 'text_image', category: 'dneprfilm', native: true },
   { id: 'native_home_hero', label: 'Hero главной', description: 'Текущий HeroSlider без изменения DOM/CSS', legacyType: 'text_image', category: 'dneprfilm', native: true },
   { id: 'native_home_clients', label: 'Лента клиентов', description: 'Текущий ClientsMarquee pixel-perfect', legacyType: 'partners', category: 'dneprfilm', native: true },
   { id: 'native_home_featured_cases', label: 'Избранные кейсы', description: 'Текущий FeaturedCases pixel-perfect', legacyType: 'features_grid', category: 'dneprfilm', native: true },
@@ -410,7 +412,8 @@ export function createBuilderBlock(kind: PageBuilderKind, page: PageBuilderPage,
     config.contactShowEmail = true;
     config.contactNote = '';
   }
-  if (isNativeBuilderKind(kind)) config.nativeSection = kind;
+  if (kind === 'native_page_section') config.nativeSection = 'live.hero';
+  else if (isNativeBuilderKind(kind)) config.nativeSection = kind;
 
   return {
     id,
