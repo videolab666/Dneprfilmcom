@@ -33,19 +33,20 @@ function missingEnglishFields(
  * Migration v2 is deliberately idempotent and non-destructive:
  * it only fills missing curated English fields on v1 legacy construction cases.
  * Existing admin-authored English values are never overwritten.
+ *
+ * Check the version before reading the cases collection. This keeps repeated
+ * migration checks at one document read after v2 has already completed.
  */
 export async function ensureLegacyConstructionEnglishBackfill(): Promise<LegacyConstructionEnglishMigrationResult> {
   const globalRef = doc(db, 'site_settings', 'global');
-  const [globalSnapshot, casesSnapshot] = await Promise.all([
-    getDoc(globalRef),
-    getDocs(collection(db, 'cases')),
-  ]);
-
+  const globalSnapshot = await getDoc(globalRef);
   const currentVersion = Number(globalSnapshot.data()?.portfolioMigrationVersion || 0);
+
   if (currentVersion >= TARGET_PORTFOLIO_MIGRATION_VERSION) {
     return { casesBackfilled: 0, version: currentVersion };
   }
 
+  const casesSnapshot = await getDocs(collection(db, 'cases'));
   const batch = writeBatch(db);
   const now = Date.now();
   let casesBackfilled = 0;
