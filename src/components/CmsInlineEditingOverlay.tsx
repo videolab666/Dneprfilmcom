@@ -109,7 +109,6 @@ export function CmsInlineEditingOverlay({ page }: CmsInlineEditingOverlayProps) 
       if (!target || target.closest('[data-cms-inspector-ui]')) return;
       const composerItem = target.closest<HTMLElement>('[data-cms-composer-item]');
       if (!composerItem) return;
-      const itemId = composerItem.dataset.cmsComposerItem || '';
       const blockId = composerItem.dataset.cmsComposerBlock;
       if (!blockId) return;
       const block = blockById.get(blockId);
@@ -136,8 +135,9 @@ export function CmsInlineEditingOverlay({ page }: CmsInlineEditingOverlayProps) 
   };
 
   return <>
+    <style>{`.z-\\[120\\]{z-index:2147483500!important}`}</style>
     <div data-cms-inspector-ui className="fixed bottom-4 left-1/2 z-[2147483250] -translate-x-1/2 rounded-full border border-fuchsia-400/30 bg-slate-950/95 px-4 py-2 text-[10px] font-black text-white shadow-2xl backdrop-blur">
-      CMS 4.5 · клик по builder-блоку = редактировать
+      CMS 4.5 · {page} · клик по builder-блоку = редактировать
     </div>
 
     {message && <div data-cms-inspector-ui className="fixed bottom-16 left-1/2 z-[2147483450] -translate-x-1/2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black text-white shadow-xl">{message}</div>}
