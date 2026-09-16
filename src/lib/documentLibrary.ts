@@ -121,9 +121,9 @@ export async function uploadDocument(file: File): Promise<DocumentAsset> {
 function countUrl(value: unknown, url: string, depth = 0): number {
   if (depth > 16 || value == null) return 0;
   if (typeof value === 'string') return value === url ? 1 : 0;
-  if (Array.isArray(value)) return value.reduce((sum, item) => sum + countUrl(item, url, depth + 1), 0);
+  if (Array.isArray(value)) return value.reduce<number>((sum, item) => sum + countUrl(item, url, depth + 1), 0);
   if (typeof value === 'object') {
-    return Object.values(value as Record<string, unknown>).reduce((sum, item) => sum + countUrl(item, url, depth + 1), 0);
+    return Object.values(value as Record<string, unknown>).reduce<number>((sum, item) => sum + countUrl(item, url, depth + 1), 0);
   }
   return 0;
 }
@@ -142,7 +142,7 @@ export async function loadDocumentLibrary(): Promise<DocumentAsset[]> {
       ...asset,
       publicId: asset.publicId || '',
       createdAt: typeof asset.createdAt === 'number' ? asset.createdAt : 0,
-      useCount: blocks.reduce((sum, block) => sum + countUrl(block, asset.url), 0),
+      useCount: blocks.reduce<number>((sum, block) => sum + countUrl(block, asset.url), 0),
     }));
 
   return assets.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
