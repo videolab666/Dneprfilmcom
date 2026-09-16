@@ -18,6 +18,7 @@ import {
 } from '../lib/cmsDefaults';
 import { TRANSLATIONS } from '../locales/translations';
 import { legacyText, legacyValue, translateEnglishValue } from '../locales/legacyEnglish';
+import { normalizeFullPageCms, resolveEditableCopy, resolveEditableLegacy, translationOverrideKey } from '../lib/fullPageEditing';
 import { DEFAULT_SITE_BLOCKS_EN } from '../locales/siteBlocksEn';
 import { 
   CASE_TRANSLATIONS_UK, 
@@ -78,6 +79,7 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
   const [rawSettings, setRawSettings] = useState<SiteSetting>(DEFAULT_SITE_SETTINGS);
   const [blocks, setBlocks] = useState<SiteBlock[]>(DEFAULT_SITE_BLOCKS);
   const [loading, setLoading] = useState(true);
+  const fullPageCms = useMemo(() => normalizeFullPageCms(rawSettings.fullPageCms), [rawSettings.fullPageCms]);
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
@@ -99,6 +101,8 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
 
   // Translation function
   const t = (key: string, fallback?: string): string => {
+    const override = fullPageCms.copyOverrides[translationOverrideKey(key)]?.[locale];
+    if (typeof override === 'string') return override;
     const activeDict = TRANSLATIONS[locale] || TRANSLATIONS.uk;
     if (activeDict && activeDict[key]) {
       return activeDict[key];
@@ -113,8 +117,8 @@ export function SiteContentProvider({ children }: { children: React.ReactNode })
     return fallback ?? key;
   };
 
-  const l = (uk: string, ru: string, en?: string): string => legacyText(locale, uk, ru, en);
-  const legacy = <T,>(uk: T, ru: T): T => legacyValue(locale, uk, ru);
+  const l = (uk: string, ru: string, en?: string): string => resolveEditableCopy(locale, uk, ru, en, fullPageCms.copyOverrides);
+  const legacy = <T,>(uk: T, ru: T): T => resolveEditableLegacy(locale, uk, ru, fullPageCms.copyOverrides);
 
   const isUk = locale === 'uk';
   const isEn = locale === 'en';

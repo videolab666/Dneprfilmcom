@@ -31,9 +31,11 @@ import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
 import { usePageCmsContent } from '../hooks/usePageCmsContent';
 import { usePageCopyContent } from '../hooks/usePageCopyContent';
+import { normalizeFullPageCms } from '../lib/fullPageEditing';
 
 export function VideoProduction() {
-  const { isUk, l, legacy } = useSiteContent();
+  const { isUk, l, legacy, rawSettings } = useSiteContent();
+  const pricing = normalizeFullPageCms(rawSettings.fullPageCms).calculators.video;
   const { content: pageContent, localize } = usePageCmsContent();
   const { content: copyContent, localize: localizeCopy, byId: copyById } = usePageCopyContent();
   const videoHero = copyById(copyContent.video.hero, 'video-hero')?.text;
@@ -92,23 +94,14 @@ export function VideoProduction() {
 
   // Approximate cost calculation
   const calculateEstimate = () => {
-    let base = 15000; // Basic filming day + editing
-
-    if (videoType === 'commercial') base += 10000;
-    if (videoType === 'factory') base += 12000;
-    if (videoType === 'corporate') base += 14000;
-    if (videoType === 'event') base += 5000;
-
-    if (duration === '60s') base += 3000;
-    if (duration === '2m') base += 7000;
-    if (duration === '5m+') base += 15000;
-
-    if (needScript) base += 4000;
-    if (needActors) base += 8000;
-    if (needDrone) base += 4500;
-    if (needVoiceover) base += 3000;
-    if (needGraphics3D) base += 9000;
-
+    let base = pricing.base;
+    base += pricing.videoType[videoType];
+    base += pricing.duration[duration];
+    if (needScript) base += pricing.script;
+    if (needActors) base += pricing.actors;
+    if (needDrone) base += pricing.drone;
+    if (needVoiceover) base += pricing.voiceover;
+    if (needGraphics3D) base += pricing.graphics3d;
     return base;
   };
 

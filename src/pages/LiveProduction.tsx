@@ -27,9 +27,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
+import { normalizeFullPageCms } from '../lib/fullPageEditing';
 
 export function LiveProduction() {
-  const { isUk, isEn, l, legacy } = useSiteContent();
+  const { isUk, isEn, l, legacy, rawSettings } = useSiteContent();
+  const pricing = normalizeFullPageCms(rawSettings.fullPageCms).calculators.live;
 
   // Configurator state
   const [format, setFormat] = useState<'sports' | 'conference' | 'corporate' | 'concert'>('conference');
@@ -54,14 +56,14 @@ export function LiveProduction() {
 
   // Approximate cost calculation
   const calculateEstimate = () => {
-    let base = 12000; // Base station, director, streaming hardware
-    base += cameraCount * 4500; // Each camera + operator + wireless/SDI link
-    if (hasStarlink) base += 5000;
-    if (needGraphics) base += 3500;
-    if (needReplay) base += 4500;
-    if (needTranslation) base += 4000;
-    if (needLedOutput) base += 3000;
-    if (format === 'sports') base += 3000;
+    let base = pricing.base;
+    base += cameraCount * pricing.camera;
+    if (hasStarlink) base += pricing.starlink;
+    if (needGraphics) base += pricing.graphics;
+    if (needReplay) base += pricing.replay;
+    if (needTranslation) base += pricing.translation;
+    if (needLedOutput) base += pricing.led;
+    if (format === 'sports') base += pricing.sports;
     return base;
   };
 

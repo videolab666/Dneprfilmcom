@@ -332,6 +332,7 @@ export interface SiteSetting {
   instagramUrl: string;
   facebookUrl: string;
   contactsPage?: ContactPageConfig;
+  fullPageCms?: import('./lib/fullPageEditing').FullPageCmsConfig;
   updatedAt?: number;
 }
 
