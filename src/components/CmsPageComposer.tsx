@@ -208,8 +208,11 @@ export function CmsPageComposer() {
 
   const moveBy = async (id: string, delta: number) => {
     const index = layout.items.findIndex(item => item.id === id);
-    if (index < 0) return;
-    await moveItem(id, Math.max(0, Math.min(layout.items.length, index + delta)));
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= layout.items.length) return;
+    const items = [...layout.items];
+    [items[index], items[target]] = [items[target], items[index]];
+    await saveLayout({ items: reindex(items) });
   };
 
   const toggleItem = async (id: string) => {
