@@ -112,7 +112,7 @@ export function PageComposerRuntime({ page, preview = false, compose = false }: 
       element.setAttribute('data-cms-composer-label', definition.label);
     }
 
-    const byId = new Map(sourceBlocks.map(block => [block.id, block]));
+    const byId = new Map<string, BuilderSiteBlock>(sourceBlocks.map(block => [block.id, block] as [string, BuilderSiteBlock]));
     const entries: PortalEntry[] = [];
     const knownBlocks = new Set<string>();
     for (const item of layout.items.filter(entry => entry.kind === 'block')) {
