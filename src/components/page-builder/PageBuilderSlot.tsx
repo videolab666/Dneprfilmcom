@@ -86,8 +86,8 @@ export function PageBuilderSurface({ page, children }: PageBuilderSurfaceProps) 
   if (nativeSectionEmbedRequested()) return <>{children}</>;
 
   const query = params();
-  const previewRequested = query.get('cmsPreview') === '1' && Boolean(user);
   const composeRequested = query.get('cmsCompose') === '1' && Boolean(user);
+  const previewRequested = (query.get('cmsPreview') === '1' || composeRequested) && Boolean(user);
   const composer = normalizePageComposer((rawSettings as unknown as { pageComposer?: unknown }).pageComposer);
   const supported = pageComposerSupported(page);
   const composerMode = supported && (
