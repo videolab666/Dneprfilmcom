@@ -174,7 +174,7 @@ function collectLegacyPair(leftNode: ts.Expression | undefined, rightNode: ts.Ex
     for (let index = 0; index < count; index += 1) {
       const a = left.elements[index];
       const b = right.elements[index];
-      if (ts.isExpression(a) && ts.isExpression(b)) collectLegacyPair(a, b, sourceFile, anchor, depth + 1);
+      collectLegacyPair(a, b, sourceFile, anchor, depth + 1);
     }
     return;
   }

@@ -4,11 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build && bun scripts/audit-bundle-budget.ts",
+    "dev": "bun run cms:catalog && vite --port=3000 --host=0.0.0.0",
+    "build": "bun run cms:catalog && vite build && bun scripts/audit-bundle-budget.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "bun run cms:catalog && tsc --noEmit",
+    "cms:catalog": "bun scripts/generate-editable-copy-catalog.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

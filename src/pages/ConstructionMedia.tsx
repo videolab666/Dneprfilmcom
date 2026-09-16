@@ -32,9 +32,11 @@ import { db } from '../lib/firebase';
 import { useSiteContent } from '../context/SiteContentContext';
 import { usePageCmsContent } from '../hooks/usePageCmsContent';
 import { usePageCopyContent } from '../hooks/usePageCopyContent';
+import { normalizeFullPageCms } from '../lib/fullPageEditing';
 
 export function ConstructionMedia() {
-  const { isUk, settings, l } = useSiteContent();
+  const { isUk, settings, l, rawSettings } = useSiteContent();
+  const pricing = normalizeFullPageCms(rawSettings.fullPageCms).calculators.construction;
   const { content: pageContent, localize } = usePageCmsContent();
   const { content: copyContent, localize: localizeCopy, byId: copyById } = usePageCopyContent();
   const constructionHero = copyById(copyContent.construction.hero, 'construction-hero')?.text;
@@ -88,26 +90,14 @@ export function ConstructionMedia() {
 
   // Approximate pricing calculation
   const calculateEstimate = () => {
-    let monthlyBase = 0;
-
-    // Base camera maintenance & cloud archive
-    monthlyBase += timelapseCameras * 4500; // 4,500 грн/мес за точку таймлапса
-
-    // Drone flight frequency
-    if (droneFrequency === 'monthly') monthlyBase += 6000;
-    if (droneFrequency === 'biweekly') monthlyBase += 11000;
-    if (droneFrequency === 'weekly') monthlyBase += 20000;
-
-    // Addons
-    if (needWindowPanoramas) monthlyBase += 3500;
-    if (needMonthlyReels) monthlyBase += 4000;
-    if (needLiveStream) monthlyBase += 3000;
-
-    const totalEstimate = monthlyBase * durationMonths;
-    return {
-      monthly: monthlyBase,
-      total: totalEstimate
-    };
+    let monthlyBase = timelapseCameras * pricing.timelapseCameraMonthly;
+    if (droneFrequency === 'monthly') monthlyBase += pricing.droneMonthly;
+    if (droneFrequency === 'biweekly') monthlyBase += pricing.droneBiweekly;
+    if (droneFrequency === 'weekly') monthlyBase += pricing.droneWeekly;
+    if (needWindowPanoramas) monthlyBase += pricing.windowPanoramasMonthly;
+    if (needMonthlyReels) monthlyBase += pricing.monthlyReels;
+    if (needLiveStream) monthlyBase += pricing.liveStreamMonthly;
+    return { monthly: monthlyBase, total: monthlyBase * durationMonths };
   };
 
   const estimate = calculateEstimate();
