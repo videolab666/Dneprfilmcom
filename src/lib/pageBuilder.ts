@@ -273,12 +273,12 @@ export function blockPlacement(block: SiteBlock | BuilderSiteBlock, page: PageBu
 }
 
 export function pageBlocks(
-  blocks: SiteBlock[],
+  blocks: Array<SiteBlock | BuilderSiteBlock>,
   page: PageBuilderPage,
   placement?: PageBuilderPlacement,
 ): BuilderSiteBlock[] {
   return blocks
-    .map(asBuilderBlock)
+    .map(block => asBuilderBlock(block as SiteBlock))
     .filter(block => block.isActive && blockMatchesPage(block, page))
     .filter(block => !placement || blockPlacement(block, page) === placement)
     .sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -286,7 +286,7 @@ export function pageBlocks(
 
 function localizeImage(image: PageBuilderImage, locale: Locale): PageBuilderImage {
   if (locale === 'uk') return { ...image, alt: image.alt_uk || image.alt || image.alt_en || '', caption: image.caption_uk || image.caption || image.caption_en || '' };
-  if (locale === 'en') return { ...image, alt: image.alt_en || image.alt_uk || image.alt || '', caption: image.caption_en || image.alt_uk || image.caption || '' };
+  if (locale === 'en') return { ...image, alt: image.alt_en || image.alt_uk || image.alt || '', caption: image.caption_en || image.caption_uk || image.caption || '' };
   return { ...image, alt: image.alt || image.alt_uk || image.alt_en || '', caption: image.caption || image.caption_uk || image.caption_en || '' };
 }
 
