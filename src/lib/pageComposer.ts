@@ -130,14 +130,22 @@ export function defaultComposerPage(page: PixelPerfectPage, blocks: BuilderSiteB
 
   const matching = blocks
     .filter(block => blockMatchesPage(block, page))
-    .filter(block => block.config.builderScope !== 'global')
     .sort((a, b) => (a.order || 0) - (b.order || 0));
   const before = matching.filter(block => blockPlacement(block, page) === 'before');
-  const after = matching.filter(block => blockPlacement(block, page) !== 'before');
+  const inline = matching.filter(block => blockPlacement(block, page) === 'inline');
+  const after = matching.filter(block => blockPlacement(block, page) === 'after');
+  const asItems = (items: BuilderSiteBlock[]) => items.map(block => ({
+    id: `block:${block.id}`,
+    kind: 'block' as const,
+    refId: block.id,
+    enabled: block.isActive,
+    order: 0,
+  }));
   const sequence: PageComposerItem[] = [
-    ...before.map(block => ({ id: `block:${block.id}`, kind: 'block' as const, refId: block.id, enabled: block.isActive, order: 0 })),
+    ...asItems(before),
     ...native,
-    ...after.map(block => ({ id: `block:${block.id}`, kind: 'block' as const, refId: block.id, enabled: block.isActive, order: 0 })),
+    ...asItems(inline),
+    ...asItems(after),
   ];
   return { items: sequence.map((item, index) => ({ ...item, order: index * 10 })) };
 }
@@ -146,7 +154,7 @@ export function syncComposerPage(page: PixelPerfectPage, current: PageComposerPa
   const fallback = defaultComposerPage(page, blocks);
   if (!current) return fallback;
   const nativeIds = new Set(pixelPerfectSectionsForPage(page).map(section => section.id));
-  const blockIds = new Set(blocks.filter(block => blockMatchesPage(block, page) && block.config.builderScope !== 'global').map(block => block.id));
+  const blockIds = new Set(blocks.filter(block => blockMatchesPage(block, page)).map(block => block.id));
   const known = current.items.filter(item => item.kind === 'native' ? nativeIds.has(item.refId) : blockIds.has(item.refId));
   const keys = new Set(known.map(item => `${item.kind}:${item.refId}`));
   const appended = fallback.items.filter(item => !keys.has(`${item.kind}:${item.refId}`));
