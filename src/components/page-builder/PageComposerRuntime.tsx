@@ -114,9 +114,7 @@ export function PageComposerRuntime({ page, preview = false, compose = false }: 
 
     const byId = new Map<string, BuilderSiteBlock>(sourceBlocks.map(block => [block.id, block] as [string, BuilderSiteBlock]));
     const entries: PortalEntry[] = [];
-    const knownBlocks = new Set<string>();
     for (const item of layout.items.filter(entry => entry.kind === 'block')) {
-      knownBlocks.add(item.refId);
       const block = byId.get(item.refId);
       if (!block || !block.isActive || !item.enabled) continue;
       const host = document.createElement('div');
@@ -128,21 +126,6 @@ export function PageComposerRuntime({ page, preview = false, compose = false }: 
       root.appendChild(host);
       entries.push({ item, host, block: localizedBuilderBlock(block, locale) });
     }
-
-    const maxOrder = Math.max(0, ...layout.items.map(item => item.order));
-    sourceBlocks
-      .filter(block => block.isActive && block.config.builderScope === 'global' && !knownBlocks.has(block.id))
-      .forEach((block, index) => {
-        const item: PageComposerItem = { id: `global:${block.id}`, kind: 'block', refId: block.id, enabled: true, order: maxOrder + 100 + index * 10 };
-        const host = document.createElement('div');
-        host.dataset.cmsComposerItem = item.id;
-        host.dataset.cmsComposerBlock = block.id;
-        host.dataset.cmsComposerLabel = block.title_uk || block.title;
-        host.className = 'w-full';
-        host.style.order = String(item.order);
-        root.appendChild(host);
-        entries.push({ item, host, block: localizedBuilderBlock(block, locale) });
-      });
 
     setPortals(entries);
 
