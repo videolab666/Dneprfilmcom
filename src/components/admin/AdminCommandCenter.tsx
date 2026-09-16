@@ -27,6 +27,7 @@ function flatten(value: unknown, prefix = '', output: string[] = [], depth = 0):
 
 function tabFor(collectionName: string, data: Record<string, unknown>): string {
   if (collectionName === 'site_blocks') return 'blocks';
+  if (collectionName === 'leads') return 'leads';
   if (collectionName === 'cases' || collectionName === 'articles') return 'content';
   if (collectionName === 'testimonials') return 'testimonials';
   if (collectionName === 'backstage') return 'backstage';
@@ -48,7 +49,7 @@ export function AdminCommandCenter({ onNavigate }: { onNavigate: (tab: string, t
     setLoading(true); setMessage('');
     try {
       const next: SearchRecord[] = [];
-      for (const collectionName of ['cases', 'articles', 'site_blocks', 'site_settings', 'testimonials', 'backstage']) {
+      for (const collectionName of ['cases', 'articles', 'site_blocks', 'site_settings', 'testimonials', 'backstage', 'leads']) {
         const snap = await getDocs(collection(db, collectionName));
         for (const item of snap.docs) {
           const data = item.data() as Record<string, unknown>;
@@ -89,7 +90,7 @@ export function AdminCommandCenter({ onNavigate }: { onNavigate: (tab: string, t
 
   return (
     <div className="space-y-5">
-      <header className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><div className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Global Admin Search 1.0</div><h2 className="mt-1 text-2xl font-black text-slate-950">Командный центр CMS</h2><p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">Поиск одновременно по кейсам, статьям, Page Builder, настройкам, галереям, видео, отзывам, backstage, всем Full Page текстам и Media Usage.</p></div><button onClick={() => void rebuild()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-black text-slate-600 hover:bg-slate-50"><RefreshCw className="h-4 w-4" />Переиндексировать</button></div></header>
+      <header className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><div className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Global Admin Search 1.0</div><h2 className="mt-1 text-2xl font-black text-slate-950">Командный центр CMS</h2><p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">Поиск одновременно по кейсам, статьям, Page Builder, настройкам, галереям, видео, отзывам, backstage, CRM-заявкам, всем Full Page текстам и Media Usage.</p></div><button onClick={() => void rebuild()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-black text-slate-600 hover:bg-slate-50"><RefreshCw className="h-4 w-4" />Переиндексировать</button></div></header>
       {message && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{message}</div>}
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><label className="relative block"><Search className="absolute left-4 top-4 h-5 w-5 text-slate-400" /><input autoFocus value={queryText} onChange={e => setQueryText(e.target.value)} placeholder="Например: Starlink, Nordgas, hero, timelapse, имя файла…" className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-12 pr-4 text-base font-semibold outline-none focus:border-indigo-500" /></label><div className="mt-3 text-xs font-bold text-slate-500">Индекс: {records.length} объектов · результатов: {results.length}</div></div>
       {loading ? <div className="flex min-h-48 items-center justify-center"><Loader2 className="h-7 w-7 animate-spin text-indigo-600" /></div> : <div className="grid gap-3">{results.map(result => <article key={result.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="text-[10px] font-black uppercase tracking-wider text-indigo-600">{result.source}</div><div className="mt-1 truncate font-black text-slate-950">{result.title}</div>{result.meta && <div className="mt-1 truncate font-mono text-[10px] text-slate-400">{result.meta}</div>}<div className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">{result.text.slice(0, 450)}</div></div><button onClick={() => onNavigate(result.tab, result.target)} className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-black text-white hover:bg-indigo-600">Открыть<ArrowRight className="h-4 w-4" /></button></div></article>)}</div>}

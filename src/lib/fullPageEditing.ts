@@ -85,6 +85,7 @@ export interface FullPageCmsWorkflow {
 export interface FullPageCmsConfig extends FullPageCmsContent {
   version: 4;
   draft: FullPageCmsContent;
+  scheduled?: FullPageCmsContent;
   workflow: FullPageCmsWorkflow;
 }
 
@@ -208,15 +209,17 @@ export function normalizeFullPageCms(input: unknown): FullPageCmsConfig {
   const published = normalizeContent(source);
   const draft = source.version === 4 && source.draft ? normalizeContent(source.draft) : clone(published);
   const workflow = source.version === 4 && source.workflow && typeof source.workflow === 'object' ? source.workflow : {};
-  return { version: 4, ...published, draft, workflow };
+  const scheduled = source.version === 4 && source.scheduled ? normalizeContent(source.scheduled) : undefined;
+  return { version: 4, ...published, draft, scheduled, workflow };
 }
 
 export function fullPageRuntimeConfig(input: unknown, options?: { preview?: boolean; now?: number }): FullPageCmsConfig {
   const config = normalizeFullPageCms(input);
   const now = options?.now ?? Date.now();
-  const scheduled = typeof config.workflow.scheduledAt === 'number' && config.workflow.scheduledAt > 0 && config.workflow.scheduledAt <= now;
-  if (!options?.preview && !scheduled) return config;
-  return { ...config, ...clone(config.draft) };
+  const scheduledDue = typeof config.workflow.scheduledAt === 'number' && config.workflow.scheduledAt > 0 && config.workflow.scheduledAt <= now;
+  if (options?.preview) return { ...config, ...clone(config.draft) };
+  if (scheduledDue) return { ...config, ...clone(config.scheduled || config.draft) };
+  return config;
 }
 
 export function publishFullPageDraft(input: unknown, actor?: string): FullPageCmsConfig {
@@ -224,6 +227,7 @@ export function publishFullPageDraft(input: unknown, actor?: string): FullPageCm
   return {
     ...config,
     ...clone(config.draft),
+    scheduled: undefined,
     workflow: {
       ...config.workflow,
       publishedAt: Date.now(),
@@ -247,7 +251,7 @@ export function discardFullPageDraft(input: unknown): FullPageCmsConfig {
   return {
     ...config,
     draft: normalizeContent(config),
-    workflow: { ...config.workflow, draftUpdatedAt: Date.now(), scheduledAt: null },
+    workflow: { ...config.workflow, draftUpdatedAt: Date.now() },
   };
 }
 

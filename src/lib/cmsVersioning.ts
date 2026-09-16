@@ -56,8 +56,9 @@ export async function snapshotDocument(ref: DocumentReference<DocumentData>, ope
   });
 
   try {
-    const old = await getDocs(query(collection(db, 'content_versions'), where('targetPath', '==', ref.path), orderBy('createdAt', 'desc'), limit(36)));
-    if (old.docs.length > 30) await Promise.all(old.docs.slice(30).map(item => firestoreDeleteDoc(item.ref)));
+    const old = await getDocs(query(collection(db, 'content_versions'), where('targetPath', '==', ref.path)));
+    const sorted = [...old.docs].sort((a, b) => Number(b.data().createdAt || 0) - Number(a.data().createdAt || 0));
+    if (sorted.length > 30) await Promise.all(sorted.slice(30).map(item => firestoreDeleteDoc(item.ref)));
   } catch (error) {
     console.warn('Version retention cleanup skipped:', error);
   }
