@@ -6,6 +6,7 @@ on:
       - feature/cms-platform-4
     paths:
       - scripts/apply-cms-platform-4.py
+      - scripts/fix-cms-platform-4.py
       - .github/workflows/apply-cms-platform-4.yml
 
 permissions:
@@ -22,6 +23,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: python3 scripts/apply-cms-platform-4.py
+      - run: python3 scripts/fix-cms-platform-4.py
       - run: bun run lint
       - run: bun run build
         env:
@@ -30,7 +32,7 @@ jobs:
           VITE_BASE_PATH: /Dneprfilmcom/
       - name: Commit generated changes
         run: |
-          rm -f scripts/apply-cms-platform-4.py .github/workflows/apply-cms-platform-4.yml
+          rm -f scripts/apply-cms-platform-4.py scripts/fix-cms-platform-4.py .github/workflows/apply-cms-platform-4.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
