@@ -14,18 +14,20 @@ const siteUrl = (process.env.SITE_URL || 'https://videolab666.github.io/Dneprfil
 
 function validatePayload(routes: RouteEntry[], snapshot: Record<string, unknown>) {
   const dynamicPaths = routes.filter(route => route.source !== 'static').map(route => route.path);
-  const records = Object.keys(snapshot);
+  const dynamic = dynamicPaths.length;
+  const snapshotKeys = Object.keys(snapshot);
+  const records = snapshotKeys.length;
   const dynamicSet = new Set(dynamicPaths);
-  const snapshotSet = new Set(records);
+  const snapshotSet = new Set(snapshotKeys);
   const missing = dynamicPaths.filter(path => !snapshotSet.has(path));
-  const unexpected = records.filter(path => !dynamicSet.has(path));
-  const filesReady = routes.length > 0 && missing.length === 0 && unexpected.length === 0;
+  const unexpected = snapshotKeys.filter(path => !dynamicSet.has(path));
+  const filesReady = routes.length > 0 && records === dynamic && missing.length === 0 && unexpected.length === 0;
   return {
-    ok: filesReady && dynamicPaths.length > 0,
+    ok: filesReady && dynamic > 0,
     filesReady,
     routes: routes.length,
-    dynamic: dynamicPaths.length,
-    records: records.length,
+    dynamic,
+    records,
     missing,
     unexpected,
   };
@@ -119,4 +121,4 @@ for (let index = 0; index < delays.length; index += 1) {
 
 if (await restoreLastDeployedSnapshot()) process.exit(0);
 
-throw new Error('Could not build an authoritative Firestore SEO snapshot and could not validate the last deployed dynamic snapshot. Refusing to continue with a static-only production manifest.');
+throw new Error('Could not build an authoritative Firestore SEO snapshot and could not validate the last deployed dynamic snapshot. Refusing to continue with a static-only manifest.');
