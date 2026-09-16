@@ -89,7 +89,7 @@ export async function uploadDocument(file: File): Promise<DocumentAsset> {
   formData.append('file', file, file.name);
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
   formData.append('folder', 'dneprfilm/library/documents');
-  formData.append('public_id', `${sanitizeName(file.name)}-${Date.now()}`);
+  formData.append('public_id', `${sanitizeName(file.name)}-${Date.now()}.${extension}`);
 
   const response = await fetch(
     `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`,
