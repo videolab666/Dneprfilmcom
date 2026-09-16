@@ -1,1 +1,1 @@
-export { PageBuilderManager } from './PageBuilderManagerV3';
+export { PageBuilderManager } from './PageBuilderManagerV4';
