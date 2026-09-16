@@ -110,8 +110,8 @@ export function CmsPageComposer() {
     return syncComposerPage(page, composer.draft.pages[page] || composer.published.pages[page], resolvedBlocks);
   }, [composer, page, resolvedBlocks]);
 
-  const blockById = useMemo(() => new Map(resolvedBlocks.map(block => [block.id, block])), [resolvedBlocks]);
-  const storedById = useMemo(() => new Map(stored.map(block => [block.id, block])), [stored]);
+  const blockById = useMemo(() => new Map<string, BuilderSiteBlock>(resolvedBlocks.map(block => [block.id, block] as [string, BuilderSiteBlock])), [resolvedBlocks]);
+  const storedById = useMemo(() => new Map<string, StoredBuilderSiteBlock>(stored.map(block => [block.id, block] as [string, StoredBuilderSiteBlock])), [stored]);
 
   useEffect(() => {
     if (!layout) return;
@@ -126,7 +126,7 @@ export function CmsPageComposer() {
         if (rect.width < 1 || rect.height < 1) return;
         next.push({ id, left: rect.left, top: rect.top, width: rect.width, height: rect.height });
       });
-      const order = new Map(layout.items.map((item, index) => [item.id, index]));
+      const order = new Map<string, number>(layout.items.map((item, index) => [item.id, index] as [string, number]));
       next.sort((a, b) => (order.get(a.id) ?? 9999) - (order.get(b.id) ?? 9999));
       setRects(next);
     };
@@ -341,7 +341,6 @@ export function CmsPageComposer() {
   };
 
   const visibleRects = rects.filter(rect => layout.items.some(item => item.id === rect.id && item.enabled));
-  const rectById = new Map(visibleRects.map(rect => [rect.id, rect]));
   const hiddenItems = layout.items.filter(item => !item.enabled);
   const libraryGroups = PAGE_BUILDER_CATEGORIES.map(category => ({
     ...category,
