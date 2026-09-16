@@ -1,9 +1,8 @@
-import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PageBuilderRenderer as PageBuilderRendererV3 } from './PageBuilderRendererV3';
-import type { BuilderSiteBlock } from '../../lib/pageBuilder';
+import { PAGE_BUILDER_PAGES, type BuilderSiteBlock } from '../../lib/pageBuilder';
 import {
   pixelPerfectSectionById,
-  type PixelPerfectPage,
   type PixelPerfectSectionDefinition,
 } from '../../lib/pixelPerfectSections';
 
@@ -12,27 +11,76 @@ interface PageBuilderRendererProps {
   preview?: boolean;
 }
 
-const NativeLive = lazy(() => import('../../pages/LiveProduction').then(module => ({ default: module.LiveProduction })));
-const NativeVideo = lazy(() => import('../../pages/VideoProduction').then(module => ({ default: module.VideoProduction })));
-const NativeConstruction = lazy(() => import('../../pages/ConstructionMedia').then(module => ({ default: module.ConstructionMedia })));
-const NativePhoto = lazy(() => import('../../pages/PhotoProduction').then(module => ({ default: module.PhotoProduction })));
+interface NativeEmbedMessage {
+  type?: string;
+  sectionId?: string;
+  height?: number;
+  open?: boolean;
+  target?: string;
+  href?: string;
+  fallbackHref?: string;
+}
 
-const PAGE_COMPONENTS: Record<PixelPerfectPage, LazyExoticComponent<ComponentType>> = {
-  live: NativeLive,
-  video: NativeVideo,
-  construction: NativeConstruction,
-  photo: NativePhoto,
-};
+function sourcePath(section: PixelPerfectSectionDefinition): string {
+  return PAGE_BUILDER_PAGES.find(item => item.id === section.page)?.path || `/${section.page}`;
+}
 
-function NativePageSection({ section }: { section: PixelPerfectSectionDefinition }) {
-  const Page = PAGE_COMPONENTS[section.page];
-  const escapedId = section.id.replace(/"/g, '\\"');
-  const scope = `[data-cms-native-page-section="${escapedId}"]`;
-  const css = `
-    ${scope} > div { min-height: 0 !important; }
-    ${scope} > div > * { display: none !important; }
-    ${scope} > div > section:nth-of-type(${section.sectionIndex}) { display: block !important; }
-  `;
+function NativePageSection({ section, preview }: { section: PixelPerfectSectionDefinition; preview: boolean }) {
+  const [height, setHeight] = useState(520);
+  const [overlayOpen, setOverlayOpen] = useState(false);
+
+  const src = useMemo(() => {
+    const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+    const params = new URLSearchParams();
+    params.set('cmsNativeSection', section.id);
+    if (preview) params.set('cmsPreview', '1');
+    try {
+      const lang = new URLSearchParams(window.location.search).get('lang');
+      if (lang) params.set('lang', lang);
+    } catch {
+      // Browser-only component; keep default locale if URL parsing is unavailable.
+    }
+    return `${base}${sourcePath(section)}?${params.toString()}`;
+  }, [preview, section]);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent<NativeEmbedMessage>) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data;
+      if (!data || data.sectionId !== section.id) return;
+
+      if (data.type === 'cms-native-section-resize' && typeof data.height === 'number') {
+        setHeight(Math.max(80, Math.min(12000, Math.ceil(data.height))));
+        return;
+      }
+
+      if (data.type === 'cms-native-section-overlay') {
+        setOverlayOpen(Boolean(data.open));
+        return;
+      }
+
+      if (data.type === 'cms-native-section-anchor' && data.fallbackHref) {
+        window.location.assign(data.fallbackHref);
+        return;
+      }
+
+      if (data.type === 'cms-native-section-navigate' && data.href) {
+        window.location.assign(data.href);
+      }
+    };
+
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [section.id]);
+
+  useEffect(() => {
+    if (!overlayOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [overlayOpen]);
 
   return (
     <div
@@ -41,16 +89,24 @@ function NativePageSection({ section }: { section: PixelPerfectSectionDefinition
       data-cms-native-page={section.page}
       data-cms-native-section-index={section.sectionIndex}
     >
-      <style>{css}</style>
-      <Suspense fallback={<div className="min-h-48 bg-slate-50" aria-hidden="true" />}>
-        <Page />
-      </Suspense>
+      <iframe
+        src={src}
+        title={section.label}
+        loading="lazy"
+        scrolling="no"
+        allowFullScreen
+        className={overlayOpen
+          ? 'fixed inset-0 z-[2147483000] block h-screen w-screen border-0 bg-white'
+          : 'block w-full border-0 bg-transparent'}
+        style={overlayOpen ? undefined : { height: `${height}px` }}
+        data-cms-native-section-frame={section.id}
+      />
     </div>
   );
 }
 
 export function PageBuilderRenderer({ block, preview = false }: PageBuilderRendererProps) {
   const nativeSection = pixelPerfectSectionById(block.config.nativeSection);
-  if (nativeSection) return <NativePageSection section={nativeSection} />;
+  if (nativeSection) return <NativePageSection section={nativeSection} preview={preview} />;
   return <PageBuilderRendererV3 block={block} preview={preview} />;
 }
